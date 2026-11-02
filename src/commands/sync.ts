@@ -1,20 +1,30 @@
-import { applySync, planSync, publicSyncPlan, SyncError } from '../core/sync.js';
+import { HubError } from '../core/errors.js';
+import { applySync, planSync, publicSyncPlan } from '../core/sync.js';
 import { applyRestore, planRestore, publicRestorePlan } from '../core/restore.js';
 import { printJson, table } from '../core/output.js';
 import type { ClientId } from '../core/types.js';
 
-interface Options { apply?: boolean; dryRun?: boolean; client?: string; expect?: string; json?: boolean }
+interface Options {
+  apply?: boolean;
+  dryRun?: boolean;
+  client?: string;
+  expect?: string;
+  json?: boolean;
+}
 
 export async function syncCommand(opts: Options) {
-  if (opts.apply && opts.dryRun) throw new SyncError('Choose --dry-run or --apply, not both.');
+  if (opts.apply && opts.dryRun) throw new HubError('Choose --dry-run or --apply, not both.');
   const plan = await planSync({ client: opts.client as ClientId | undefined });
-  if (opts.expect && opts.expect !== plan.revision) throw new SyncError('Configuration changed since that dry run. Review a new plan.');
+  if (opts.expect && opts.expect !== plan.revision)
+    throw new HubError('Configuration changed since that dry run. Review a new plan.');
   const preview = publicSyncPlan(plan);
   if (opts.apply) {
     const result = await applySync(plan);
     if (opts.json) printJson({ ...preview, dryRun: false, result });
     else {
-      console.log(`Synced ${result.changedFiles} client file(s).${result.backup ? ` Backup: ${result.backup}` : ''}`);
+      console.log(
+        `Synced ${result.changedFiles} client file(s).${result.backup ? ` Backup: ${result.backup}` : ''}`,
+      );
       if (result.restoreCommand) console.log(`\nPreview rollback:\n${result.restoreCommand}`);
       console.log('Restart the affected clients to load their new MCP configuration.');
     }
@@ -26,29 +36,58 @@ export async function syncCommand(opts: Options) {
     for (const file of preview.files) {
       console.log(`\n${file.label} → ${file.path}${file.changed ? '' : ' (unchanged)'}`);
       if (file.problem) console.log(`  BLOCKED: ${file.problem}`);
-      console.log(table(['server', 'action', 'note'], file.rows.map((r) => [r.name, r.action, r.note ?? ''])));
-      for (const row of file.rows) if (['add', 'replace'].includes(row.action) && row.command) console.log(`  ${row.name}: ${row.command}`);
+      console.log(
+        table(
+          ['server', 'action', 'note'],
+          file.rows.map((r) => [r.name, r.action, r.note ?? '']),
+        ),
+      );
+      for (const row of file.rows)
+        if (['add', 'replace'].includes(row.action) && row.command)
+          console.log(`  ${row.name}: ${row.command}`);
     }
-    console.log(`\n${preview.files.filter((f) => f.changed).length} client file(s) would change. Backups are created only on apply.`);
-    console.log(plan.blocked ? '\nBlocked by conflicts. Review the entries above or select an unaffected --client.' : `\nApply this exact plan:\n${preview.commands.apply}`);
+    console.log(
+      `\n${preview.files.filter((f) => f.changed).length} client file(s) would change. Backups are created only on apply.`,
+    );
+    console.log(
+      plan.blocked
+        ? '\nBlocked by conflicts. Review the entries above or select an unaffected --client.'
+        : `\nApply this exact plan:\n${preview.commands.apply}`,
+    );
   }
   if (plan.blocked) process.exitCode = 1;
 }
 
 export async function restoreCommand(id: string, opts: Options) {
-  if (opts.apply && opts.dryRun) throw new SyncError('Choose --dry-run or --apply, not both.');
+  if (opts.apply && opts.dryRun) throw new HubError('Choose --dry-run or --apply, not both.');
   const plan = await planRestore(id);
-  if (opts.expect && opts.expect !== plan.revision) throw new SyncError('Configuration changed since that restore preview.');
+  if (opts.expect && opts.expect !== plan.revision)
+    throw new HubError('Configuration changed since that restore preview.');
   const preview = publicRestorePlan(plan);
   if (opts.apply) {
     const result = await applyRestore(plan);
-    if (opts.json) printJson(result); else console.log(`Restored ${result.restoredFiles} client file(s). Restart affected clients.`);
+    if (opts.json) printJson(result);
+    else console.log(`Restored ${result.restoredFiles} client file(s). Restart affected clients.`);
   } else {
     if (opts.json) printJson({ ...preview, dryRun: true });
     else {
       console.log(`Restore ${id} — dry run. No files written.`);
-      console.log(table(['client', 'file', 'action', 'review'], preview.files.map((f) => [f.client, f.path, f.action, f.conflict ? 'changed after sync' : 'ready'])));
-      console.log(preview.blocked ? '\nBlocked: client configuration or sync state changed after this backup.' : `\nApply rollback:\n${preview.applyCommand}`);
+      console.log(
+        table(
+          ['client', 'file', 'action', 'review'],
+          preview.files.map((f) => [
+            f.client,
+            f.path,
+            f.action,
+            f.conflict ? 'changed after sync' : 'ready',
+          ]),
+        ),
+      );
+      console.log(
+        preview.blocked
+          ? '\nBlocked: client configuration or sync state changed after this backup.'
+          : `\nApply rollback:\n${preview.applyCommand}`,
+      );
     }
     if (plan.blocked) process.exitCode = 1;
   }

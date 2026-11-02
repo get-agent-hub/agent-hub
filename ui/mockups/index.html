@@ -1,105 +1,233 @@
 <!doctype html>
 <html lang="ru">
-<head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Overview — agent-hub</title>
-<link rel="stylesheet" href="app.css">
-</head>
-<body>
-<div class="app">
-  <aside class="sidebar" data-active="overview"></aside>
-  <main class="main">
-    <div class="topbar">
-      <h1>Overview</h1>
-      <span class="spacer"></span>
-      <input class="input" placeholder="Search skills, MCP, memory, sessions…"> <span class="kbd">⌘K</span>
-      <button class="btn">Import from clients</button>
-      <button class="btn primary">Sync → clients</button>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Overview — agent-hub</title>
+    <link rel="stylesheet" href="../app/base.css" />
+  </head>
+  <body>
+    <div class="app">
+      <aside class="sidebar" data-active="overview"></aside>
+      <main class="main">
+        <div class="topbar">
+          <h1>Overview</h1>
+          <span class="spacer"></span>
+          <input class="input" placeholder="Search skills, MCP, memory, sessions…" />
+          <span class="kbd">⌘K</span>
+          <button class="btn">Import from clients</button>
+          <button class="btn primary">Sync → clients</button>
+        </div>
+
+        <div class="content">
+          <div class="banner">
+            <span class="pill warn"><span class="dot"></span>Drift</span>
+            <div>
+              <span class="t">19 items exist only in clients, 1 broken.</span>
+              <span class="muted"
+                >Hub doesn't know about them yet — import them to make the hub the source of
+                truth.</span
+              >
+            </div>
+            <span class="spacer" style="flex: 1"></span>
+            <button class="btn sm">Review</button>
+            <button class="btn sm primary">Import all</button>
+          </div>
+
+          <div class="grid g-4" style="margin-top: 16px">
+            <div class="card stat">
+              <div class="k">Skills</div>
+              <div class="v">11</div>
+              <div class="s">all 3 clients linked</div>
+            </div>
+            <div class="card stat">
+              <div class="k">MCP servers</div>
+              <div class="v">12</div>
+              <div class="s">4 in DSH · 6 with inline secrets</div>
+            </div>
+            <div class="card stat">
+              <div class="k">Memory facts</div>
+              <div class="v">5</div>
+              <div class="s">shared with 3 clients</div>
+            </div>
+            <div class="card stat">
+              <div class="k">Sessions indexed</div>
+              <div class="v">510</div>
+              <div class="s">94 Claude · 416 Codex · 6 DSH</div>
+            </div>
+          </div>
+
+          <div class="section-title" id="clients">Clients</div>
+          <div class="grid g-3">
+            <div class="card client">
+              <div class="name">
+                <span class="icon" style="background: #d97757">C</span>Claude Code
+                <span class="pill ok" style="margin-left: auto"
+                  ><span class="dot"></span>in sync</span
+                >
+              </div>
+              <dl>
+                <dt>Skills</dt>
+                <dd>11 linked · <span style="color: var(--err)">1 broken</span></dd>
+                <dt>MCP</dt>
+                <dd>6 servers</dd>
+                <dt>Instructions</dt>
+                <dd class="mono">@AGENTS.md</dd>
+                <dt>Memory</dt>
+                <dd>symlinked</dd>
+                <dt>Config</dt>
+                <dd class="mono faint">~/.claude.json</dd>
+              </dl>
+            </div>
+            <div class="card client">
+              <div class="name">
+                <span class="icon" style="background: #10a37f">X</span>Codex CLI
+                <span class="pill warn" style="margin-left: auto"
+                  ><span class="dot"></span>9 drift</span
+                >
+              </div>
+              <dl>
+                <dt>Skills</dt>
+                <dd>11 via ~/.agents/skills</dd>
+                <dt>MCP</dt>
+                <dd>9 servers · 6 not in hub</dd>
+                <dt>Instructions</dt>
+                <dd class="mono">AGENTS.md → hub</dd>
+                <dt>Memory</dt>
+                <dd>index embedded</dd>
+                <dt>Config</dt>
+                <dd class="mono faint">~/.codex/config.toml</dd>
+              </dl>
+            </div>
+            <div class="card client">
+              <div class="name">
+                <span class="icon" style="background: #4d6bfe">D</span>DeepSeek Harness
+                <span class="pill warn" style="margin-left: auto"
+                  ><span class="dot"></span>4 drift</span
+                >
+              </div>
+              <dl>
+                <dt>Skills</dt>
+                <dd>11 via ~/.agents/skills</dd>
+                <dt>MCP</dt>
+                <dd>4 servers · via launcher</dd>
+                <dt>Profile</dt>
+                <dd class="mono">web</dd>
+                <dt>Memory</dt>
+                <dd>index embedded</dd>
+                <dt>Config</dt>
+                <dd class="mono faint">profiles/web/cordis.patch.yml</dd>
+              </dl>
+            </div>
+          </div>
+
+          <div class="grid g-2-1" style="margin-top: 16px">
+            <div class="card">
+              <div class="card-h">
+                <h2>Needs attention</h2>
+                <span class="spacer" style="flex: 1"></span
+                ><a class="faint" href="mcp.html">All MCP →</a>
+              </div>
+              <ul class="list">
+                <li>
+                  <span class="mark err">✗</span>
+                  <div>
+                    <b>synced</b> <span class="muted">— skill dir without SKILL.md in Claude</span>
+                  </div>
+                  <span class="meta"><button class="btn sm ghost">Remove</button></span>
+                </li>
+                <li>
+                  <span class="mark warn">!</span>
+                  <div>
+                    <b>atlassian</b> <span class="muted">— token stored inline in 2 configs</span>
+                  </div>
+                  <span class="meta"><button class="btn sm">Move to .env</button></span>
+                </li>
+                <li>
+                  <span class="mark warn">!</span>
+                  <div>
+                    <b>replicate</b> <span class="muted">— only in Claude, inline secret</span>
+                  </div>
+                  <span class="meta"><button class="btn sm">Import</button></span>
+                </li>
+                <li>
+                  <span class="mark warn">≠</span>
+                  <div>
+                    <b>firecrawl</b>
+                    <span class="muted"
+                      >— DSH uses bridge, Claude direct (expected after sync)</span
+                    >
+                  </div>
+                  <span class="meta"><button class="btn sm ghost">Details</button></span>
+                </li>
+                <li>
+                  <span class="mark warn">!</span>
+                  <div>
+                    <b>achat, telegram-mcp, core-components</b>
+                    <span class="muted">— only in Codex</span>
+                  </div>
+                  <span class="meta"><button class="btn sm">Import 3</button></span>
+                </li>
+              </ul>
+            </div>
+            <div class="card">
+              <div class="card-h">
+                <h2>Active tasks</h2>
+                <span class="spacer" style="flex: 1"></span
+                ><a class="faint" href="repos.html">Repos →</a>
+              </div>
+              <ul class="list">
+                <li>
+                  <div>
+                    <b>nova-connect</b>
+                    <div class="faint" style="font-size: 12px">
+                      OAuth broker · feat/oauth-broker
+                    </div>
+                  </div>
+                  <span class="meta">Claude · 2h</span>
+                </li>
+                <li>
+                  <div>
+                    <b>agent-hub</b>
+                    <div class="faint" style="font-size: 12px">CLI skeleton · main</div>
+                  </div>
+                  <span class="meta">Claude · now</span>
+                </li>
+                <li>
+                  <div>
+                    <b>corp-tariffs-ui</b>
+                    <div class="faint" style="font-size: 12px">tariff table refactor</div>
+                  </div>
+                  <span class="meta">Codex · 1d</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="section-title">Recent hub changes</div>
+          <div class="card">
+            <ul class="list mono" style="font-size: 12.5px">
+              <li>
+                <span class="pill accent">sync</span> mcp: wrote 4 servers → dsh/web
+                <span class="meta">04:24</span>
+              </li>
+              <li>
+                <span class="pill">import</span> mcp: google-workspace, figma-bridge from claude
+                <span class="meta">04:20</span>
+              </li>
+              <li>
+                <span class="pill">skill</span> linked 11 skills into ~/.claude/skills,
+                ~/.agents/skills <span class="meta">02:01</span>
+              </li>
+              <li>
+                <span class="pill">init</span> hub created at ~/.agent-hub
+                <span class="meta">01:55</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </main>
     </div>
-
-    <div class="content">
-      <div class="banner">
-        <span class="pill warn"><span class="dot"></span>Drift</span>
-        <div><span class="t">19 items exist only in clients, 1 broken.</span> <span class="muted">Hub doesn't know about them yet — import them to make the hub the source of truth.</span></div>
-        <span class="spacer" style="flex:1"></span>
-        <button class="btn sm">Review</button>
-        <button class="btn sm primary">Import all</button>
-      </div>
-
-      <div class="grid g-4" style="margin-top:16px">
-        <div class="card stat"><div class="k">Skills</div><div class="v">11</div><div class="s">all 3 clients linked</div></div>
-        <div class="card stat"><div class="k">MCP servers</div><div class="v">12</div><div class="s">4 in DSH · 6 with inline secrets</div></div>
-        <div class="card stat"><div class="k">Memory facts</div><div class="v">5</div><div class="s">shared with 3 clients</div></div>
-        <div class="card stat"><div class="k">Sessions indexed</div><div class="v">510</div><div class="s">94 Claude · 416 Codex · 6 DSH</div></div>
-      </div>
-
-      <div class="section-title" id="clients">Clients</div>
-      <div class="grid g-3">
-        <div class="card client">
-          <div class="name"><span class="icon" style="background:#d97757">C</span>Claude Code <span class="pill ok" style="margin-left:auto"><span class="dot"></span>in sync</span></div>
-          <dl>
-            <dt>Skills</dt><dd>11 linked · <span style="color:var(--err)">1 broken</span></dd>
-            <dt>MCP</dt><dd>6 servers</dd>
-            <dt>Instructions</dt><dd class="mono">@AGENTS.md</dd>
-            <dt>Memory</dt><dd>symlinked</dd>
-            <dt>Config</dt><dd class="mono faint">~/.claude.json</dd>
-          </dl>
-        </div>
-        <div class="card client">
-          <div class="name"><span class="icon" style="background:#10a37f">X</span>Codex CLI <span class="pill warn" style="margin-left:auto"><span class="dot"></span>9 drift</span></div>
-          <dl>
-            <dt>Skills</dt><dd>11 via ~/.agents/skills</dd>
-            <dt>MCP</dt><dd>9 servers · 6 not in hub</dd>
-            <dt>Instructions</dt><dd class="mono">AGENTS.md → hub</dd>
-            <dt>Memory</dt><dd>index embedded</dd>
-            <dt>Config</dt><dd class="mono faint">~/.codex/config.toml</dd>
-          </dl>
-        </div>
-        <div class="card client">
-          <div class="name"><span class="icon" style="background:#4d6bfe">D</span>DeepSeek Harness <span class="pill warn" style="margin-left:auto"><span class="dot"></span>4 drift</span></div>
-          <dl>
-            <dt>Skills</dt><dd>11 via ~/.agents/skills</dd>
-            <dt>MCP</dt><dd>4 servers · via launcher</dd>
-            <dt>Profile</dt><dd class="mono">web</dd>
-            <dt>Memory</dt><dd>index embedded</dd>
-            <dt>Config</dt><dd class="mono faint">profiles/web/cordis.patch.yml</dd>
-          </dl>
-        </div>
-      </div>
-
-      <div class="grid g-2-1" style="margin-top:16px">
-        <div class="card">
-          <div class="card-h"><h2>Needs attention</h2><span class="spacer" style="flex:1"></span><a class="faint" href="mcp.html">All MCP →</a></div>
-          <ul class="list">
-            <li><span class="mark err">✗</span><div><b>synced</b> <span class="muted">— skill dir without SKILL.md in Claude</span></div><span class="meta"><button class="btn sm ghost">Remove</button></span></li>
-            <li><span class="mark warn">!</span><div><b>atlassian</b> <span class="muted">— token stored inline in 2 configs</span></div><span class="meta"><button class="btn sm">Move to .env</button></span></li>
-            <li><span class="mark warn">!</span><div><b>replicate</b> <span class="muted">— only in Claude, inline secret</span></div><span class="meta"><button class="btn sm">Import</button></span></li>
-            <li><span class="mark warn">≠</span><div><b>firecrawl</b> <span class="muted">— DSH uses bridge, Claude direct (expected after sync)</span></div><span class="meta"><button class="btn sm ghost">Details</button></span></li>
-            <li><span class="mark warn">!</span><div><b>achat, telegram-mcp, core-components</b> <span class="muted">— only in Codex</span></div><span class="meta"><button class="btn sm">Import 3</button></span></li>
-          </ul>
-        </div>
-        <div class="card">
-          <div class="card-h"><h2>Active tasks</h2><span class="spacer" style="flex:1"></span><a class="faint" href="repos.html">Repos →</a></div>
-          <ul class="list">
-            <li><div><b>nova-connect</b><div class="faint" style="font-size:12px">OAuth broker · feat/oauth-broker</div></div><span class="meta">Claude · 2h</span></li>
-            <li><div><b>agent-hub</b><div class="faint" style="font-size:12px">CLI skeleton · main</div></div><span class="meta">Claude · now</span></li>
-            <li><div><b>corp-tariffs-ui</b><div class="faint" style="font-size:12px">tariff table refactor</div></div><span class="meta">Codex · 1d</span></li>
-          </ul>
-        </div>
-      </div>
-
-      <div class="section-title">Recent hub changes</div>
-      <div class="card">
-        <ul class="list mono" style="font-size:12.5px">
-          <li><span class="pill accent">sync</span> mcp: wrote 4 servers → dsh/web <span class="meta">04:24</span></li>
-          <li><span class="pill">import</span> mcp: google-workspace, figma-bridge from claude <span class="meta">04:20</span></li>
-          <li><span class="pill">skill</span> linked 11 skills into ~/.claude/skills, ~/.agents/skills <span class="meta">02:01</span></li>
-          <li><span class="pill">init</span> hub created at ~/.agent-hub <span class="meta">01:55</span></li>
-        </ul>
-      </div>
-    </div>
-  </main>
-</div>
-<script src="nav.js"></script>
-</body>
+    <script src="nav.js"></script>
+  </body>
 </html>

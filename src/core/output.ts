@@ -16,7 +16,10 @@ const visible = (s: string) => s.replace(/\x1b\[[0-9;]*m/g, '').length;
 export function table(head: string[], rows: string[][]): string {
   const widths = head.map((h, i) => Math.max(visible(h), ...rows.map((r) => visible(r[i] ?? ''))));
   const line = (cells: string[]) =>
-    cells.map((cell, i) => cell + ' '.repeat(widths[i] - visible(cell))).join('  ').trimEnd();
+    cells
+      .map((cell, i) => cell + ' '.repeat(widths[i] - visible(cell)))
+      .join('  ')
+      .trimEnd();
   return [c.bold(line(head)), ...rows.map(line)].join('\n');
 }
 

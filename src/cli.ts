@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { Command } from 'commander';
+import { packageVersion } from './core/package.js';
 import { importCommand } from './commands/import.js';
 import { initCommand } from './commands/init.js';
 import { mcpLsCommand, mcpRunCommand } from './commands/mcp.js';
@@ -13,8 +14,10 @@ const program = new Command();
 
 program
   .name('ahub')
-  .description('Single source of truth for your AI coding agents: skills, MCP, instructions, memory, task state.')
-  .version('0.0.0');
+  .description(
+    'Single source of truth for your AI coding agents: skills, MCP, instructions, memory, task state.',
+  )
+  .version(packageVersion);
 
 program
   .command('status')
@@ -46,13 +49,20 @@ program
   .option('--overwrite', 'replace servers that already exist in the hub')
   .option('--json', 'machine-readable output')
   .action(importCommand);
-program.command('doctor [name]').description('check MCP startup, tool discovery, skills and .env permissions')
+program
+  .command('doctor [name]')
+  .description('check MCP startup, tool discovery, skills and .env permissions')
   .option('--timeout <seconds>', 'total time limit per server (0.1–120)', '20')
   .option('--client <id>', 'check only the servers enabled for this client')
   .option('--json', 'machine-readable report without raw server logs')
   .action(doctorCommand);
-program.command('init-repo').description('add AGENTS.md + .agents/state/{PROJECT,NOW}.md to current repo').action(notImplemented('init-repo', '7'));
-program.command('restore <backup>').description('preview rollback of client configs from a sync backup')
+program
+  .command('init-repo')
+  .description('add AGENTS.md + .agents/state/{PROJECT,NOW}.md to current repo')
+  .action(notImplemented('init-repo', '7'));
+program
+  .command('restore <backup>')
+  .description('preview rollback of client configs from a sync backup')
   .option('--apply', 'restore original files')
   .option('--dry-run', 'show rollback without writing (default)')
   .option('--expect <revision>', 'apply only if this reviewed revision still matches')
@@ -60,22 +70,31 @@ program.command('restore <backup>').description('preview rollback of client conf
   .action(restoreCommand);
 
 const mcp = program.command('mcp').description('manage MCP registry');
-mcp.command('ls').description('list servers in the hub registry').option('--json').action(mcpLsCommand);
+mcp
+  .command('ls')
+  .description('list servers in the hub registry')
+  .option('--json')
+  .action(mcpLsCommand);
 mcp.command('add <name>').action(notImplemented('mcp add', '4'));
 mcp.command('rm <name>').action(notImplemented('mcp rm', '4'));
-mcp.command('run <name>').description('launcher: start MCP over stdio with secrets from .env').action(mcpRunCommand);
+mcp
+  .command('run <name>')
+  .description('launcher: start MCP over stdio with secrets from .env')
+  .action(mcpRunCommand);
 
 const skill = program.command('skill').description('manage skills');
 skill.command('ls').action(notImplemented('skill ls', '3'));
 skill.command('add <source>').action(notImplemented('skill add', '3'));
 skill.command('rm <name>').action(notImplemented('skill rm', '3'));
 
-program.command('ui').description('open local web UI')
+program
+  .command('ui')
+  .description('open local web UI')
   .option('--port <number>', 'local port (0 picks a free port)', '3082')
   .option('--no-open', 'do not open a browser automatically')
   .action(uiCommand);
 
 program.parseAsync().catch((err: unknown) => {
   console.error(err instanceof Error ? err.message : err);
-  process.exit(1);
+  process.exitCode = 1;
 });

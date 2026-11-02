@@ -1,4 +1,5 @@
-export type ClientId = 'claude-code' | 'codex' | 'dsh';
+export const CLIENT_IDS = ['claude-code', 'codex', 'dsh'] as const;
+export type ClientId = (typeof CLIENT_IDS)[number];
 
 export interface DetectResult {
   installed: boolean;

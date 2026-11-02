@@ -21,7 +21,10 @@ export async function confirm(question: string, def = true): Promise<boolean> {
 
 export async function choose<T extends string>(question: string, options: T[], def: T): Promise<T> {
   if (!interactive()) return def;
-  const a = await ask(`${question} ${options.map((o, i) => `${i + 1}) ${o}`).join('  ')}`, String(options.indexOf(def) + 1));
+  const a = await ask(
+    `${question} ${options.map((o, i) => `${i + 1}) ${o}`).join('  ')}`,
+    String(options.indexOf(def) + 1),
+  );
   const n = Number(a);
   return options[n - 1] ?? (options.includes(a as T) ? (a as T) : def);
 }

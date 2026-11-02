@@ -1,66 +1,64 @@
-import fs from 'node:fs/promises';
+import { HubError } from './errors.js';
+import { readOptionalText } from './file-store.js';
 
-/**
- * Minimal .env reader/writer. Preserves existing lines and comments; appends new keys.
- * Values are written single-quoted when they contain special characters.
- */
+const ASSIGNMENT = /^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/;
+const DOUBLE_QUOTED = /^"((?:\\[\s\S]|[^"\\])*)"\s*(?:#.*)?$/;
+const SINGLE_QUOTED = /^'([^']*)'\s*(?:#.*)?$/;
 
-const LINE = /^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$/;
-
-function unquote(raw: string): string {
-  const v = raw.trim();
-  if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
-    const inner = v.slice(1, -1);
-    return v.startsWith('"') ? inner.replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\\\/g, '\\') : inner;
+/** Read dotenv values without expanding references or modifying process.env. */
+export function parseEnvText(text: string): Map<string, string> {
+  const result = new Map<string, string>();
+  const lines = text.split(/\r?\n/);
+  for (let index = 0; index < lines.length; index++) {
+    const match = ASSIGNMENT.exec(lines[index]);
+    if (!match) continue;
+    let raw = match[2].trim();
+    const quote = raw[0];
+    if (quote === '"' || quote === "'") {
+      const pattern = quote === '"' ? DOUBLE_QUOTED : SINGLE_QUOTED;
+      while (!pattern.test(raw) && index + 1 < lines.length) raw += `\n${lines[++index]}`;
+      const quoted = pattern.exec(raw);
+      if (!quoted)
+        throw new HubError(
+          'Cannot parse a quoted .env value. Check quoting without sharing credentials.',
+        );
+      const escapes: Record<string, string> = { n: '\n', r: '\r', t: '\t', '"': '"', '\\': '\\' };
+      result.set(
+        match[1],
+        quote === "'"
+          ? quoted[1]
+          : quoted[1].replace(/\\([nrt"\\])/g, (_, char: string) => escapes[char]),
+      );
+    } else result.set(match[1], raw.replace(/\s+#.*$/, ''));
   }
-  return v.replace(/\s+#.*$/, '');
-}
-
-function quote(v: string): string {
-  if (/^[A-Za-z0-9_./:@%+,-]*$/.test(v)) return v;
-  if (!v.includes("'")) return `'${v}'`;
-  return `"${v.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n')}"`;
+  return result;
 }
 
 export async function readEnvFile(file: string): Promise<Map<string, string>> {
-  const out = new Map<string, string>();
-  let text: string;
-  try {
-    text = await fs.readFile(file, 'utf8');
-  } catch {
-    return out;
-  }
-  for (const line of text.split('\n')) {
-    const m = LINE.exec(line);
-    if (m) out.set(m[1], unquote(m[2]));
-  }
-  return out;
+  return parseEnvText((await readOptionalText(file)) ?? '');
 }
 
-/** Append keys that are not present yet. Throws if a key exists with a different value. */
-export async function appendEnv(file: string, vars: Map<string, string>, comment?: string): Promise<string[]> {
-  const existing = await readEnvFile(file);
+/** Preserve existing text and append only new keys; credentials never enter error messages. */
+export function renderEnvAppend(current: string, vars: Map<string, string>, comment?: string) {
+  const existing = parseEnvText(current);
   const added: string[] = [];
   const lines: string[] = [];
-  for (const [k, v] of vars) {
-    if (existing.has(k)) {
-      if (existing.get(k) !== v) throw new Error(`.env already has ${k} with a different value`);
+  for (const [key, value] of vars) {
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key))
+      throw new HubError('Invalid environment variable name.');
+    if (existing.has(key)) {
+      if (existing.get(key) !== value)
+        throw new HubError(`.env already has ${key} with a different value.`);
       continue;
     }
-    lines.push(`${k}=${quote(v)}`);
-    added.push(k);
+    const encoded = /^[A-Za-z0-9_./:@%+,-]*$/.test(value) ? value : JSON.stringify(value);
+    lines.push(`${key}=${encoded}`);
+    added.push(key);
   }
-  if (lines.length) {
-    let prefix = '';
-    try {
-      const cur = await fs.readFile(file, 'utf8');
-      if (cur.length && !cur.endsWith('\n')) prefix = '\n';
-    } catch {
-      /* new file */
-    }
-    const block = `${prefix}${comment ? `\n# ${comment}\n` : ''}${lines.join('\n')}\n`;
-    await fs.appendFile(file, block, { mode: 0o600 });
-  }
-  await fs.chmod(file, 0o600).catch(() => undefined);
-  return added;
+  const prefix = current && !current.endsWith('\n') ? '\n' : '';
+  const label = comment ? `\n# ${comment.replace(/[\r\n]/g, ' ')}\n` : '';
+  return {
+    content: lines.length ? `${current}${prefix}${label}${lines.join('\n')}\n` : current,
+    added,
+  };
 }

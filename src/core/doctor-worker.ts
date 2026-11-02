@@ -1,3 +1,4 @@
+import { packageVersion } from './package.js';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { fileURLToPath } from 'node:url';
@@ -8,14 +9,23 @@ const timeoutMs = Number(process.argv[3]);
 let reported = false;
 let phase: DoctorPhase = 'initialize';
 let stderr = '';
-const client = new Client({ name: 'agent-hub-doctor', version: '0.1.0' }, { capabilities: {} });
-const env = Object.fromEntries(Object.entries(process.env).filter((entry): entry is [string, string] => entry[1] !== undefined));
+const client = new Client(
+  { name: 'agent-hub-doctor', version: packageVersion },
+  { capabilities: {} },
+);
+const env = Object.fromEntries(
+  Object.entries(process.env).filter((entry): entry is [string, string] => entry[1] !== undefined),
+);
 const transport = new StdioClientTransport({
   command: process.execPath,
   args: [fileURLToPath(new URL('../../dist/cli.js', import.meta.url)), 'mcp', 'run', name],
-  env, stderr: 'pipe', maxBufferSize: 4 * 1024 * 1024,
+  env,
+  stderr: 'pipe',
+  maxBufferSize: 4 * 1024 * 1024,
 });
-transport.stderr?.on('data', (chunk: Buffer) => { stderr = (stderr + chunk.toString('utf8')).slice(-8192); });
+transport.stderr?.on('data', (chunk: Buffer) => {
+  stderr = (stderr + chunk.toString('utf8')).slice(-8192);
+});
 
 function report(result: ProbeResult) {
   if (reported) return;
@@ -23,20 +33,35 @@ function report(result: ProbeResult) {
   process.send?.(result);
 }
 
-client.onerror = (error) => report({ status: 'failed', phase, tools: null, error: classifyFailure(error, stderr) });
+client.onerror = (error) =>
+  report({ status: 'failed', phase, tools: null, error: classifyFailure(error, stderr) });
 // A killed doctor must not leave its launcher or the server running.
 process.on('disconnect', () => {
-  if (process.platform !== 'win32') { try { process.kill(-process.pid, 'SIGTERM'); } catch { /* group already exited */ } }
+  if (process.platform !== 'win32') {
+    try {
+      process.kill(-process.pid, 'SIGTERM');
+    } catch {
+      /* group already exited */
+    }
+  }
   process.exit(0);
 });
 
 try {
   if (!name || !Number.isFinite(timeoutMs)) throw new Error('Invalid worker configuration');
   const deadline = Date.now() + timeoutMs;
-  const requestOptions = () => ({ timeout: Math.max(1, deadline - Date.now()), resetTimeoutOnProgress: false });
+  const requestOptions = () => ({
+    timeout: Math.max(1, deadline - Date.now()),
+    resetTimeoutOnProgress: false,
+  });
   await client.connect(transport, requestOptions());
   if (!client.getServerCapabilities()?.tools) {
-    report({ status: 'ok', phase: 'initialize', tools: null, note: 'Connected; this server does not advertise tools.' });
+    report({
+      status: 'ok',
+      phase: 'initialize',
+      tools: null,
+      note: 'Connected; this server does not advertise tools.',
+    });
   } else {
     phase = 'tools/list';
     process.send?.({ event: 'phase', phase });
@@ -52,7 +77,8 @@ try {
         names.add(tool.name);
       }
       cursor = page.nextCursor;
-      if (pages > 100 || names.size > 10000 || (cursor && cursors.has(cursor))) throw new Error('Invalid pagination response');
+      if (pages > 100 || names.size > 10000 || (cursor && cursors.has(cursor)))
+        throw new Error('Invalid pagination response');
       if (cursor) cursors.add(cursor);
     } while (cursor);
     report({ status: 'ok', phase, tools: names.size, pages });

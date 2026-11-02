@@ -1,10 +1,9 @@
+import { readDefinitions } from '../core/config-edit.js';
 import path from 'node:path';
 import { clientPaths } from '../core/paths.js';
-import { exists, listSkills, readJson } from '../core/fs.js';
+import { exists, listSkills, readText } from '../core/fs.js';
 import { toMcpEntry } from '../core/mcp.js';
 import type { ClientAdapter, ClientSnapshot, DetectResult, RawMcp } from '../core/types.js';
-
-type ClaudeJson = { mcpServers?: Record<string, Record<string, unknown>> };
 
 export const claudeAdapter: ClientAdapter = {
   id: 'claude-code',
@@ -21,8 +20,9 @@ export const claudeAdapter: ClientAdapter = {
 
   async readMcpRaw(): Promise<RawMcp[]> {
     const cfgPath = clientPaths.claudeJson();
-    const cfg = (await readJson<ClaudeJson>(cfgPath)) ?? {};
-    return Object.entries(cfg.mcpServers ?? {}).map(([name, raw]) => ({ name, raw, source: `${cfgPath}#mcpServers` }));
+    return [...readDefinitions('claude-code', (await readText(cfgPath)) ?? null)].map(
+      ([name, raw]) => ({ name, raw, source: cfgPath }),
+    );
   },
 
   async read(): Promise<ClientSnapshot> {

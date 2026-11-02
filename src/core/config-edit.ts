@@ -5,13 +5,8 @@ import type { ClientId } from './types.js';
 export const MCP_PLUGIN = '@deepseek-ai/dsh-mcp-client';
 export type Definition = Record<string, unknown>;
 
-export class SyncError extends Error {
-  constructor(message: string) { super(message); this.name = 'SyncError'; }
-}
-
-export function object(value: unknown): value is Definition {
-  return !!value && typeof value === 'object' && !Array.isArray(value);
-}
+import { HubError } from './errors.js';
+import { isRecord } from './values.js';
 
 function tomlSections(text: string) {
   const sections: { start: number; end: number; parts: string[] }[] = [];
@@ -23,25 +18,32 @@ function tomlSections(text: string) {
       try {
         let node: unknown = parseToml(`${header}\n__ahub_probe__ = true\n`);
         const parts: string[] = [];
-        while (object(node) && !Object.hasOwn(node, '__ahub_probe__')) {
+        while (isRecord(node) && !Object.hasOwn(node, '__ahub_probe__')) {
           const key = Object.keys(node)[0];
-          parts.push(key); node = node[key];
+          parts.push(key);
+          node = node[key];
           if (Array.isArray(node)) node = node[0];
         }
         if (sections.length) sections[sections.length - 1].end = offset;
         sections.push({ start: offset, end: text.length, parts });
-      } catch { throw new SyncError('Cannot safely identify TOML table boundaries.'); }
+      } catch {
+        throw new HubError('Cannot safely identify TOML table boundaries.');
+      }
     }
     // Do not mistake table-looking text inside multiline TOML strings for headers.
     for (let i = 0; i < line.length; i++) {
       const char = line[i];
       if (!quote && char === '#') break;
       if (quote === '"""' || quote === "'''") {
-        if (quote === '"""' && char === '\\') { i++; continue; }
+        if (quote === '"""' && char === '\\') {
+          i++;
+          continue;
+        }
         if (line.slice(i, i + 3) === quote) {
           let run = 3;
           while (line[i + run] === quote[0]) run++;
-          i += run - 1; quote = '';
+          i += run - 1;
+          quote = '';
         }
       } else if (quote) {
         if (quote === '"' && char === '\\') i++;
@@ -59,10 +61,11 @@ function tomlSections(text: string) {
 export function readDefinitions(client: ClientId, text: string | null): Map<string, Definition> {
   try {
     if (client !== 'dsh') {
-      const doc: unknown = text === null ? {} : client === 'codex' ? parseToml(text) : JSON.parse(text);
-      if (!object(doc)) throw new Error();
+      const doc: unknown =
+        text === null ? {} : client === 'codex' ? parseToml(text) : JSON.parse(text);
+      if (!isRecord(doc)) throw new Error();
       const entries = doc[client === 'codex' ? 'mcp_servers' : 'mcpServers'] ?? {};
-      if (!object(entries) || Object.values(entries).some((v) => !object(v))) throw new Error();
+      if (!isRecord(entries) || Object.values(entries).some((v) => !isRecord(v))) throw new Error();
       return new Map(Object.entries(entries) as [string, Definition][]);
     }
     const doc = parseDocument(text ?? '[]');
@@ -78,23 +81,29 @@ export function readDefinitions(client: ClientId, text: string | null): Map<stri
       entries.set(name, cfg);
     });
     return entries;
-  } catch { throw new SyncError(`Cannot parse ${client} MCP configuration safely. No changes were made.`); }
+  } catch {
+    throw new HubError(`Cannot parse ${client} MCP configuration safely. No changes were made.`);
+  }
 }
 
 function walkDsh(seq: YAMLSeq, fn: (item: YAMLMap) => void) {
   for (const item of seq.items) {
-    if (!isMap(item)) throw new SyncError('Unsupported DSH patch entry.');
+    if (!isMap(item)) throw new HubError('Unsupported DSH patch entry.');
     fn(item);
     const insert = item.get('insert');
     if (insert !== undefined) {
-      if (!isSeq(insert)) throw new SyncError('Unsupported DSH insert block.');
+      if (!isSeq(insert)) throw new HubError('Unsupported DSH insert block.');
       walkDsh(insert, fn);
     }
   }
 }
 
 /** Change selected MCP records while preserving unrelated configuration text. */
-export function editDefinitions(client: ClientId, original: string | null, changes: Map<string, Definition | null>): string {
+export function editDefinitions(
+  client: ClientId,
+  original: string | null,
+  changes: Map<string, Definition | null>,
+): string {
   if (!changes.size) return original ?? '';
   readDefinitions(client, original);
   if (client === 'claude-code') {
@@ -102,19 +111,32 @@ export function editDefinitions(client: ClientId, original: string | null, chang
     const entries = { ...(doc.mcpServers ?? {}) };
     for (const [name, value] of changes) {
       if (value === null) delete entries[name];
-      else Object.defineProperty(entries, name, { value, enumerable: true, configurable: true, writable: true });
+      else
+        Object.defineProperty(entries, name, {
+          value,
+          enumerable: true,
+          configurable: true,
+          writable: true,
+        });
     }
     doc.mcpServers = entries;
     const indent = original?.match(/\n([ \t]+)"/)?.[1] ?? '  ';
-    return JSON.stringify(doc, null, indent) + (original === null || original.endsWith('\n') ? '\n' : '');
+    return (
+      JSON.stringify(doc, null, indent) + (original === null || original.endsWith('\n') ? '\n' : '')
+    );
   }
   if (client === 'codex') {
     const text = original ?? '';
     const current = readDefinitions(client, original);
     const sections = tomlSections(text);
     for (const name of current.keys()) {
-      if (changes.has(name) && !sections.some((s) => s.parts[0] === 'mcp_servers' && s.parts[1] === name)) {
-        throw new SyncError('Inline or dotted MCP assignments in Codex need explicit [mcp_servers.<name>] tables before sync.');
+      if (
+        changes.has(name) &&
+        !sections.some((s) => s.parts[0] === 'mcp_servers' && s.parts[1] === name)
+      ) {
+        throw new HubError(
+          'Inline or dotted MCP assignments in Codex need explicit [mcp_servers.<name>] tables before sync.',
+        );
       }
     }
     const removed = sections.filter((s) => s.parts[0] === 'mcp_servers' && changes.has(s.parts[1]));
@@ -125,7 +147,8 @@ export function editDefinitions(client: ClientId, original: string | null, chang
       result = result.slice(0, section.start) + trailing + result.slice(section.end);
     }
     for (const [name, value] of changes) {
-      if (value !== null) result += `${result && !result.endsWith('\n') ? '\n' : ''}\n${stringifyToml({ mcp_servers: { [name]: value } })}`;
+      if (value !== null)
+        result += `${result && !result.endsWith('\n') ? '\n' : ''}\n${stringifyToml({ mcp_servers: { [name]: value } })}`;
     }
     readDefinitions(client, result);
     return result;
@@ -151,7 +174,9 @@ export function editDefinitions(client: ClientId, original: string | null, chang
     }
   }
   edit(seq);
-  const added = [...pending].filter(([, v]) => v !== null).map(([name, config]) => ({ id: `agenthub-mcp-${name}`, name: MCP_PLUGIN, config }));
+  const added = [...pending]
+    .filter(([, v]) => v !== null)
+    .map(([name, config]) => ({ id: `agenthub-mcp-${name}`, name: MCP_PLUGIN, config }));
   if (added.length) seq.add(doc.createNode({ insert: added }));
   const result = doc.toString({ lineWidth: 0 });
   readDefinitions(client, result);

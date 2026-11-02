@@ -1,55 +1,112 @@
 <!doctype html>
 <html lang="ru">
-<head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sessions — agent-hub</title>
-<link rel="stylesheet" href="app.css">
-</head>
-<body>
-<div class="app">
-  <aside class="sidebar" data-active="sessions"></aside>
-  <main class="main">
-    <div class="topbar">
-      <h1>Sessions</h1><span class="pill accent">v0.2 preview</span>
-      <span class="spacer"></span>
-      <span class="faint" style="font-size:12px">index: 510 sessions · updated 3 min ago</span>
-      <button class="btn">Reindex</button>
-    </div>
-    <div class="content">
-      <div class="row" style="gap:10px;flex-wrap:wrap">
-        <input class="input" style="flex:1;min-width:280px;height:36px" value="oauth token rotation">
-        <span class="pill accent">All agents</span><span class="pill">Claude 94</span><span class="pill">Codex 416</span><span class="pill">DSH 6</span>
-        <span class="pill">Repo: any</span><span class="pill">Last 30 days</span>
-      </div>
-
-      <div class="grid g-1-2" style="margin-top:16px">
-        <div class="card">
-          <div class="card-h"><h3>3 results</h3></div>
-          <ul class="list">
-            <li class="sel"><div><b>OAuth broker: refresh flow</b><div class="faint" style="font-size:12px">nova-connect · Claude Code · 142 msgs</div><div style="font-size:12px;margin-top:4px">…decided to do <mark class="hl">token rotation</mark> server-side, keep refresh tokens encrypted…</div></div><span class="meta">Oct 30</span></li>
-            <li><div><b>Review OAuth security</b><div class="faint" style="font-size:12px">nova-connect · Codex CLI · 38 msgs</div><div style="font-size:12px;margin-top:4px">…<mark class="hl">rotation</mark> must invalidate the previous refresh <mark class="hl">token</mark>…</div></div><span class="meta">Oct 31</span></li>
-            <li><div><b>Todoist MCP via proxy</b><div class="faint" style="font-size:12px">~ · DSH · 12 msgs</div><div style="font-size:12px;margin-top:4px">…mcp-remote <mark class="hl">OAuth</mark> callback port 39725…</div></div><span class="meta">Nov 2</span></li>
-          </ul>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sessions — agent-hub</title>
+    <link rel="stylesheet" href="../app/base.css" />
+  </head>
+  <body>
+    <div class="app">
+      <aside class="sidebar" data-active="sessions"></aside>
+      <main class="main">
+        <div class="topbar">
+          <h1>Sessions</h1>
+          <span class="pill accent">v0.2 preview</span>
+          <span class="spacer"></span>
+          <span class="faint" style="font-size: 12px">index: 510 sessions · updated 3 min ago</span>
+          <button class="btn">Reindex</button>
         </div>
-
-        <div class="card">
-          <div class="card-h">
-            <h2>OAuth broker: refresh flow</h2><span class="pill">Claude Code</span>
-            <span class="spacer" style="flex:1"></span>
-            <button class="btn sm">Copy as handoff</button><button class="btn sm">Save decision to PROJECT.md</button><button class="btn sm primary">Resume in…</button>
+        <div class="content">
+          <div class="row" style="gap: 10px; flex-wrap: wrap">
+            <input
+              class="input"
+              style="flex: 1; min-width: 280px; height: 36px"
+              value="oauth token rotation"
+            />
+            <span class="pill accent">All agents</span><span class="pill">Claude 94</span
+            ><span class="pill">Codex 416</span><span class="pill">DSH 6</span>
+            <span class="pill">Repo: any</span><span class="pill">Last 30 days</span>
           </div>
-          <div class="card-b stack" style="font-size:13px">
-            <div><span class="pill">you</span> <span class="muted">how should we handle refresh token rotation?</span></div>
-            <div><span class="pill accent">claude</span> Rotate on every refresh, store only the latest encrypted refresh token, revoke the previous one; detect reuse → revoke the whole family.</div>
-            <div class="faint mono" style="font-size:12px">⋯ tool: Edit apps/connect/src/token.repository.ts (+48 −6)</div>
-            <div><span class="pill">you</span> <span class="muted">ok, do it and add tests</span></div>
-            <div class="faint" style="font-size:12px">Available to any agent via MCP: <span class="mono">hub.sessions.search</span>, <span class="mono">hub.sessions.read</span></div>
+
+          <div class="grid g-1-2" style="margin-top: 16px">
+            <div class="card">
+              <div class="card-h"><h3>3 results</h3></div>
+              <ul class="list">
+                <li class="sel">
+                  <div>
+                    <b>OAuth broker: refresh flow</b>
+                    <div class="faint" style="font-size: 12px">
+                      nova-connect · Claude Code · 142 msgs
+                    </div>
+                    <div style="font-size: 12px; margin-top: 4px">
+                      …decided to do <mark class="hl">token rotation</mark> server-side, keep
+                      refresh tokens encrypted…
+                    </div>
+                  </div>
+                  <span class="meta">Oct 30</span>
+                </li>
+                <li>
+                  <div>
+                    <b>Review OAuth security</b>
+                    <div class="faint" style="font-size: 12px">
+                      nova-connect · Codex CLI · 38 msgs
+                    </div>
+                    <div style="font-size: 12px; margin-top: 4px">
+                      …<mark class="hl">rotation</mark> must invalidate the previous refresh
+                      <mark class="hl">token</mark>…
+                    </div>
+                  </div>
+                  <span class="meta">Oct 31</span>
+                </li>
+                <li>
+                  <div>
+                    <b>Todoist MCP via proxy</b>
+                    <div class="faint" style="font-size: 12px">~ · DSH · 12 msgs</div>
+                    <div style="font-size: 12px; margin-top: 4px">
+                      …mcp-remote <mark class="hl">OAuth</mark> callback port 39725…
+                    </div>
+                  </div>
+                  <span class="meta">Nov 2</span>
+                </li>
+              </ul>
+            </div>
+
+            <div class="card">
+              <div class="card-h">
+                <h2>OAuth broker: refresh flow</h2>
+                <span class="pill">Claude Code</span>
+                <span class="spacer" style="flex: 1"></span>
+                <button class="btn sm">Copy as handoff</button
+                ><button class="btn sm">Save decision to PROJECT.md</button
+                ><button class="btn sm primary">Resume in…</button>
+              </div>
+              <div class="card-b stack" style="font-size: 13px">
+                <div>
+                  <span class="pill">you</span>
+                  <span class="muted">how should we handle refresh token rotation?</span>
+                </div>
+                <div>
+                  <span class="pill accent">claude</span> Rotate on every refresh, store only the
+                  latest encrypted refresh token, revoke the previous one; detect reuse → revoke the
+                  whole family.
+                </div>
+                <div class="faint mono" style="font-size: 12px">
+                  ⋯ tool: Edit apps/connect/src/token.repository.ts (+48 −6)
+                </div>
+                <div>
+                  <span class="pill">you</span> <span class="muted">ok, do it and add tests</span>
+                </div>
+                <div class="faint" style="font-size: 12px">
+                  Available to any agent via MCP: <span class="mono">hub.sessions.search</span>,
+                  <span class="mono">hub.sessions.read</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      </main>
     </div>
-  </main>
-</div>
-<script src="nav.js"></script>
-</body>
+    <script src="nav.js"></script>
+  </body>
 </html>

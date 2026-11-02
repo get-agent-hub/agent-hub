@@ -14,28 +14,47 @@ process.env.AGENT_HUB_HOME = path.join(fixture, 'hub');
 const hub = process.env.AGENT_HUB_HOME;
 const secret = 'fixture-super-private-credential';
 const source = path.join(fixture, 'client.json');
-const adapters = [{
-  id: 'claude-code',
-  detect: async () => ({ installed: true, paths: {} }),
-  readMcpRaw: async () => Object.entries(JSON.parse(await fs.readFile(source, 'utf8'))).map(([name, raw]) => ({ name, raw, source })),
-}];
+const adapters = [
+  {
+    id: 'claude-code',
+    detect: async () => ({ installed: true, paths: {} }),
+    readMcpRaw: async () =>
+      Object.entries(JSON.parse(await fs.readFile(source, 'utf8'))).map(([name, raw]) => ({
+        name,
+        raw,
+        source,
+      })),
+  },
+];
 let ui;
 let token;
-const post = (route, body, headers = {}) => fetch(`${ui.url}${route}`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Agent-Hub-Token': token, ...headers }, body: JSON.stringify(body) });
+const post = (route, body, headers = {}) =>
+  fetch(`${ui.url}${route}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Agent-Hub-Token': token, ...headers },
+    body: JSON.stringify(body),
+  });
 
 before(async () => {
   await fs.mkdir(path.join(hub, 'mcp'), { recursive: true });
   await fs.writeFile(path.join(hub, '.env'), '# fixture\n', { mode: 0o600 });
-  await fs.writeFile(source, JSON.stringify({ demo: { command: 'node', args: ['demo.mjs'], env: { API_TOKEN: secret } } }));
-  ui = await startUiServer({ port: 0, services: {
-    state: async () => ({ status: { hub: { root: hub, exists: true } } }),
-    plan: (item, opts) => planImport(item, opts, adapters),
-  } });
+  await fs.writeFile(
+    source,
+    JSON.stringify({ demo: { command: 'node', args: ['demo.mjs'], env: { API_TOKEN: secret } } }),
+  );
+  ui = await startUiServer({
+    port: 0,
+    services: {
+      state: async () => ({ status: { hub: { root: hub, exists: true } } }),
+      plan: (item, opts) => planImport(item, opts, adapters),
+    },
+  });
   token = (await (await fetch(`${ui.url}/api/state`)).json()).token;
 });
 after(async () => {
   await ui?.close();
-  if (previousRoot === undefined) delete process.env.AGENT_HUB_HOME; else process.env.AGENT_HUB_HOME = previousRoot;
+  if (previousRoot === undefined) delete process.env.AGENT_HUB_HOME;
+  else process.env.AGENT_HUB_HOME = previousRoot;
   await fs.rm(fixture, { recursive: true, force: true });
 });
 
@@ -46,25 +65,43 @@ test('serves app assets with a restrictive policy and never exposes arbitrary fi
     assert.equal(res.headers.get('cache-control'), 'no-store');
     assert.match(res.headers.get('content-security-policy'), /frame-ancestors 'none'/);
   }
-  for (const file of ['/.env', '/src/cli.ts', '/api/unknown', '/mcp/servers.yaml']) assert.equal((await fetch(`${ui.url}${file}`)).status, 404);
+  for (const file of ['/.env', '/src/cli.ts', '/api/unknown', '/mcp/servers.yaml'])
+    assert.equal((await fetch(`${ui.url}${file}`)).status, 404);
 });
 
 test('rejects requests from other origins and mutations without the session token', async () => {
-  assert.equal((await fetch(`${ui.url}/api/state`, { headers: { Origin: 'https://example.com' } })).status, 403);
+  assert.equal(
+    (await fetch(`${ui.url}/api/state`, { headers: { Origin: 'https://example.com' } })).status,
+    403,
+  );
   const rebound = await new Promise((resolve, reject) => {
-    http.get(`${ui.url}/api/state`, { headers: { Host: 'evil.example' } }, (res) => { res.resume(); resolve(res.statusCode); }).on('error', reject);
+    http
+      .get(`${ui.url}/api/state`, { headers: { Host: 'evil.example' } }, (res) => {
+        res.resume();
+        resolve(res.statusCode);
+      })
+      .on('error', reject);
   });
   assert.equal(rebound, 403);
   assert.equal((await post('/api/import/preview', {}, { 'X-Agent-Hub-Token': '' })).status, 403);
-  assert.equal((await post('/api/import/preview', {}, { Origin: 'https://example.com' })).status, 403);
-  assert.equal((await post('/api/import/preview', {}, { 'Sec-Fetch-Site': 'cross-site' })).status, 403);
+  assert.equal(
+    (await post('/api/import/preview', {}, { Origin: 'https://example.com' })).status,
+    403,
+  );
+  assert.equal(
+    (await post('/api/import/preview', {}, { 'Sec-Fetch-Site': 'cross-site' })).status,
+    403,
+  );
 });
 
 test('validates input and bounds request size', async () => {
   assert.equal((await post('/api/import/preview', { item: 'skills' })).status, 400);
   assert.equal((await post('/api/import/preview', { prefer: 'unknown' })).status, 400);
   assert.equal((await post('/api/import/preview', { item: 'x'.repeat(18000) })).status, 413);
-  assert.equal((await post('/api/import/preview', {}, { 'Content-Type': 'text/plain' })).status, 415);
+  assert.equal(
+    (await post('/api/import/preview', {}, { 'Content-Type': 'text/plain' })).status,
+    415,
+  );
 });
 
 test('preview has no side effects or credential values; apply consumes the reviewed plan', async () => {
@@ -93,7 +130,10 @@ test('preview has no side effects or credential values; apply consumes the revie
 test('rejects a stale preview after a client or hub secret changes', async () => {
   const preview = await (await post('/api/import/preview', { overwrite: true })).json();
   const beforeEnv = await fs.readFile(path.join(hub, '.env'), 'utf8');
-  await fs.writeFile(source, JSON.stringify({ demo: { command: 'changed-command', env: { API_TOKEN: secret } } }));
+  await fs.writeFile(
+    source,
+    JSON.stringify({ demo: { command: 'changed-command', env: { API_TOKEN: secret } } }),
+  );
   assert.equal((await post('/api/import/apply', { id: preview.id })).status, 409);
   assert.equal(await fs.readFile(path.join(hub, '.env'), 'utf8'), beforeEnv);
   const next = await (await post('/api/import/preview', { overwrite: true })).json();
@@ -103,7 +143,8 @@ test('rejects a stale preview after a client or hub secret changes', async () =>
 
 test('sanitizes MCP env, headers, flags and URL credentials while preserving references', () => {
   const config = displayServer('demo', {
-    command: 'node', args: ['--api-key', secret, '--token=literal-token'],
+    command: 'node',
+    args: ['--api-key', secret, '--token=literal-token'],
     env: { API_KEY: secret, OTHER: 'unclassified-value', REF: '${KEEP_THIS}' },
     headers: { Authorization: `Bearer ${secret}`, 'X-Token': '${HEADER_TOKEN}' },
     url: `https://user:password@example.com/mcp?api_key=${secret}&other=private`,
@@ -134,7 +175,13 @@ test('source preference resolves conflicting client definitions consistently', a
   const sources = ['claude-code', 'codex'].map((id) => ({
     id,
     detect: async () => ({ installed: true, paths: {} }),
-    readMcpRaw: async () => [{ name: 'conflicting', source: `${id}.json`, raw: { command: `${id}-command`, env: { API_TOKEN: `${id}-test-token` } } }],
+    readMcpRaw: async () => [
+      {
+        name: 'conflicting',
+        source: `${id}.json`,
+        raw: { command: `${id}-command`, env: { API_TOKEN: `${id}-test-token` } },
+      },
+    ],
   }));
   const plan = await planImport('mcp:conflicting', { prefer: 'codex,claude-code' }, sources);
   assert.equal(plan.next.conflicting.command, 'codex-command');
@@ -145,16 +192,28 @@ test('source preference resolves conflicting client definitions consistently', a
 
 test('serializes writes while an import is in progress', async () => {
   let entered;
-  const started = new Promise((resolve) => entered = resolve);
+  const started = new Promise((resolve) => (entered = resolve));
   let release;
-  const gate = new Promise((resolve) => release = resolve);
-  const isolated = await startUiServer({ port: 0, services: {
-    state: async () => ({}),
-    plan: (item, opts) => planImport(item, opts, adapters),
-    apply: async () => { entered(); await gate; return { imported: 1, commit: undefined }; },
-  } });
+  const gate = new Promise((resolve) => (release = resolve));
+  const isolated = await startUiServer({
+    port: 0,
+    services: {
+      state: async () => ({}),
+      plan: (item, opts) => planImport(item, opts, adapters),
+      apply: async () => {
+        entered();
+        await gate;
+        return { imported: 1, commit: undefined };
+      },
+    },
+  });
   const localToken = (await (await fetch(`${isolated.url}/api/state`)).json()).token;
-  const request = (route, body) => fetch(`${isolated.url}${route}`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Agent-Hub-Token': localToken }, body: JSON.stringify(body) });
+  const request = (route, body) =>
+    fetch(`${isolated.url}${route}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Agent-Hub-Token': localToken },
+      body: JSON.stringify(body),
+    });
   try {
     const preview = await (await request('/api/import/preview', { overwrite: true })).json();
     const running = request('/api/import/apply', { id: preview.id });
@@ -162,7 +221,10 @@ test('serializes writes while an import is in progress', async () => {
     assert.equal((await request('/api/import/apply', { id: preview.id })).status, 409);
     release();
     assert.equal((await running).status, 200);
-  } finally { release(); await isolated.close(); }
+  } finally {
+    release();
+    await isolated.close();
+  }
 });
 
 test('parser errors do not echo client configuration or credentials', async () => {

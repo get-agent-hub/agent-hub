@@ -1,0 +1,30 @@
+import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
+
+const [archive] = JSON.parse(
+  execFileSync(
+    process.execPath,
+    [process.env.npm_execpath, 'pack', '--dry-run', '--ignore-scripts', '--json'],
+    { encoding: 'utf8' },
+  ),
+);
+const files = new Set(archive.files.map((file) => file.path));
+for (const required of [
+  'dist/cli.js',
+  'ui/app/index.html',
+  'ui/app/app.js',
+  'ui/app/html.js',
+  'ui/app/health.js',
+  'ui/app/base.css',
+  'LICENSE',
+]) {
+  assert.ok(files.has(required), `Package is missing ${required}`);
+}
+for (const file of files)
+  assert.ok(
+    /^(dist\/|ui\/app\/|README\.md$|LICENSE$|package\.json$)/.test(file),
+    `Unexpected package file: ${file}`,
+  );
+console.log(
+  `Package verified: ${files.size} files, ${archive.unpackedSize} bytes unpacked; source tests, local state and fixtures excluded.`,
+);

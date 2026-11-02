@@ -6,3 +6,10 @@ dist/
 .firecrawl/
 
 .tmp/
+
+coverage/
+*.tgz
+
+.env
+.env.*
+!.env.example

@@ -2,7 +2,7 @@
 
 A local source of truth for the skills, MCP tools and shared context used by Claude Code, Codex and DeepSeek Harness.
 
-Requires Node.js 20 or newer. This is an early, private development build.
+Requires Node.js **22.13 or newer** and npm. macOS and Linux are the supported release targets; Windows remains experimental. The npm package is marked private until its public name and first release version are chosen.
 
 ```sh
 npm install
@@ -16,7 +16,7 @@ The UI keeps the visual style of the [original HTML mockups](ui/mockups/README.m
 
 - **Overview:** detected clients, configuration differences and actual hub counts.
 - **Skills:** filter the client matrix, select a skill, switch source clients and read its `SKILL.md`.
-- **MCP servers:** compare definitions, inspect a credential-safe hub configuration, preview imports and dry-run synchronization. Choose a source preference for conflicts; existing definitions are skipped unless replacement is explicitly selected. Apply writes the reviewed plan into the hub and moves new secret values into `.env`. It does not write client configurations. A plan expires after five minutes and must be reviewed again if its inputs change.
+- **MCP servers:** compare definitions, inspect a credential-safe hub configuration, preview imports and dry-run synchronization. Choose a source preference for conflicts; existing definitions are skipped unless replacement is explicitly selected. Apply uses one hub lock and guarded writes for credentials, registry and import provenance, rolling back earlier writes if a later write fails. It never stages or commits unrelated hub files. It does not write client configurations. A plan expires after five minutes and must be reviewed again if its inputs change.
 - **Instructions and memory:** view existing hub Markdown documents. Empty directories have empty states. Editing and client delivery are not implemented yet.
 - **Repos & tasks:** view `AGENTS.md` and `.agents/state/{PROJECT,NOW}.md` in the repository where the server was started. No repository scanning or agent launching yet.
 - **Sessions:** shows the planned work; no session index is created.
@@ -81,17 +81,18 @@ node dist/cli.js mcp ls
 node dist/cli.js mcp run <name>
 ```
 
-`AGENT_HUB_HOME` selects a hub directory instead of `~/.agent-hub`. See [DESIGN.md](docs/DESIGN.md) for the architecture and remaining work.
+`AGENT_HUB_HOME` selects a hub directory instead of `~/.agent-hub`. Client locations respect `CLAUDE_CONFIG_DIR`, `CODEX_HOME` and `DSH_HOME`; `AGENT_HUB_CLAUDE_CONFIG` and `AGENT_HUB_SHARED_SKILLS` override the Claude JSON file and shared skills directory. `AGENT_HUB_DSH_PROFILE` overrides the DSH profile in `hub.yaml`. See [DESIGN.md](docs/DESIGN.md) for the architecture and remaining work.
 
 ## Development
 
 ```sh
 npm run dev -- ui --no-open
-npm run typecheck
-npm test
+npm run check
+npm run test:coverage
+npm run package:check
 ```
 
-The frontend uses plain HTML/CSS/JavaScript and the existing mockup styles; no frontend build or extra dependencies are needed. Keep both `ui/app` and `ui/mockups/app.css` alongside `dist` when running the compiled CLI.
+The frontend uses plain HTML/CSS/JavaScript and the existing mockup styles; no frontend build or extra dependencies are needed. Keep `ui/app` alongside `dist` when running the compiled CLI. The package allowlist includes these assets automatically.
 
 The local server binds to `127.0.0.1` only. It validates the request host and origin, requires a session token for writes and serves a fixed allowlist of assets. Config values and `.env` are never served as files; MCP previews contain references and redacted values. Known Markdown files are shown as escaped text. The UI shares import planning and application with the CLI, rather than shelling out to commands.
 
@@ -104,3 +105,18 @@ npm run qa:ui
 ```
 
 This opens a separate fixture server at **http://127.0.0.1:3083** with temporary JSON, TOML and YAML clients, sample documents and local MCP processes. The console prints the fixture directory. Stop it with Ctrl+C; its files are retained for inspection. Import, sync and doctor in this instance operate on the fixture. Copyable commands are production CLI commands: the fixture's injected three-client paths are not CLI defaults, so its revision guard prevents applying them outside that context. Use the normal UI/CLI for real command copying. See [QA.md](docs/QA.md) for the verified scenarios.
+
+Any service can declare an optional unauthenticated readiness endpoint:
+
+```yaml
+version: 1
+servers:
+  example:
+    command: node
+    args: [server.mjs]
+    health:
+      name: Example service
+      url: ${EXAMPLE_URL}/ready
+```
+
+Health metadata does not affect launch equivalence or client settings. The n8n preset is an isolated compatibility integration. See [CONTRIBUTING.md](CONTRIBUTING.md) for development checks and [the code review](docs/CODE_REVIEW.md) for findings and release limits.

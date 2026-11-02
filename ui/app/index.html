@@ -1,63 +1,155 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="dark light">
-  <title>Agent Hub</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%237c9cff'/%3E%3Cpath d='M16 6 26 16 16 26 6 16Z' fill='white'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="/base.css">
-  <link rel="stylesheet" href="/app.css">
-  <script src="/app.js" defer></script>
-</head>
-<body>
-  <div class="app">
-    <aside class="sidebar" aria-label="Main navigation" id="sidebar"></aside>
-    <main class="main">
-      <header class="topbar">
-        <h1 id="page-title">Overview</h1>
-        <span class="pill ok"><span class="dot"></span>Local</span>
-        <span class="spacer"></span>
-        <div class="search-field"><input id="search" class="input" type="search" aria-label="Search hub" placeholder="Search skills, MCP, memory…"><span class="kbd">⌘K</span></div>
-        <button class="btn" id="refresh" aria-label="Refresh hub data">↻ Refresh</button>
-        <button class="btn ghost" id="theme" aria-label="Change color theme">◐</button>
-      </header>
-      <div id="notice" class="notice" role="status" hidden></div>
-      <div class="content" id="content" aria-live="polite"><div class="empty">Reading your hub…</div></div>
-    </main>
-  </div>
-  <dialog id="import-dialog" aria-labelledby="import-title">
-    <div class="dialog-head"><div><h2 id="import-title">Import MCP servers</h2><p class="muted">Bring client definitions into your hub.</p></div><button class="btn ghost" data-action="close-import" aria-label="Close import">✕</button></div>
-    <div class="dialog-body">
-      <div class="import-options">
-        <label>Import<select class="input" id="import-item"><option value="mcp">All MCP servers</option></select></label>
-        <label>When client definitions differ, prefer<select class="input" id="import-prefer"><option value="claude-code,codex,dsh">Claude Code → Codex → DSH</option><option value="codex,claude-code,dsh">Codex → Claude Code → DSH</option><option value="dsh,claude-code,codex">DSH → Claude Code → Codex</option></select></label>
-        <label class="checkbox"><input type="checkbox" id="import-overwrite"> Replace existing hub definitions</label>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark light" />
+    <title>Agent Hub</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%237c9cff'/%3E%3Cpath d='M16 6 26 16 16 26 6 16Z' fill='white'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="/base.css" />
+    <link rel="stylesheet" href="/app.css" />
+    <script type="module" src="/app.js"></script>
+  </head>
+  <body>
+    <div class="app">
+      <aside class="sidebar" aria-label="Main navigation" id="sidebar"></aside>
+      <main class="main">
+        <header class="topbar">
+          <h1 id="page-title">Overview</h1>
+          <span class="pill ok"><span class="dot"></span>Local</span>
+          <span class="spacer"></span>
+          <div class="search-field">
+            <input
+              id="search"
+              class="input"
+              type="search"
+              aria-label="Search hub"
+              placeholder="Search skills, MCP, memory…"
+            /><span class="kbd">⌘K</span>
+          </div>
+          <button class="btn" id="refresh" aria-label="Refresh hub data">↻ Refresh</button>
+          <button class="btn ghost" id="theme" aria-label="Change color theme">◐</button>
+        </header>
+        <div id="notice" class="notice" role="status" hidden></div>
+        <div class="content" id="content" aria-live="polite">
+          <div class="empty">Reading your hub…</div>
+        </div>
+      </main>
+    </div>
+    <dialog id="import-dialog" aria-labelledby="import-title">
+      <div class="dialog-head">
+        <div>
+          <h2 id="import-title">Import MCP servers</h2>
+          <p class="muted">Bring client definitions into your hub.</p>
+        </div>
+        <button class="btn ghost" data-action="close-import" aria-label="Close import">✕</button>
       </div>
-      <div id="import-preview" aria-live="polite"></div>
-    </div>
-    <div class="dialog-foot"><span id="import-summary" class="muted">Review changes before importing.</span><span class="spacer"></span><button class="btn" data-action="close-import">Cancel</button><button class="btn primary" id="import-apply" disabled>Import into hub</button></div>
-  </dialog>
-  <dialog id="sync-dialog" aria-labelledby="sync-title">
-    <div class="dialog-head"><div><h2 id="sync-title">Sync MCP servers</h2><p class="muted">Dry run first. Review the changes and commands.</p></div><button class="btn ghost" data-action="close-sync" aria-label="Close sync">✕</button></div>
-    <div class="dialog-body">
-      <div class="sync-options"><label>Client<select class="input" id="sync-client"><option value="">All enabled clients</option><option value="dsh">DeepSeek Harness</option><option value="codex">Codex CLI</option><option value="claude-code">Claude Code</option></select></label><button class="btn" data-action="retry-sync">↻ Run dry run</button></div>
-      <div id="sync-preview" aria-live="polite"></div>
-    </div>
-    <div class="dialog-foot"><span id="sync-summary" class="muted">No client files changed.</span><span class="spacer"></span><button class="btn" data-action="close-sync">Close</button><button class="btn primary" id="sync-apply" disabled>Apply with backup</button></div>
-  </dialog>
-  <dialog id="doctor-dialog" aria-labelledby="doctor-title">
-    <div class="dialog-head"><div><h2 id="doctor-title">Check MCP connections</h2><p class="muted">Start each server, connect and discover tools.</p></div><button class="btn ghost" data-action="close-doctor" aria-label="Close connection checks">✕</button></div>
-    <div class="dialog-body">
-      <div class="doctor-options">
-        <label>Server<select class="input" id="doctor-server"><option value="">All hub servers</option></select></label>
-        <label>Client scope<select class="input" id="doctor-client"><option value="">All registry entries</option><option value="dsh">DeepSeek Harness</option><option value="codex">Codex CLI</option><option value="claude-code">Claude Code</option></select></label>
-        <label>Timeout per server, seconds<input class="input" id="doctor-timeout" type="number" min="0.1" max="120" step="0.1" value="20"></label>
+      <div class="dialog-body">
+        <div class="import-options">
+          <label
+            >Import<select class="input" id="import-item">
+              <option value="mcp">All MCP servers</option>
+            </select></label
+          >
+          <label
+            >When client definitions differ, prefer<select class="input" id="import-prefer">
+              <option value="claude-code,codex,dsh">Claude Code → Codex → DSH</option>
+              <option value="codex,claude-code,dsh">Codex → Claude Code → DSH</option>
+              <option value="dsh,claude-code,codex">DSH → Claude Code → Codex</option>
+            </select></label
+          >
+          <label class="checkbox"
+            ><input type="checkbox" id="import-overwrite" /> Replace existing hub definitions</label
+          >
+        </div>
+        <div id="import-preview" aria-live="polite"></div>
       </div>
-      <div id="doctor-results" aria-live="polite"></div>
-      <p class="small-note">Checks perform initialization and tool discovery. Configured n8n readiness is checked separately. Provider API operations and tool execution are not tested.</p>
-    </div>
-    <div class="dialog-foot"><span id="doctor-summary" class="muted">Ready to check.</span><span class="spacer"></span><button class="btn" id="doctor-copy" data-action="copy-doctor-command" disabled>Copy last check command</button><button class="btn" id="doctor-cancel" data-action="cancel-doctor" hidden>Cancel check</button><button class="btn primary" id="doctor-run" data-action="run-doctor">Run checks</button></div>
-  </dialog>
-</body>
+      <div class="dialog-foot">
+        <span id="import-summary" class="muted">Review changes before importing.</span
+        ><span class="spacer"></span><button class="btn" data-action="close-import">Cancel</button
+        ><button class="btn primary" id="import-apply" disabled>Import into hub</button>
+      </div>
+    </dialog>
+    <dialog id="sync-dialog" aria-labelledby="sync-title">
+      <div class="dialog-head">
+        <div>
+          <h2 id="sync-title">Sync MCP servers</h2>
+          <p class="muted">Dry run first. Review the changes and commands.</p>
+        </div>
+        <button class="btn ghost" data-action="close-sync" aria-label="Close sync">✕</button>
+      </div>
+      <div class="dialog-body">
+        <div class="sync-options">
+          <label
+            >Client<select class="input" id="sync-client">
+              <option value="">All enabled clients</option>
+              <option value="dsh">DeepSeek Harness</option>
+              <option value="codex">Codex CLI</option>
+              <option value="claude-code">Claude Code</option>
+            </select></label
+          ><button class="btn" data-action="retry-sync">↻ Run dry run</button>
+        </div>
+        <div id="sync-preview" aria-live="polite"></div>
+      </div>
+      <div class="dialog-foot">
+        <span id="sync-summary" class="muted">No client files changed.</span
+        ><span class="spacer"></span><button class="btn" data-action="close-sync">Close</button
+        ><button class="btn primary" id="sync-apply" disabled>Apply with backup</button>
+      </div>
+    </dialog>
+    <dialog id="doctor-dialog" aria-labelledby="doctor-title">
+      <div class="dialog-head">
+        <div>
+          <h2 id="doctor-title">Check MCP connections</h2>
+          <p class="muted">Start each server, connect and discover tools.</p>
+        </div>
+        <button class="btn ghost" data-action="close-doctor" aria-label="Close connection checks">
+          ✕
+        </button>
+      </div>
+      <div class="dialog-body">
+        <div class="doctor-options">
+          <label
+            >Server<select class="input" id="doctor-server">
+              <option value="">All hub servers</option>
+            </select></label
+          >
+          <label
+            >Client scope<select class="input" id="doctor-client">
+              <option value="">All registry entries</option>
+              <option value="dsh">DeepSeek Harness</option>
+              <option value="codex">Codex CLI</option>
+              <option value="claude-code">Claude Code</option>
+            </select></label
+          >
+          <label
+            >Timeout per server, seconds<input
+              class="input"
+              id="doctor-timeout"
+              type="number"
+              min="0.1"
+              max="120"
+              step="0.1"
+              value="20"
+          /></label>
+        </div>
+        <div id="doctor-results" aria-live="polite"></div>
+        <p class="small-note">
+          Checks perform initialization and tool discovery. Configured service readiness is checked
+          separately. Provider API operations and tool execution are not tested.
+        </p>
+      </div>
+      <div class="dialog-foot">
+        <span id="doctor-summary" class="muted">Ready to check.</span><span class="spacer"></span
+        ><button class="btn" id="doctor-copy" data-action="copy-doctor-command" disabled>
+          Copy last check command</button
+        ><button class="btn" id="doctor-cancel" data-action="cancel-doctor" hidden>
+          Cancel check</button
+        ><button class="btn primary" id="doctor-run" data-action="run-doctor">Run checks</button>
+      </div>
+    </dialog>
+  </body>
 </html>

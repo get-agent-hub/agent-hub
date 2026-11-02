@@ -1,62 +1,185 @@
 <!doctype html>
 <html lang="ru">
-<head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Skills — agent-hub</title>
-<link rel="stylesheet" href="app.css">
-</head>
-<body>
-<div class="app">
-  <aside class="sidebar" data-active="skills"></aside>
-  <main class="main">
-    <div class="topbar">
-      <h1>Skills</h1><span class="crumb">~/.agent-hub/skills</span>
-      <span class="spacer"></span>
-      <input class="input" placeholder="Filter skills…">
-      <button class="btn">Find on skills.sh</button>
-      <button class="btn primary">+ Add skill</button>
-    </div>
-    <div class="content">
-      <div class="grid g-2-1">
-        <div class="card table-wrap">
-          <table class="table">
-            <thead><tr><th>Skill</th><th>Source</th><th class="c">Hub</th><th class="c">Claude</th><th class="c">Codex</th><th class="c">DSH</th><th></th></tr></thead>
-            <tbody>
-              <tr><td><b>bitbucket</b></td><td class="faint">local</td><td class="c"><span class="mark ok">✓</span></td><td class="c"><span class="mark ok">✓</span></td><td class="c"><span class="mark ok">✓</span></td><td class="c"><span class="mark ok">✓</span></td><td><span class="pill">work</span></td></tr>
-              <tr><td><b>electron-playwright-screenshots</b></td><td class="faint">local</td><td class="c"><span class="mark ok">✓</span></td><td class="c"><span class="mark ok">✓</span></td><td class="c"><span class="mark ok">✓</span></td><td class="c"><span class="mark ok">✓</span></td><td></td></tr>
-              <tr><td><b>figma-extract</b></td><td class="faint">local</td><td class="c"><span class="mark ok">✓</span></td><td class="c"><span class="mark ok">✓</span></td><td class="c"><span class="mark ok">✓</span></td><td class="c"><span class="mark ok">✓</span></td><td><span class="pill">work</span></td></tr>
-              <tr><td><b>figma-to-alfa</b></td><td class="faint">local</td><td class="c"><span class="mark ok">✓</span></td><td class="c"><span class="mark ok">✓</span></td><td class="c"><span class="mark ok">✓</span></td><td class="c"><span class="mark ok">✓</span></td><td><span class="pill">work</span></td></tr>
-              <tr><td><b>find-skills</b></td><td class="mono faint">vercel-labs/skills</td><td class="c"><span class="mark ok">✓</span></td><td class="c"><span class="mark ok">✓</span></td><td class="c"><span class="mark ok">✓</span></td><td class="c"><span class="mark ok">✓</span></td><td><span class="pill accent">update</span></td></tr>
-              <tr><td><b>firecrawl</b></td><td class="mono faint">firecrawl/cli</td><td class="c"><span class="mark ok">✓</span></td><td class="c"><span class="mark ok">✓</span></td><td class="c"><span class="mark ok">✓</span></td><td class="c"><span class="mark ok">✓</span></td><td></td></tr>
-              <tr class="sel"><td><b>ghost</b></td><td class="faint">local</td><td class="c"><span class="mark ok">✓</span></td><td class="c"><span class="mark ok">✓</span></td><td class="c"><span class="mark ok">✓</span></td><td class="c"><span class="mark ok">✓</span></td><td><span class="pill">personal</span></td></tr>
-              <tr><td><b>jenkins</b></td><td class="faint">local</td><td class="c"><span class="mark ok">✓</span></td><td class="c"><span class="mark ok">✓</span></td><td class="c"><span class="mark ok">✓</span></td><td class="c"><span class="mark ok">✓</span></td><td><span class="pill">work</span></td></tr>
-              <tr><td><b>markitdown</b></td><td class="faint">local</td><td class="c"><span class="mark ok">✓</span></td><td class="c"><span class="mark ok">✓</span></td><td class="c"><span class="mark ok">✓</span></td><td class="c"><span class="mark ok">✓</span></td><td></td></tr>
-              <tr><td><b>outlook</b></td><td class="faint">local</td><td class="c"><span class="mark ok">✓</span></td><td class="c"><span class="mark ok">✓</span></td><td class="c"><span class="mark ok">✓</span></td><td class="c"><span class="mark ok">✓</span></td><td><span class="pill">work</span></td></tr>
-              <tr><td><b>save-article</b></td><td class="faint">local</td><td class="c"><span class="mark ok">✓</span></td><td class="c"><span class="mark ok">✓</span></td><td class="c"><span class="mark ok">✓</span></td><td class="c"><span class="mark ok">✓</span></td><td><span class="pill">personal</span></td></tr>
-              <tr><td><b style="color:var(--err)">synced</b></td><td class="faint">—</td><td class="c"><span class="mark miss">·</span></td><td class="c"><span class="mark err">✗</span></td><td class="c"><span class="mark miss">·</span></td><td class="c"><span class="mark miss">·</span></td><td><button class="btn sm ghost">Remove</button></td></tr>
-            </tbody>
-          </table>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Skills — agent-hub</title>
+    <link rel="stylesheet" href="../app/base.css" />
+  </head>
+  <body>
+    <div class="app">
+      <aside class="sidebar" data-active="skills"></aside>
+      <main class="main">
+        <div class="topbar">
+          <h1>Skills</h1>
+          <span class="crumb">~/.agent-hub/skills</span>
+          <span class="spacer"></span>
+          <input class="input" placeholder="Filter skills…" />
+          <button class="btn">Find on skills.sh</button>
+          <button class="btn primary">+ Add skill</button>
         </div>
+        <div class="content">
+          <div class="grid g-2-1">
+            <div class="card table-wrap">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Skill</th>
+                    <th>Source</th>
+                    <th class="c">Hub</th>
+                    <th class="c">Claude</th>
+                    <th class="c">Codex</th>
+                    <th class="c">DSH</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><b>bitbucket</b></td>
+                    <td class="faint">local</td>
+                    <td class="c"><span class="mark ok">✓</span></td>
+                    <td class="c"><span class="mark ok">✓</span></td>
+                    <td class="c"><span class="mark ok">✓</span></td>
+                    <td class="c"><span class="mark ok">✓</span></td>
+                    <td><span class="pill">work</span></td>
+                  </tr>
+                  <tr>
+                    <td><b>electron-playwright-screenshots</b></td>
+                    <td class="faint">local</td>
+                    <td class="c"><span class="mark ok">✓</span></td>
+                    <td class="c"><span class="mark ok">✓</span></td>
+                    <td class="c"><span class="mark ok">✓</span></td>
+                    <td class="c"><span class="mark ok">✓</span></td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td><b>figma-extract</b></td>
+                    <td class="faint">local</td>
+                    <td class="c"><span class="mark ok">✓</span></td>
+                    <td class="c"><span class="mark ok">✓</span></td>
+                    <td class="c"><span class="mark ok">✓</span></td>
+                    <td class="c"><span class="mark ok">✓</span></td>
+                    <td><span class="pill">work</span></td>
+                  </tr>
+                  <tr>
+                    <td><b>figma-to-alfa</b></td>
+                    <td class="faint">local</td>
+                    <td class="c"><span class="mark ok">✓</span></td>
+                    <td class="c"><span class="mark ok">✓</span></td>
+                    <td class="c"><span class="mark ok">✓</span></td>
+                    <td class="c"><span class="mark ok">✓</span></td>
+                    <td><span class="pill">work</span></td>
+                  </tr>
+                  <tr>
+                    <td><b>find-skills</b></td>
+                    <td class="mono faint">vercel-labs/skills</td>
+                    <td class="c"><span class="mark ok">✓</span></td>
+                    <td class="c"><span class="mark ok">✓</span></td>
+                    <td class="c"><span class="mark ok">✓</span></td>
+                    <td class="c"><span class="mark ok">✓</span></td>
+                    <td><span class="pill accent">update</span></td>
+                  </tr>
+                  <tr>
+                    <td><b>firecrawl</b></td>
+                    <td class="mono faint">firecrawl/cli</td>
+                    <td class="c"><span class="mark ok">✓</span></td>
+                    <td class="c"><span class="mark ok">✓</span></td>
+                    <td class="c"><span class="mark ok">✓</span></td>
+                    <td class="c"><span class="mark ok">✓</span></td>
+                    <td></td>
+                  </tr>
+                  <tr class="sel">
+                    <td><b>ghost</b></td>
+                    <td class="faint">local</td>
+                    <td class="c"><span class="mark ok">✓</span></td>
+                    <td class="c"><span class="mark ok">✓</span></td>
+                    <td class="c"><span class="mark ok">✓</span></td>
+                    <td class="c"><span class="mark ok">✓</span></td>
+                    <td><span class="pill">personal</span></td>
+                  </tr>
+                  <tr>
+                    <td><b>jenkins</b></td>
+                    <td class="faint">local</td>
+                    <td class="c"><span class="mark ok">✓</span></td>
+                    <td class="c"><span class="mark ok">✓</span></td>
+                    <td class="c"><span class="mark ok">✓</span></td>
+                    <td class="c"><span class="mark ok">✓</span></td>
+                    <td><span class="pill">work</span></td>
+                  </tr>
+                  <tr>
+                    <td><b>markitdown</b></td>
+                    <td class="faint">local</td>
+                    <td class="c"><span class="mark ok">✓</span></td>
+                    <td class="c"><span class="mark ok">✓</span></td>
+                    <td class="c"><span class="mark ok">✓</span></td>
+                    <td class="c"><span class="mark ok">✓</span></td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td><b>outlook</b></td>
+                    <td class="faint">local</td>
+                    <td class="c"><span class="mark ok">✓</span></td>
+                    <td class="c"><span class="mark ok">✓</span></td>
+                    <td class="c"><span class="mark ok">✓</span></td>
+                    <td class="c"><span class="mark ok">✓</span></td>
+                    <td><span class="pill">work</span></td>
+                  </tr>
+                  <tr>
+                    <td><b>save-article</b></td>
+                    <td class="faint">local</td>
+                    <td class="c"><span class="mark ok">✓</span></td>
+                    <td class="c"><span class="mark ok">✓</span></td>
+                    <td class="c"><span class="mark ok">✓</span></td>
+                    <td class="c"><span class="mark ok">✓</span></td>
+                    <td><span class="pill">personal</span></td>
+                  </tr>
+                  <tr>
+                    <td><b style="color: var(--err)">synced</b></td>
+                    <td class="faint">—</td>
+                    <td class="c"><span class="mark miss">·</span></td>
+                    <td class="c"><span class="mark err">✗</span></td>
+                    <td class="c"><span class="mark miss">·</span></td>
+                    <td class="c"><span class="mark miss">·</span></td>
+                    <td><button class="btn sm ghost">Remove</button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
 
-        <div class="card">
-          <div class="card-h"><h3>ghost</h3><span class="pill personal">personal</span><span class="spacer" style="flex:1"></span><button class="btn sm">Open in editor</button></div>
-          <div class="tabs"><a class="active" href="#">SKILL.md</a><a href="#">Files (4)</a><a href="#">Links</a></div>
-          <div class="card-b doc">
-            <p class="muted" style="margin-top:0">Manage posts on the Ghost blog example.com through the Ghost Admin API — list and read posts, create drafts from Markdown, update drafts, upload images, and publish only on explicit request.</p>
-            <h2>Where it's linked</h2>
-            <ul class="mono" style="font-size:12px">
-              <li>hub: ~/.agent-hub/skills/ghost <span class="faint">(original)</span></li>
-              <li>claude: ~/.claude/skills/ghost → hub</li>
-              <li>codex, dsh: ~/.agents/skills → hub</li>
-            </ul>
-            <h2>Requires</h2>
-            <ul><li>env <code>GHOST_ADMIN_KEY</code> <span class="pill ok">in .env</span></li><li>CLI <code>ghost</code> in skill dir</li></ul>
+            <div class="card">
+              <div class="card-h">
+                <h3>ghost</h3>
+                <span class="pill personal">personal</span
+                ><span class="spacer" style="flex: 1"></span
+                ><button class="btn sm">Open in editor</button>
+              </div>
+              <div class="tabs">
+                <a class="active" href="#">SKILL.md</a><a href="#">Files (4)</a
+                ><a href="#">Links</a>
+              </div>
+              <div class="card-b doc">
+                <p class="muted" style="margin-top: 0">
+                  Manage posts on the Ghost blog example.com through the Ghost Admin API — list and
+                  read posts, create drafts from Markdown, update drafts, upload images, and publish
+                  only on explicit request.
+                </p>
+                <h2>Where it's linked</h2>
+                <ul class="mono" style="font-size: 12px">
+                  <li>hub: ~/.agent-hub/skills/ghost <span class="faint">(original)</span></li>
+                  <li>claude: ~/.claude/skills/ghost → hub</li>
+                  <li>codex, dsh: ~/.agents/skills → hub</li>
+                </ul>
+                <h2>Requires</h2>
+                <ul>
+                  <li>env <code>GHOST_ADMIN_KEY</code> <span class="pill ok">in .env</span></li>
+                  <li>CLI <code>ghost</code> in skill dir</li>
+                </ul>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      </main>
     </div>
-  </main>
-</div>
-<script src="nav.js"></script>
-</body>
+    <script src="nav.js"></script>
+  </body>
 </html>

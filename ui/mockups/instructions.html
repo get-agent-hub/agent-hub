@@ -1,25 +1,33 @@
 <!doctype html>
 <html lang="ru">
-<head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Instructions — agent-hub</title>
-<link rel="stylesheet" href="app.css">
-</head>
-<body>
-<div class="app">
-  <aside class="sidebar" data-active="instructions"></aside>
-  <main class="main">
-    <div class="topbar">
-      <h1>Instructions</h1><span class="crumb">instructions/AGENTS.md · global rules for every agent</span>
-      <span class="spacer"></span>
-      <button class="btn">Preview per client</button>
-      <button class="btn primary">Save &amp; sync</button>
-    </div>
-    <div class="content">
-      <div class="grid g-2-1">
-        <div class="card">
-          <div class="tabs"><a class="active" href="#">AGENTS.md</a><a href="#">Repo template</a><a href="#">Claude-only</a><a href="#">Codex-only</a></div>
-<pre class="code" style="border-radius:0 0 8px 8px;min-height:420px"><span class="k"># Global rules</span>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Instructions — agent-hub</title>
+    <link rel="stylesheet" href="../app/base.css" />
+  </head>
+  <body>
+    <div class="app">
+      <aside class="sidebar" data-active="instructions"></aside>
+      <main class="main">
+        <div class="topbar">
+          <h1>Instructions</h1>
+          <span class="crumb">instructions/AGENTS.md · global rules for every agent</span>
+          <span class="spacer"></span>
+          <button class="btn">Preview per client</button>
+          <button class="btn primary">Save &amp; sync</button>
+        </div>
+        <div class="content">
+          <div class="grid g-2-1">
+            <div class="card">
+              <div class="tabs">
+                <a class="active" href="#">AGENTS.md</a><a href="#">Repo template</a
+                ><a href="#">Claude-only</a><a href="#">Codex-only</a>
+              </div>
+              <pre
+                class="code"
+                style="border-radius: 0 0 8px 8px; min-height: 420px"
+              ><span class="k"># Global rules</span>
 
 - Always respond in Russian; code, commits, identifiers in English.
 - Before deleting or overwriting, look at the target.
@@ -36,20 +44,47 @@ Before handing off: update NOW.md — done, remaining, changed files, next actio
 - Agent Hub / DSH — ~/.agent-hub/memory/agent-hub-dsh.md
 - VPN server migration — ~/.agent-hub/memory/vpn-server-migration.md
 - …</pre>
+            </div>
+            <div class="card">
+              <div class="card-h"><h3>How each client gets it</h3></div>
+              <ul class="list">
+                <li>
+                  <div>
+                    <b>Claude Code</b>
+                    <div class="mono faint" style="font-size: 12px">
+                      ~/.claude/CLAUDE.md → @~/.agent-hub/instructions/AGENTS.md
+                    </div>
+                  </div>
+                  <span class="meta"><span class="pill ok">import</span></span>
+                </li>
+                <li>
+                  <div>
+                    <b>Codex CLI</b>
+                    <div class="mono faint" style="font-size: 12px">
+                      ~/.codex/AGENTS.md → symlink
+                    </div>
+                  </div>
+                  <span class="meta"><span class="pill ok">symlink</span></span>
+                </li>
+                <li>
+                  <div>
+                    <b>DeepSeek Harness</b>
+                    <div class="mono faint" style="font-size: 12px">
+                      ~/.agents/AGENTS.md → symlink
+                    </div>
+                  </div>
+                  <span class="meta"><span class="pill warn">verify</span></span>
+                </li>
+              </ul>
+              <div class="card-b faint" style="font-size: 12px; border-top: 1px solid var(--line)">
+                Client-specific additions live in their own files and are appended after the shared
+                block.
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="card">
-          <div class="card-h"><h3>How each client gets it</h3></div>
-          <ul class="list">
-            <li><div><b>Claude Code</b><div class="mono faint" style="font-size:12px">~/.claude/CLAUDE.md → @~/.agent-hub/instructions/AGENTS.md</div></div><span class="meta"><span class="pill ok">import</span></span></li>
-            <li><div><b>Codex CLI</b><div class="mono faint" style="font-size:12px">~/.codex/AGENTS.md → symlink</div></div><span class="meta"><span class="pill ok">symlink</span></span></li>
-            <li><div><b>DeepSeek Harness</b><div class="mono faint" style="font-size:12px">~/.agents/AGENTS.md → symlink</div></div><span class="meta"><span class="pill warn">verify</span></span></li>
-          </ul>
-          <div class="card-b faint" style="font-size:12px;border-top:1px solid var(--line)">Client-specific additions live in their own files and are appended after the shared block.</div>
-        </div>
-      </div>
+      </main>
     </div>
-  </main>
-</div>
-<script src="nav.js"></script>
-</body>
+    <script src="nav.js"></script>
+  </body>
 </html>

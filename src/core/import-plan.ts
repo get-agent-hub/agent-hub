@@ -1,12 +1,28 @@
+import path from 'node:path';
+import { snapshot, type FileSnapshot } from './file-store.js';
+import { writeTransaction } from './file-transaction.js';
+import { withHubLock } from './hub-lock.js';
+import { HubError } from './errors.js';
 import { createHash } from 'node:crypto';
 import { adapters } from '../adapters/index.js';
-import { appendEnv, readEnvFile } from './env.js';
+import { parseEnvText, renderEnvAppend } from './env.js';
 import { exists } from './fs.js';
-import { commitAll, isOwnRepo } from './git.js';
-import { collectCandidates, coreFingerprint, extractSecrets, findLeftoverSecrets, isHubProjection, merge } from './importer.js';
-import { definitionSignature, desiredSignature, readImportedDefinitions, writeImportedDefinitions, type ImportedDefinitions } from './imported-definitions.js';
+import {
+  collectCandidates,
+  coreFingerprint,
+  extractSecrets,
+  findLeftoverSecrets,
+  isHubProjection,
+  merge,
+} from './importer.js';
+import {
+  definitionSignature,
+  desiredSignature,
+  parseImportedDefinitions,
+  type ImportedDefinitions,
+} from './imported-definitions.js';
 import { hubRoot, tildify } from './paths.js';
-import { envPath, readRegistry, writeRegistry, type HubServer } from './registry.js';
+import { parseRegistry, serializeRegistry, validServerName, type HubServer } from './registry.js';
 import type { ClientAdapter, ClientId } from './types.js';
 
 export interface ImportOptions {
@@ -24,6 +40,10 @@ export type ImportRow = {
 
 /** Internal plan contains credentials. Never serialize it; use publicImportPlan. */
 export interface ImportPlan {
+  root: string;
+  inputs: FileSnapshot[];
+  sources: ClientAdapter[];
+  sourceRevision: string;
   revision: string;
   rows: ImportRow[];
   next: Record<string, HubServer>;
@@ -31,19 +51,35 @@ export interface ImportPlan {
   envVars: string[];
   imported: ImportedDefinitions;
 }
-export async function planImport(item: string | undefined, opts: ImportOptions = {}, sources: ClientAdapter[] = adapters): Promise<ImportPlan> {
-  if (!(await exists(hubRoot()))) throw new Error(`No hub at ${tildify(hubRoot())}. Run \`ahub init\` first.`);
-  if (item && item != 'mcp' && !item.startsWith('mcp:')) throw new Error(`Only MCP import is implemented yet (try \`ahub import mcp\` or \`ahub import mcp:<name>\`).`);
+export async function planImport(
+  item: string | undefined,
+  opts: ImportOptions = {},
+  sources: ClientAdapter[] = adapters,
+): Promise<ImportPlan> {
+  if (!(await exists(hubRoot())))
+    throw new Error(`No hub at ${tildify(hubRoot())}. Run \`ahub init\` first.`);
+  if (item && item !== 'mcp' && !item.startsWith('mcp:'))
+    throw new Error(
+      `Only MCP import is implemented yet (try \`ahub import mcp\` or \`ahub import mcp:<name>\`).`,
+    );
   const only = item?.startsWith('mcp:') ? item.slice(4) : undefined;
   const prefer = (opts.prefer ?? 'claude-code,codex').split(',').map((s) => s.trim()) as ClientId[];
 
-  const raws = await Promise.all(
-    sources.map(async (a) => ({ client: a.id, items: (await a.detect()).installed ? await a.readMcpRaw() : [] })),
+  const root = path.resolve(hubRoot());
+  const inputs = await Promise.all(
+    ['mcp/servers.yaml', '.env', 'state/imported-definitions.json'].map((file) =>
+      snapshot(path.join(root, file)),
+    ),
   );
+  const raws = await readSources(sources);
+  const sourceRevision = digest(raws);
   const byName = collectCandidates(raws);
-  const reg = await readRegistry();
-  const envTaken = await readEnvFile(envPath());
-  const imported = await readImportedDefinitions(hubRoot());
+  const reg =
+    inputs[0].content === null
+      ? { version: 1 as const, servers: {} as Record<string, HubServer> }
+      : parseRegistry(inputs[0].content);
+  const envTaken = parseEnvText(inputs[1].content ?? '');
+  const imported = parseImportedDefinitions(inputs[2].content);
   const importedBefore = structuredClone(imported);
 
   const rows: ImportRow[] = [];
@@ -52,9 +88,17 @@ export async function planImport(item: string | undefined, opts: ImportOptions =
 
   for (const [name, cands] of [...byName].sort(([a], [b]) => a.localeCompare(b))) {
     if (only && name !== only) continue;
+    if (!validServerName(name))
+      throw new HubError('Invalid MCP server name in a client configuration.');
 
     if (reg.servers[name] && !opts.overwrite) {
-      rows.push({ name, action: 'skip-exists', from: [], secrets: [], note: 'already in hub (use --overwrite)' });
+      rows.push({
+        name,
+        action: 'skip-exists',
+        from: [],
+        secrets: [],
+        note: 'already in hub (use --overwrite)',
+      });
       continue;
     }
 
@@ -68,7 +112,13 @@ export async function planImport(item: string | undefined, opts: ImportOptions =
       }
       res = merge(name, cands, pick ? [pick] : prefer);
       if (!res.server) {
-        rows.push({ name, action: 'conflict', from: [], secrets: [], note: 'configs differ; pass --prefer' });
+        rows.push({
+          name,
+          action: 'conflict',
+          from: [],
+          secrets: [],
+          note: 'configs differ; pass --prefer',
+        });
         continue;
       }
     }
@@ -76,15 +126,32 @@ export async function planImport(item: string | undefined, opts: ImportOptions =
     const ex = extractSecrets(name, res.server!, new Map([...envTaken, ...newSecrets]));
     const leftovers = findLeftoverSecrets(ex.server);
     if (leftovers.length) {
-      rows.push({ name, action: 'error', from: res.from, secrets: [], note: `possible secret left in ${leftovers.join(', ')} — not imported` });
+      rows.push({
+        name,
+        action: 'error',
+        from: res.from,
+        secrets: [],
+        note: `possible secret left in ${leftovers.join(', ')} — not imported`,
+      });
       continue;
     }
     for (const [k, v] of ex.secrets) newSecrets.set(k, v);
     next[name] = ex.server;
-    Object.defineProperty(imported.servers, name, { value: {
-      desired: desiredSignature(ex.server, new Map([...envTaken, ...newSecrets])),
-      clients: Object.fromEntries(raws.flatMap(({ client, items }) => items.filter((r) => r.name === name && !isHubProjection(r.raw)).map((r) => [client, definitionSignature(r.raw)]))),
-    }, enumerable: true, configurable: true, writable: true });
+    Object.defineProperty(imported.servers, name, {
+      value: {
+        desired: desiredSignature(ex.server, new Map([...envTaken, ...newSecrets])),
+        clients: Object.fromEntries(
+          raws.flatMap(({ client, items }) =>
+            items
+              .filter((r) => r.name === name && !isHubProjection(r.raw))
+              .map((r) => [client, definitionSignature(r.raw)]),
+          ),
+        ),
+      },
+      enumerable: true,
+      configurable: true,
+      writable: true,
+    });
 
     const variants = new Set(cands.map((c) => coreFingerprint(c.server))).size;
     const notes = [
@@ -100,21 +167,68 @@ export async function planImport(item: string | undefined, opts: ImportOptions =
     });
   }
 
-  const revision = createHash('sha256').update(JSON.stringify({ raws, reg, env: [...envTaken], importedBefore, item, prefer, overwrite: !!opts.overwrite })).digest('hex');
+  const revision = createHash('sha256')
+    .update(
+      JSON.stringify({
+        raws,
+        reg,
+        env: [...envTaken],
+        importedBefore,
+        item,
+        prefer,
+        overwrite: !!opts.overwrite,
+      }),
+    )
+    .digest('hex');
   const envVars = [...newSecrets.keys()].filter((k) => !envTaken.has(k));
 
-  return { revision, rows, next, newSecrets, envVars, imported };
+  return {
+    root,
+    inputs,
+    sources,
+    sourceRevision,
+    revision,
+    rows,
+    next,
+    newSecrets,
+    envVars,
+    imported,
+  };
 }
 export function publicImportPlan(plan: ImportPlan) {
   return { revision: plan.revision, servers: plan.rows, envVarsToAdd: plan.envVars };
 }
+async function readSources(sources: ClientAdapter[]) {
+  return Promise.all(
+    sources.map(async (adapter) => ({
+      client: adapter.id,
+      items: (await adapter.detect()).installed ? await adapter.readMcpRaw() : [],
+    })),
+  );
+}
+const digest = (value: unknown) => createHash('sha256').update(JSON.stringify(value)).digest('hex');
+
 export async function applyImport(plan: ImportPlan) {
-  const { rows, envVars, newSecrets, next } = plan;
-  const changed = rows.filter((r) => r.action === 'add' || r.action === 'update');
+  const changed = plan.rows.filter((row) => row.action === 'add' || row.action === 'update');
   if (!changed.length) return { imported: 0, commit: undefined };
-  await appendEnv(envPath(), new Map(envVars.map((k) => [k, newSecrets.get(k)!])), `imported by ahub ${new Date().toISOString()}`);
-  await writeRegistry({ version: 1, servers: next });
-  await writeImportedDefinitions(hubRoot(), plan.imported);
-  const commit = isOwnRepo() ? commitAll(`mcp: import ${changed.map((r) => r.name).join(', ')}`) : undefined;
-  return { imported: changed.length, commit };
+  return withHubLock(plan.root, async () => {
+    if (digest(await readSources(plan.sources)) !== plan.sourceRevision)
+      throw new HubError('Client definitions changed since import planning. Review a new plan.');
+    const [registry, environment, provenance] = plan.inputs;
+    const env = renderEnvAppend(
+      environment.content ?? '',
+      plan.newSecrets,
+      'Imported by Agent Hub',
+    );
+    await writeTransaction([
+      { before: { ...environment, mode: 0o600 }, after: env.content },
+      { before: registry, after: serializeRegistry({ version: 1, servers: plan.next }) },
+      {
+        before: { ...provenance, mode: 0o600 },
+        after: JSON.stringify(plan.imported, null, 2) + '\n',
+      },
+    ]);
+    // Committing is an explicit user action; an import must not stage unrelated hub changes.
+    return { imported: changed.length, commit: undefined };
+  });
 }

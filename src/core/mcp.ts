@@ -2,26 +2,25 @@ import crypto from 'node:crypto';
 import { isInlineSecret } from './secrets.js';
 import type { McpEntry, McpTransport } from './types.js';
 
-export function stableStringify(v: unknown): string {
-  if (Array.isArray(v)) return `[${v.map(stableStringify).join(',')}]`;
-  if (v && typeof v === 'object') {
-    const o = v as Record<string, unknown>;
-    return `{${Object.keys(o)
-      .sort()
-      .map((k) => `${JSON.stringify(k)}:${stableStringify(o[k])}`)
-      .join(',')}}`;
-  }
-  return JSON.stringify(v);
-}
+import { stableStringify } from './values.js';
+export { stableStringify } from './values.js';
 
 /** Keys that are client-specific noise and must not affect drift comparison. */
-const IGNORED = new Set(['type', 'transport', 'enabled', 'tools', 'startup_timeout_sec', 'tool_timeout_sec']);
+const IGNORED = new Set([
+  'type',
+  'transport',
+  'enabled',
+  'tools',
+  'startup_timeout_sec',
+  'tool_timeout_sec',
+]);
 
 export function fingerprint(cfg: Record<string, unknown>): string {
   const norm: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(cfg)) if (!IGNORED.has(k)) norm[k] = v;
   // drop empty env objects so {env:{}} == no env
-  if (norm.env && typeof norm.env === 'object' && Object.keys(norm.env as object).length === 0) delete norm.env;
+  if (norm.env && typeof norm.env === 'object' && Object.keys(norm.env as object).length === 0)
+    delete norm.env;
   return crypto.createHash('sha256').update(stableStringify(norm)).digest('hex').slice(0, 12);
 }
 
