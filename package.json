@@ -1,0 +1,30 @@
+{
+  "name": "agent-hub",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Single source of truth for your AI coding agents: skills, MCP, instructions, memory, task state.",
+  "type": "module",
+  "bin": {
+    "agent-hub": "dist/cli.js",
+    "ahub": "dist/cli.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx src/cli.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^15.0.0",
+    "smol-toml": "^1.9.1",
+    "yaml": "^2.9.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}

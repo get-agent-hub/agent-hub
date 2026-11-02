@@ -1,0 +1,55 @@
+export type ClientId = 'claude-code' | 'codex' | 'dsh';
+
+export interface DetectResult {
+  installed: boolean;
+  /** Config files / dirs this adapter reads or writes. */
+  paths: Record<string, string>;
+  notes?: string[];
+}
+
+export interface SkillEntry {
+  name: string;
+  /** Path as seen by the client (may be a symlink). */
+  path: string;
+  /** Fully resolved real path. */
+  realPath: string;
+  hasSkillMd: boolean;
+}
+
+export type McpTransport = 'stdio' | 'http' | 'sse' | 'unknown';
+
+export interface McpEntry {
+  name: string;
+  transport: McpTransport;
+  command?: string;
+  args?: string[];
+  url?: string;
+  /** Env var names only; values are never kept in snapshots. */
+  envNames: string[];
+  /** True if any env/header value looks like an inline secret. */
+  hasInlineSecret: boolean;
+  /** Stable hash of the normalized config (secrets included) for drift detection. */
+  fingerprint: string;
+  /** Where the entry was read from (file + scope). */
+  source: string;
+}
+
+export interface ClientSnapshot {
+  client: ClientId;
+  skills: SkillEntry[];
+  mcp: McpEntry[];
+}
+
+export interface ClientAdapter {
+  id: ClientId;
+  label: string;
+  detect(): Promise<DetectResult>;
+  read(): Promise<ClientSnapshot>;
+}
+
+export interface HubState {
+  root: string;
+  exists: boolean;
+  skills: SkillEntry[];
+  mcp: McpEntry[];
+}
