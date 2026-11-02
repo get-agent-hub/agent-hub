@@ -4,7 +4,7 @@ import { writeTransaction } from './file-transaction.js';
 import { hubCommand } from './shell.js';
 import { appManaged, CODEX_POLICY_KEYS } from '../adapters/policies.js';
 import { readSettings as settingsAt, dshProfile } from './settings.js';
-import { parseRegistry } from './registry.js';
+import { parseRegistry, validServerName } from './registry.js';
 import { snapshot, writeChecked, readOptionalText, type FileSnapshot } from './file-store.js';
 import { withHubLock as withSyncLock } from './hub-lock.js';
 import { hash, stableStringify as stable } from './values.js';
@@ -27,6 +27,8 @@ import {
 
 export interface SyncOptions {
   client?: ClientId;
+  /** Exact existing records explicitly selected for a reviewed replacement. */
+  replace?: string[];
 }
 export interface SyncTarget {
   id: ClientId;
@@ -174,6 +176,7 @@ export function syncCommand(context: SyncContext, options: SyncOptions, args: st
   return hubCommand(context, [
     'sync',
     ...(options.client ? ['--client', options.client] : []),
+    ...(options.replace?.length ? ['--replace', ...options.replace] : []),
     ...args,
   ]);
 }
@@ -184,12 +187,24 @@ export async function planSync(
 ): Promise<SyncPlan> {
   if (options.client && !CLIENTS.includes(options.client))
     throw new HubError('Unknown client. Choose dsh, codex or claude-code.');
+  if (options.replace !== undefined) {
+    if (!options.client) throw new HubError('Explicit replacement requires one --client.');
+    if (
+      !Array.isArray(options.replace) ||
+      !options.replace.length ||
+      options.replace.some((name) => typeof name !== 'string' || !validServerName(name))
+    )
+      throw new HubError('Select valid server names for replacement.');
+    options = { ...options, replace: [...new Set(options.replace)].sort() };
+  }
   const context = supplied ?? (await defaultSyncContext());
   const settings = await settingsAt(context.root);
   const registryText = await readOptionalText(path.join(context.root, 'mcp', 'servers.yaml'));
   if (registryText === null)
     throw new HubError('No MCP registry. Run ahub import mcp before sync.');
   const registry = parseRegistry(registryText);
+  if (options.replace?.some((name) => !Object.hasOwn(registry.servers, name)))
+    throw new HubError('A selected replacement is not in the hub registry.');
   const stateBefore = await readOptionalText(stateFile(context.root));
   let state: Ownership;
   try {
@@ -243,6 +258,8 @@ export async function planSync(
       planned.problem = (e as Error).message;
       continue;
     }
+    if (options.replace?.some((name) => !current.has(name)))
+      throw new HubError('A selected replacement is missing from the client. Review a new plan.');
     const changes = new Map<string, Definition | null>();
     for (const [name, server] of Object.entries(registry.servers).sort(([a], [b]) =>
       a.localeCompare(b),
@@ -309,7 +326,15 @@ export async function planSync(
         before &&
         reviewed?.desired === desiredSignature(server, env) &&
         reviewed.clients[target.id] === definitionSignature(before);
-      if (before && !already && !matches && !ownedUnchanged && !importedUnchanged) {
+      const explicitReplacement = options.replace?.includes(name) === true;
+      if (
+        before &&
+        !already &&
+        !matches &&
+        !ownedUnchanged &&
+        !importedUnchanged &&
+        !explicitReplacement
+      ) {
         rows.push({
           name,
           action: 'conflict',
@@ -320,6 +345,9 @@ export async function planSync(
       rows.push({
         name,
         action: already ? 'keep' : before ? 'replace' : 'add',
+        ...(explicitReplacement && before && !already
+          ? { note: 'Explicitly selected replacement; apply requires the reviewed revision.' }
+          : {}),
         command: launchCommand(name, context),
         config: desired,
       });
@@ -423,7 +451,9 @@ export interface BackupManifest {
   stateAfterHash: string;
 }
 
-export async function applySync(plan: SyncPlan) {
+export async function applySync(plan: SyncPlan, expectedRevision?: string) {
+  if (plan.options.replace?.length && expectedRevision !== plan.revision)
+    throw new HubError('Explicit replacement requires --expect from the reviewed dry run.');
   if (plan.blocked) throw new HubError('Sync is blocked by conflicts. Review the dry run first.');
   return withSyncLock(plan.context.root, async () => {
     const fresh = await planSync(plan.options, plan.context);

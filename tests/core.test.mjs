@@ -304,3 +304,23 @@ test('production CLI completes import, copied sync, discovery and copied restore
   for (const [index, file] of [claude, codex, dsh].entries())
     assert.equal(await fs.readFile(file, 'utf8'), originals[index]);
 });
+
+test('remote launch preserves proxy routing without copying unrelated hub credentials into the process environment', async () => {
+  const { buildLaunch } = await import('../dist/core/launch.js');
+  const variables = new Map([
+    ['HTTP_PROXY', 'http://proxy.example:8080'],
+    ['HTTPS_PROXY', 'http://proxy.example:8080'],
+    ['NO_PROXY', 'localhost,127.0.0.1'],
+    ['OTHER_API_TOKEN', 'unrelated-fixture-token'],
+  ]);
+  const launch = buildLaunch(
+    { transport: 'http', url: 'https://service.example/mcp', proxy: true },
+    variables,
+  );
+  assert.ok(launch.args.includes('--enable-proxy'));
+  assert.ok(launch.args.includes('http-only'));
+  for (const key of ['HTTP_PROXY', 'HTTPS_PROXY', 'NO_PROXY'])
+    assert.equal(launch.env[key], variables.get(key));
+  assert.equal(launch.env.OTHER_API_TOKEN, undefined);
+  assert.equal(launch.missing.size, 0);
+});

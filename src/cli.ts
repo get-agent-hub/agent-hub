@@ -38,6 +38,10 @@ program
   .option('--apply', 'write changes (with backup)')
   .option('--dry-run', 'show changes and exact commands, write nothing (default)')
   .option('--client <id>', 'only this client')
+  .option(
+    '--replace <name...>',
+    'explicitly replace selected existing servers; requires --client and reviewed --expect on apply',
+  )
   .option('--expect <revision>', 'apply only if this reviewed revision still matches')
   .option('--json', 'machine-readable output')
   .action(syncCommand);

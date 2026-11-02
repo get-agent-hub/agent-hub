@@ -9,17 +9,21 @@ interface Options {
   dryRun?: boolean;
   client?: string;
   expect?: string;
+  replace?: string[];
   json?: boolean;
 }
 
 export async function syncCommand(opts: Options) {
   if (opts.apply && opts.dryRun) throw new HubError('Choose --dry-run or --apply, not both.');
-  const plan = await planSync({ client: opts.client as ClientId | undefined });
+  const plan = await planSync({
+    client: opts.client as ClientId | undefined,
+    replace: opts.replace,
+  });
   if (opts.expect && opts.expect !== plan.revision)
     throw new HubError('Configuration changed since that dry run. Review a new plan.');
   const preview = publicSyncPlan(plan);
   if (opts.apply) {
-    const result = await applySync(plan);
+    const result = await applySync(plan, opts.expect);
     if (opts.json) printJson({ ...preview, dryRun: false, result });
     else {
       console.log(

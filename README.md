@@ -37,6 +37,14 @@ The UI's **Sync → clients** button opens the same plan. Copy either the dry-ru
 
 Sync changes MCP definitions only. It preserves client-only entries, unrelated JSON values and TOML/YAML text, and existing Codex tool policies. Disabled clients and application-managed servers such as `node_repl` are skipped. A source chosen during import authorizes replacing the exact client variants reviewed in that import. Private hash-only provenance records this choice; credentials are not stored in it. A later local edit still conflicts rather than being overwritten. Inline/dotted Codex MCP assignments require explicit server tables; unsupported transport settings are blocked for review.
 
+To migrate an existing conflicting client record while keeping the hub definition, select exact names and one client:
+
+```sh
+node dist/cli.js sync --client dsh --replace example-server --dry-run
+```
+
+The plan explicitly marks these replacements. Its copied apply command includes `--replace` and the reviewed `--expect` revision; applying an explicit replacement without that revision is rejected. Other conflicts, unsupported fields, missing variables and application-owned servers retain their normal protections. The hub registry and credentials are not rewritten by this operation. No wrapper names or migration-specific script paths are recognized automatically.
+
 Before writing, sync saves private backups in `hub/backups/<id>/`, uses guarded atomic writes and records ownership hashes. If a later write fails, it rolls back the earlier writes. A later removal from the registry removes only previously owned definitions that have not been changed locally.
 
 ```sh

@@ -471,3 +471,127 @@ test('HTTP sync preview is read-only, apply consumes it, and stale previews are 
   await fs.appendFile(f.file('codex'), '\n# modified\n');
   assert.equal((await post('apply', { id: next.id })).status, 409);
 });
+
+test('explicit replacement is client-scoped and retains unselected conflicts and safety checks', async (t) => {
+  const f = await fixture(t);
+  await assert.rejects(planSync({ replace: ['demo'] }, f.context), /one --client/);
+  await assert.rejects(
+    planSync({ client: 'dsh', replace: ['missing'] }, f.context),
+    /not in the hub/,
+  );
+  await assert.rejects(planSync({ client: 'dsh', replace: [] }, f.context), /valid server names/);
+  const raw = await fs.readFile(f.file('dsh'), 'utf8');
+  await fs.writeFile(
+    f.file('dsh'),
+    editDefinitions(
+      'dsh',
+      raw,
+      new Map([['demo', { serverName: 'demo', command: 'old-wrapper', args: ['serve'] }]]),
+    ),
+  );
+  assert.equal((await planSync({ client: 'dsh' }, f.context)).blocked, true);
+  const plan = await planSync({ client: 'dsh', replace: ['demo'] }, f.context);
+  assert.equal(plan.blocked, false);
+  assert.equal(plan.targets.length, 1);
+  assert.equal(plan.targets[0].rows.find((row) => row.name === 'demo').action, 'replace');
+  assert.match(plan.targets[0].rows.find((row) => row.name === 'demo').note, /Explicitly selected/);
+  assert.match(publicSyncPlan(plan).commands.apply, /--replace.*demo.*--expect/);
+  await fs.writeFile(
+    f.file('dsh'),
+    editDefinitions(
+      'dsh',
+      raw,
+      new Map([['demo', { serverName: 'demo', command: 'old-wrapper', unsupportedSetting: true }]]),
+    ),
+  );
+  assert.equal((await planSync({ client: 'dsh', replace: ['demo'] }, f.context)).blocked, true);
+  const reg = parse(await fs.readFile(path.join(f.root, 'mcp/servers.yaml'), 'utf8'));
+  reg.servers.other = { command: 'hub-other' };
+  await fs.writeFile(path.join(f.root, 'mcp/servers.yaml'), stringify(reg));
+  await fs.writeFile(
+    f.file('dsh'),
+    editDefinitions(
+      'dsh',
+      raw,
+      new Map([
+        ['demo', { serverName: 'demo', command: 'old-wrapper' }],
+        ['other', { serverName: 'other', command: 'client-other' }],
+      ]),
+    ),
+  );
+  const selected = await planSync({ client: 'dsh', replace: ['demo'] }, f.context);
+  assert.equal(selected.blocked, true);
+  assert.equal(selected.targets[0].rows.find((row) => row.name === 'other').action, 'conflict');
+  assert.equal(
+    (await planSync({ client: 'dsh', replace: ['demo', 'other'] }, f.context)).blocked,
+    false,
+  );
+});
+
+test('reviewed replacements reject absent approval and stale files, then write only the selected client with a restorable backup', async (t) => {
+  const f = await fixture(t);
+  const before = await fs.readFile(f.file('dsh'), 'utf8');
+  const legacy = editDefinitions(
+    'dsh',
+    before,
+    new Map([['demo', { serverName: 'demo', command: 'old-wrapper', args: ['serve'] }]]),
+  );
+  await fs.writeFile(f.file('dsh'), legacy);
+  const plan = await planSync({ client: 'dsh', replace: ['demo'] }, f.context);
+  await assert.rejects(applySync(plan), /requires --expect/);
+  assert.equal(await fs.readFile(f.file('dsh'), 'utf8'), legacy);
+  await fs.appendFile(f.file('dsh'), '\n# external edit\n');
+  await assert.rejects(applySync(plan, plan.revision), /changed/);
+  const fresh = await planSync({ client: 'dsh', replace: ['demo'] }, f.context);
+  const result = await applySync(fresh, fresh.revision);
+  assert.equal(result.changedFiles, 1);
+  assert.equal(await fs.readFile(f.file('codex'), 'utf8'), original.codex);
+  assert.equal(await fs.readFile(f.file('claude-code'), 'utf8'), original['claude-code']);
+  const second = await planSync({ client: 'dsh' }, f.context);
+  assert.equal(second.blocked, false);
+  assert.ok(publicSyncPlan(second).files.every((file) => !file.changed));
+  await applyRestore(await planRestore(result.backup, f.context));
+  assert.equal(await fs.readFile(f.file('dsh'), 'utf8'), legacy + '\n# external edit\n');
+});
+
+test('CLI explicit replacement requires a reviewed revision and its copied apply command runs successfully', async (t) => {
+  const f = await fixture(t);
+  const raw = await fs.readFile(f.file('dsh'), 'utf8');
+  const legacy = editDefinitions(
+    'dsh',
+    raw,
+    new Map([['demo', { serverName: 'demo', command: 'old-wrapper' }]]),
+  );
+  await fs.writeFile(f.file('dsh'), legacy);
+  const env = {
+    ...process.env,
+    AGENT_HUB_HOME: f.root,
+    DSH_HOME: path.join(f.root, 'dsh'),
+    CODEX_HOME: path.join(f.root, 'codex'),
+    CLAUDE_CONFIG_DIR: path.join(f.root, 'claude'),
+    AGENT_HUB_CLAUDE_CONFIG: f.file('claude-code'),
+    AGENT_HUB_SHARED_SKILLS: path.join(f.root, 'skills'),
+  };
+  const args = [cli, 'sync', '--client', 'dsh', '--replace', 'demo'];
+  const preview = JSON.parse(
+    execFileSync(process.execPath, [...args, '--dry-run', '--json'], {
+      env,
+      encoding: 'utf8',
+      stdio: 'pipe',
+    }),
+  );
+  assert.equal(preview.blocked, false);
+  assert.equal(await fs.readFile(f.file('dsh'), 'utf8'), legacy);
+  assert.throws(() =>
+    execFileSync(process.execPath, [...args, '--apply', '--json'], { env, stdio: 'pipe' }),
+  );
+  assert.equal(await fs.readFile(f.file('dsh'), 'utf8'), legacy);
+  const result = JSON.parse(
+    execFileSync('/bin/sh', ['-c', preview.commands.apply + ' --json'], {
+      env,
+      encoding: 'utf8',
+      stdio: 'pipe',
+    }),
+  );
+  assert.equal(result.result.changedFiles, 1);
+});
