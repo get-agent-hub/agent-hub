@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import { isInlineSecret } from './secrets.js';
 import type { McpEntry, McpTransport } from './types.js';
 
-function stableStringify(v: unknown): string {
+export function stableStringify(v: unknown): string {
   if (Array.isArray(v)) return `[${v.map(stableStringify).join(',')}]`;
   if (v && typeof v === 'object') {
     const o = v as Record<string, unknown>;

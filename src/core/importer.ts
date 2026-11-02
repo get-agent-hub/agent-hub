@@ -2,6 +2,7 @@ import { fingerprint } from './mcp.js';
 import type { HubServer } from './registry.js';
 import { isInlineSecret, isSecretKey } from './secrets.js';
 import type { ClientId, RawMcp } from './types.js';
+import { fileURLToPath } from 'node:url';
 
 /** Client-specific keys carried into `clients.<id>` instead of the shared definition. */
 const PASSTHROUGH: Record<ClientId, string[]> = {
@@ -21,7 +22,11 @@ function managedBy(raw: Record<string, unknown>): ClientId | undefined {
 export function isHubProjection(raw: Record<string, unknown>): boolean {
   const cmd = String(raw.command ?? '');
   const args = (raw.args as unknown[] | undefined)?.map(String) ?? [];
-  return cmd.endsWith('/ahub') || cmd.endsWith('/agent-hub') || cmd === 'ahub' || [cmd, ...args].some((a) => a.includes('/.agent-hub/'));
+  const cli = fileURLToPath(new URL('../../dist/cli.js', import.meta.url));
+  const namedLauncher = /(?:^|\/)(ahub|agent-hub)$/.test(cmd) && args[0] === 'mcp' && args[1] === 'run';
+  const nodeLauncher = args[0] === cli && args[1] === 'mcp' && args[2] === 'run';
+  const legacy = [cmd, ...args].some((a) => /\/\.agent-hub\/bin\/(mcp-stdio-bridge\.py|todoist-proxy\.zsh)$/.test(a));
+  return namedLauncher || nodeLauncher || legacy;
 }
 
 export function normalize(client: ClientId, raw: Record<string, unknown>): HubServer {
@@ -94,7 +99,7 @@ export function collectCandidates(raws: { client: ClientId; items: RawMcp[] }[])
   const byName = new Map<string, Candidate[]>();
   for (const { client, items } of raws) {
     for (const r of items) {
-      if (client === 'dsh' && isHubProjection(r.raw)) continue;
+      if (isHubProjection(r.raw)) continue;
       const c: Candidate = { client, source: r.source, server: normalize(client, r.raw) };
       byName.set(r.name, [...(byName.get(r.name) ?? []), c]);
     }

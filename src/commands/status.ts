@@ -2,7 +2,11 @@ import { adapters } from '../adapters/index.js';
 import { readHub } from '../core/hub.js';
 import { c, printJson, table } from '../core/output.js';
 import { tildify } from '../core/paths.js';
-import type { ClientId, ClientSnapshot, HubState, McpEntry, SkillEntry } from '../core/types.js';
+import { readEnvFile } from '../core/env.js';
+import { envPath, readRegistry } from '../core/registry.js';
+import { normalize } from '../core/importer.js';
+import { appManaged, hash, isCurrentProjection, semantic } from '../core/sync.js';
+import type { ClientAdapter, ClientId, ClientSnapshot, HubState, McpEntry, SkillEntry } from '../core/types.js';
 
 type Col = 'hub' | ClientId;
 
@@ -15,14 +19,29 @@ export interface StatusReport {
 }
 
 type SkillCell = 'ok' | 'missing' | 'broken' | 'other-copy';
-/** For MCP: variant letter (A, B, …) per distinct config, or null if absent. */
+/** For MCP: variant letter per effective launch definition, or null if absent. */
 type McpCell = string | null;
 
-export async function collectStatus(): Promise<StatusReport> {
+export async function collectStatus(sources: ClientAdapter[] = adapters): Promise<StatusReport> {
   const hub = await readHub();
-  const detected = await Promise.all(adapters.map(async (a) => ({ a, d: await a.detect() })));
+  const detected = await Promise.all(sources.map(async (a) => ({ a, d: await a.detect() })));
   const installed = detected.filter((x) => x.d.installed);
   const snaps: ClientSnapshot[] = await Promise.all(installed.map((x) => x.a.read()));
+  const [registry, hubEnv, rawClients] = await Promise.all([
+    readRegistry(), readEnvFile(envPath()),
+    Promise.all(installed.map(async ({ a }) => ({ client: a.id, items: await a.readMcpRaw() }))),
+  ]);
+  const hubFingerprints = new Map(Object.entries(registry.servers).map(([name, s]) => [name, hash(semantic(s, hubEnv)).slice(0, 12)]));
+  for (const m of hub.mcp) m.fingerprint = hubFingerprints.get(m.name) ?? m.fingerprint;
+  for (const { client, items } of rawClients) {
+    const snap = snaps.find((s) => s.client === client)!;
+    for (const raw of items) {
+      const entry = snap.mcp.find((m) => m.name === raw.name);
+      if (entry) entry.fingerprint = isCurrentProjection(raw.raw, raw.name, hub.root) && hubFingerprints.has(raw.name)
+        ? hubFingerprints.get(raw.name)!
+        : hash(semantic(normalize(client, raw.raw), hubEnv)).slice(0, 12);
+    }
+  }
   const cols: Col[] = ['hub', ...snaps.map((s) => s.client)];
 
   const drift: StatusReport['drift'] = [];
@@ -78,7 +97,7 @@ export async function collectStatus(): Promise<StatusReport> {
       if (col === 'hub') continue;
       const client = col as ClientId;
       if (cells[col] && !hubCell && hub.exists) drift.push({ kind: 'only-in-client', area: 'mcp', name, client });
-      else if (!cells[col] && hubCell) drift.push({ kind: 'only-in-hub', area: 'mcp', name, client });
+      else if (!cells[col] && hubCell && (!registry.servers[name]?.only || registry.servers[name].only!.includes(client)) && !appManaged(registry.servers[name] ?? {})) drift.push({ kind: 'only-in-hub', area: 'mcp', name, client });
       else if (cells[col] && hubCell && cells[col] !== hubCell) drift.push({ kind: 'differs', area: 'mcp', name, client });
     }
     return { name, cells, variants: letters.size, inlineSecret };
@@ -115,7 +134,7 @@ export async function statusCommand(opts: { json?: boolean }): Promise<void> {
   console.log('\n' + c.cyan(`Skills (${r.skills.length})`));
   console.log(table(head('name'), r.skills.map((s) => [s.name, ...cols.map((col) => skillMark[s.cells[col]])])));
 
-  console.log('\n' + c.cyan(`MCP servers (${r.mcp.length})`) + c.dim('  letters = distinct configs; same letter = identical'));
+  console.log('\n' + c.cyan(`MCP servers (${r.mcp.length})`) + c.dim('  letters = effective definitions; same letter = equivalent launch'));
   console.log(
     table(
       [...head('name'), ''],

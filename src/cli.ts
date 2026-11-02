@@ -4,6 +4,9 @@ import { importCommand } from './commands/import.js';
 import { initCommand } from './commands/init.js';
 import { mcpLsCommand, mcpRunCommand } from './commands/mcp.js';
 import { statusCommand } from './commands/status.js';
+import { uiCommand } from './commands/ui.js';
+import { syncCommand, restoreCommand } from './commands/sync.js';
+import { doctorCommand } from './commands/doctor.js';
 import { notImplemented } from './commands/stub.js';
 
 const program = new Command();
@@ -30,8 +33,11 @@ program
   .command('sync')
   .description('project hub state into client configs (dry-run by default)')
   .option('--apply', 'write changes (with backup)')
+  .option('--dry-run', 'show changes and exact commands, write nothing (default)')
   .option('--client <id>', 'only this client')
-  .action(notImplemented('sync', '4–5'));
+  .option('--expect <revision>', 'apply only if this reviewed revision still matches')
+  .option('--json', 'machine-readable output')
+  .action(syncCommand);
 program
   .command('import [item]')
   .description('pull client definitions into the hub (item: mcp | mcp:<name>); secrets → .env')
@@ -40,9 +46,18 @@ program
   .option('--overwrite', 'replace servers that already exist in the hub')
   .option('--json', 'machine-readable output')
   .action(importCommand);
-program.command('doctor').description('health-check MCP servers, symlinks, permissions').action(notImplemented('doctor', '5'));
+program.command('doctor [name]').description('check MCP startup, tool discovery, skills and .env permissions')
+  .option('--timeout <seconds>', 'total time limit per server (0.1–120)', '20')
+  .option('--client <id>', 'check only the servers enabled for this client')
+  .option('--json', 'machine-readable report without raw server logs')
+  .action(doctorCommand);
 program.command('init-repo').description('add AGENTS.md + .agents/state/{PROJECT,NOW}.md to current repo').action(notImplemented('init-repo', '7'));
-program.command('restore <backup>').description('restore client configs from a backup').action(notImplemented('restore', '5'));
+program.command('restore <backup>').description('preview rollback of client configs from a sync backup')
+  .option('--apply', 'restore original files')
+  .option('--dry-run', 'show rollback without writing (default)')
+  .option('--expect <revision>', 'apply only if this reviewed revision still matches')
+  .option('--json', 'machine-readable output')
+  .action(restoreCommand);
 
 const mcp = program.command('mcp').description('manage MCP registry');
 mcp.command('ls').description('list servers in the hub registry').option('--json').action(mcpLsCommand);
@@ -55,7 +70,10 @@ skill.command('ls').action(notImplemented('skill ls', '3'));
 skill.command('add <source>').action(notImplemented('skill add', '3'));
 skill.command('rm <name>').action(notImplemented('skill rm', '3'));
 
-program.command('ui').description('open local web UI').action(notImplemented('ui', 'v0.2'));
+program.command('ui').description('open local web UI')
+  .option('--port <number>', 'local port (0 picks a free port)', '3082')
+  .option('--no-open', 'do not open a browser automatically')
+  .action(uiCommand);
 
 program.parseAsync().catch((err: unknown) => {
   console.error(err instanceof Error ? err.message : err);
