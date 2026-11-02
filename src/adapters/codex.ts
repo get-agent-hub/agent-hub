@@ -3,7 +3,7 @@ import { parse as parseToml } from 'smol-toml';
 import { clientPaths } from '../core/paths.js';
 import { exists, listSkills, readText } from '../core/fs.js';
 import { toMcpEntry } from '../core/mcp.js';
-import type { ClientAdapter, ClientSnapshot, DetectResult, SkillEntry } from '../core/types.js';
+import type { ClientAdapter, ClientSnapshot, DetectResult, RawMcp, SkillEntry } from '../core/types.js';
 
 export const codexAdapter: ClientAdapter = {
   id: 'codex',
@@ -20,13 +20,15 @@ export const codexAdapter: ClientAdapter = {
     return { installed: await exists(home), paths };
   },
 
-  async read(): Promise<ClientSnapshot> {
+  async readMcpRaw(): Promise<RawMcp[]> {
     const cfgPath = path.join(clientPaths.codexHome(), 'config.toml');
     const text = await readText(cfgPath);
     const cfg = text ? (parseToml(text) as { mcp_servers?: Record<string, Record<string, unknown>> }) : {};
-    const mcp = Object.entries(cfg.mcp_servers ?? {}).map(([name, raw]) =>
-      toMcpEntry(name, raw, `${cfgPath}#mcp_servers`),
-    );
+    return Object.entries(cfg.mcp_servers ?? {}).map(([name, raw]) => ({ name, raw, source: `${cfgPath}#mcp_servers` }));
+  },
+
+  async read(): Promise<ClientSnapshot> {
+    const mcp = (await this.readMcpRaw()).map((r) => toMcpEntry(r.name, r.raw, r.source));
 
     // Codex reads ~/.agents/skills (shared) and ~/.codex/skills (own). Merge, shared wins.
     const byName = new Map<string, SkillEntry>();

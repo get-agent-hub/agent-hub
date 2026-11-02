@@ -40,11 +40,20 @@ export interface ClientSnapshot {
   mcp: McpEntry[];
 }
 
+/** Raw client MCP definition. Contains secrets — never print or serialize to output. */
+export interface RawMcp {
+  name: string;
+  raw: Record<string, unknown>;
+  source: string;
+}
+
 export interface ClientAdapter {
   id: ClientId;
   label: string;
   detect(): Promise<DetectResult>;
   read(): Promise<ClientSnapshot>;
+  /** Global-scope MCP definitions as stored by the client (secrets included). */
+  readMcpRaw(): Promise<RawMcp[]>;
 }
 
 export interface HubState {

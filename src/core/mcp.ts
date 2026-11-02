@@ -1,17 +1,6 @@
 import crypto from 'node:crypto';
+import { isInlineSecret } from './secrets.js';
 import type { McpEntry, McpTransport } from './types.js';
-
-const SECRET_KEY = /(api[_-]?key|token|secret|password|passwd|authorization|bearer|cookie|credential)/i;
-const ENV_REF = /^\$\{?[A-Za-z_][A-Za-z0-9_]*\}?$/;
-
-export function isSecretKey(key: string): boolean {
-  return SECRET_KEY.test(key);
-}
-
-/** A value is an inline secret if its key looks secret and the value is a literal, not an env reference. */
-export function isInlineSecret(key: string, value: unknown): boolean {
-  return isSecretKey(key) && typeof value === 'string' && value.length > 0 && !ENV_REF.test(value);
-}
 
 function stableStringify(v: unknown): string {
   if (Array.isArray(v)) return `[${v.map(stableStringify).join(',')}]`;
