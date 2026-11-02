@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Repos & tasks — agent-hub</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar" data-active="repos"></aside>
+  <main class="main">
+    <div class="topbar">
+      <h1>Repos &amp; tasks</h1><span class="crumb">.agents/state in each repo</span>
+      <span class="spacer"></span>
+      <button class="btn">Scan ~/Desktop</button>
+      <button class="btn primary">+ Init repo</button>
+    </div>
+    <div class="content">
+      <div class="card table-wrap">
+        <table class="table">
+          <thead><tr><th>Repo</th><th>Current task</th><th>Branch</th><th>Last agent</th><th>NOW.md</th><th>Context</th><th></th></tr></thead>
+          <tbody>
+            <tr class="sel"><td><b>nova-connect</b><div class="faint mono" style="font-size:11.5px">~/Projects/nova-connect</div></td><td>OAuth broker</td><td class="mono">feat/oauth-broker</td><td>Claude Code</td><td><span class="pill ok">2h ago</span></td><td><span class="pill ok">AGENTS · PROJECT · NOW</span></td><td><button class="btn sm">Continue in…</button></td></tr>
+            <tr><td><b>agent-hub</b><div class="faint mono" style="font-size:11.5px">~/Desktop/projects/agent-hub</div></td><td>CLI skeleton</td><td class="mono">main</td><td>Claude Code</td><td><span class="pill warn">missing</span></td><td><span class="pill warn">no state</span></td><td><button class="btn sm">Init</button></td></tr>
+            <tr><td><b>corp-tariffs-ui</b><div class="faint mono" style="font-size:11.5px">~/Desktop/corp-tariffs-ui</div></td><td>tariff table refactor</td><td class="mono">feature/T-412</td><td>Codex CLI</td><td><span class="pill warn">1d · stale</span></td><td><span class="pill ok">AGENTS · NOW</span> <span class="pill err">corp: no 3rd-party API</span></td><td><button class="btn sm">Continue in…</button></td></tr>
+            <tr><td><b>redz-vault</b><div class="faint mono" style="font-size:11.5px">~/Desktop/redz-vault</div></td><td class="faint">—</td><td class="mono">main</td><td>Claude Code</td><td><span class="pill">idle</span></td><td><span class="pill">CLAUDE.md only</span></td><td><button class="btn sm">Init</button></td></tr>
+            <tr><td><b>redz-deployments</b><div class="faint mono" style="font-size:11.5px">~/Desktop/redz-deployments</div></td><td class="faint">—</td><td class="mono">main</td><td>Codex CLI</td><td><span class="pill">idle</span></td><td><span class="pill">AGENTS.md only</span></td><td><button class="btn sm">Init</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="grid g-2-1" style="margin-top:16px">
+        <div class="card">
+          <div class="card-h"><h2 class="mono">nova-connect / .agents/state/NOW.md</h2><span class="spacer" style="flex:1"></span><span class="faint" style="font-size:12px">updated by Claude Code · 2h ago</span></div>
+          <div class="card-b doc">
+            <h1>Task: Nova Connect OAuth</h1>
+            <p class="muted">Status: <b>in-progress</b> · Branch: <code>feat/oauth-broker</code></p>
+            <h2>Completed</h2>
+            <ul><li>Authorization flow</li><li>Encrypted token storage</li><li>Refresh-token handling</li></ul>
+            <h2>Changed files</h2>
+            <ul class="mono" style="font-size:12px"><li>apps/connect/src/oauth.service.ts</li><li>apps/connect/src/token.repository.ts</li></ul>
+            <h2>Verification</h2>
+            <ul><li>Unit tests passed</li><li><span style="color:var(--warn)">Integration tests not run</span></li></ul>
+            <h2>Next action</h2>
+            <p>Validate token rotation, then add integration tests.</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-h"><h3>Continue this task in</h3></div>
+          <div class="card-b stack">
+            <button class="btn" style="width:100%;justify-content:flex-start"><span class="mark ok" style="background:#d97757;color:#fff">C</span>Claude Code <span class="faint" style="margin-left:auto">subscription</span></button>
+            <button class="btn" style="width:100%;justify-content:flex-start"><span class="mark ok" style="background:#10a37f;color:#fff">X</span>Codex CLI <span class="faint" style="margin-left:auto">subscription</span></button>
+            <button class="btn primary" style="width:100%;justify-content:flex-start"><span class="mark" style="background:#fff;color:#4d6bfe">D</span>DSH · DeepSeek V4.1 Flash <span style="margin-left:auto;opacity:.8">API</span></button>
+            <div class="faint" style="font-size:12px">Opens the agent in this repo with: <span class="mono">“Continue from .agents/state/NOW.md, check git diff, keep uncommitted changes.”</span></div>
+            <div class="faint" style="font-size:12px">Fallback: NOW.md is 2h old — will append a summary extracted from the last Claude session.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="nav.js"></script>
+</body>
+</html>

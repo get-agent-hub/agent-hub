@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MCP servers — agent-hub</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar" data-active="mcp"></aside>
+  <main class="main">
+    <div class="topbar">
+      <h1>MCP servers</h1><span class="crumb">mcp/servers.yaml</span>
+      <span class="spacer"></span>
+      <button class="btn">Run doctor</button>
+      <button class="btn">Import from clients</button>
+      <button class="btn primary">+ Add server</button>
+    </div>
+    <div class="content">
+      <div class="grid g-1-2">
+        <div class="card">
+          <div class="card-h"><input class="input" style="min-width:0;flex:1" placeholder="Filter…"></div>
+          <ul class="list">
+            <li><span class="dot" style="color:var(--faint)"></span><b>achat</b><span class="meta">codex only</span></li>
+            <li><span class="dot" style="color:var(--faint)"></span><b>atlassian</b><span class="meta"><span class="pill warn">VPN</span></span></li>
+            <li><span class="dot" style="color:var(--faint)"></span><b>core-components</b><span class="meta">codex only</span></li>
+            <li><span class="dot" style="color:var(--ok)"></span><b>figma-bridge</b><span class="meta">37 tools</span></li>
+            <li><span class="dot" style="color:var(--ok)"></span><b>firecrawl</b><span class="meta"><span class="pill err">no credits</span></span></li>
+            <li><span class="dot" style="color:var(--faint)"></span><b>google-stitch</b><span class="meta">codex only</span></li>
+            <li class="sel"><span class="dot" style="color:var(--ok)"></span><b>google-workspace</b><span class="meta">119 tools</span></li>
+            <li><span class="dot" style="color:var(--faint)"></span><b>n8n-mcp</b><span class="meta"><span class="pill err">down</span></span></li>
+            <li><span class="dot" style="color:var(--faint)"></span><b>node_repl</b><span class="meta">codex only</span></li>
+            <li><span class="dot" style="color:var(--faint)"></span><b>replicate</b><span class="meta">claude only</span></li>
+            <li><span class="dot" style="color:var(--faint)"></span><b>telegram-mcp</b><span class="meta">codex only</span></li>
+            <li><span class="dot" style="color:var(--ok)"></span><b>todoist</b><span class="meta">47 tools</span></li>
+          </ul>
+        </div>
+
+        <div class="stack">
+          <div class="card">
+            <div class="card-h">
+              <h2>google-workspace</h2><span class="pill ok"><span class="dot"></span>healthy · 1.9s</span><span class="pill">stdio</span><span class="pill">personal</span>
+              <span class="spacer" style="flex:1"></span><button class="btn sm">Test</button><button class="btn sm">Edit</button>
+            </div>
+            <div class="tabs"><a class="active" href="#">Config</a><a href="#">Clients</a><a href="#">Tools (119)</a><a href="#">Logs</a></div>
+            <div class="card-b">
+<pre class="code"><span class="k">google-workspace</span>:
+  <span class="k">command</span>: <span class="s">uvx</span>
+  <span class="k">args</span>: [<span class="s">workspace-mcp</span>]
+  <span class="k">env</span>:
+    <span class="k">GOOGLE_OAUTH_CLIENT_ID</span>: <span class="r">${GOOGLE_OAUTH_CLIENT_ID}</span>      <span class="c"># .env ✓</span>
+    <span class="k">GOOGLE_OAUTH_CLIENT_SECRET</span>: <span class="r">${GOOGLE_OAUTH_CLIENT_SECRET}</span>  <span class="c"># .env ✓</span>
+    <span class="k">USER_GOOGLE_EMAIL</span>: <span class="s">maintainer@example.com</span>
+  <span class="k">tags</span>: [<span class="s">personal</span>]</pre>
+            </div>
+          </div>
+
+          <div class="card table-wrap">
+            <div class="card-h"><h3>Projection to clients</h3><span class="faint" style="font-size:12px">what <code>ahub sync</code> writes</span></div>
+            <table class="table">
+              <thead><tr><th>Client</th><th>Where</th><th>How</th><th>State</th></tr></thead>
+              <tbody>
+                <tr><td>Claude Code</td><td class="mono faint">~/.claude.json · mcpServers</td><td class="mono">ahub mcp run google-workspace</td><td><span class="pill warn">differs · inline secret</span></td></tr>
+                <tr><td>Codex CLI</td><td class="mono faint">config.toml · [mcp_servers]</td><td class="mono">ahub mcp run google-workspace</td><td><span class="pill warn">differs · inline secret</span></td></tr>
+                <tr><td>DeepSeek Harness</td><td class="mono faint">profiles/web · agenthub-mcp-*</td><td class="mono">ahub mcp run google-workspace</td><td><span class="pill ok">in sync</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="card">
+            <div class="card-h"><h3>Pending sync — dry run</h3><span class="spacer" style="flex:1"></span><button class="btn sm primary">Apply with backup</button></div>
+<pre class="code diff" style="border-radius:0 0 8px 8px"><span class="c"># ~/.claude.json  (only key mcpServers.google-workspace)</span>
+<span class="del">-  "command": "uvx", "args": ["workspace-mcp"],</span>
+<span class="del">-  "env": { "GOOGLE_OAUTH_CLIENT_SECRET": "•••••" }</span>
+<span class="add">+  "command": "ahub", "args": ["mcp", "run", "google-workspace"]</span></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="nav.js"></script>
+</body>
+</html>

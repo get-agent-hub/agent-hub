@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Memory — agent-hub</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar" data-active="memory"></aside>
+  <main class="main">
+    <div class="topbar">
+      <h1>Memory</h1><span class="crumb">memory/ · shared by Claude, Codex, DSH</span>
+      <span class="spacer"></span>
+      <input class="input" placeholder="Search facts…">
+      <button class="btn primary">+ New fact</button>
+    </div>
+    <div class="content">
+      <div class="grid g-1-2">
+        <div class="card">
+          <div class="tabs"><a class="active" href="#">All 5</a><a href="#">project</a><a href="#">reference</a><a href="#">feedback</a><a href="#">user</a></div>
+          <ul class="list">
+            <li class="sel"><div><b>Agent Hub / DSH</b><div class="faint" style="font-size:12px">unified skills+MCP for Claude/Codex/DSH</div></div><span class="meta"><span class="pill accent">project</span></span></li>
+            <li><div><b>VPN server migration</b><div class="faint" style="font-size:12px">old → Cinfu → Hostinger</div></div><span class="meta"><span class="pill accent">project</span></span></li>
+            <li><div><b>Proxy IP touchpoints</b><div class="faint" style="font-size:12px">every place the proxy IP lives</div></div><span class="meta"><span class="pill">reference</span></span></li>
+            <li><div><b>macOS focus flicker</b><div class="faint" style="font-size:12px">stuck Stage Manager → killall WindowManager</div></div><span class="meta"><span class="pill">reference</span></span></li>
+            <li><div><b>Ghost blog skill</b><div class="faint" style="font-size:12px">example.com, ghost CLI</div></div><span class="meta"><span class="pill">reference</span></span></li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <div class="card-h">
+            <h2 class="mono">agent-hub-dsh.md</h2><span class="pill accent">project</span>
+            <span class="spacer" style="flex:1"></span><span class="faint" style="font-size:12px">written by Claude · 2026-11-02</span>
+            <button class="btn sm">Edit</button>
+          </div>
+          <div class="card-b doc">
+            <p class="muted" style="margin-top:0">Agent Hub (~/.agent-hub) — unified skills/MCP/memory for Claude Code, Codex CLI, DeepSeek Harness; status and next steps</p>
+            <h2>Done (2026-11-02)</h2>
+            <ul>
+              <li>Skills: 11 symlinks; linked into <code>~/.claude/skills</code> and <code>~/.agents/skills</code>.</li>
+              <li>MCP: bridge launches servers from Claude config at runtime — no secrets in DSH patches.</li>
+              <li>4 MCP baked into DSH profile <code>web</code>, verified from the DSH agent.</li>
+            </ul>
+            <h2>Gotchas</h2>
+            <ul>
+              <li>google-workspace OAuth is for <code>maintainer@example.com</code> — pass it explicitly.</li>
+              <li><code>dsh-skill-panel</code> broke the directory picker → removed.</li>
+            </ul>
+            <h2>Links</h2>
+            <p><span class="pill">[[proxy-ip-touchpoints]]</span> <span class="pill">[[ghost-blog-skill]]</span></p>
+          </div>
+          <div class="card-b" style="border-top:1px solid var(--line)">
+            <div class="row faint" style="font-size:12px">
+              Visible in: <span class="pill ok">Claude · symlink</span><span class="pill ok">Codex · index in AGENTS.md</span><span class="pill ok">DSH · index in AGENTS.md</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="nav.js"></script>
+</body>
+</html>
