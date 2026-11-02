@@ -1,3 +1,4 @@
+import { recoveryRoot } from '../dist/core/recovery-paths.js';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import fs from 'node:fs/promises';
@@ -19,7 +20,10 @@ const server = path.resolve('tests/fixtures/doctor-server.mjs');
 
 async function fixture(t, modes = { demo: 'healthy' }) {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "ahub-doctor-'space "));
-  t.after(() => fs.rm(root, { recursive: true, force: true }));
+  t.after(async () => {
+    await fs.rm(root, { recursive: true, force: true });
+    await fs.rm(recoveryRoot(root), { recursive: true, force: true });
+  });
   await fs.mkdir(path.join(root, 'mcp'));
   await fs.writeFile(path.join(root, '.env'), `DOCTOR_TOKEN=${secret}\n`, { mode: 0o600 });
   const servers = Object.fromEntries(

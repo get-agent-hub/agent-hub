@@ -23,7 +23,7 @@ npm run qa:ui          # Manual UI fixture; no production client writes
 
 Prefer small functions with one responsibility and explicit inputs over speculative interfaces or class hierarchies. Add shared helpers when two real callers need the same behavior. Keep runtime schema validation at file/HTTP boundaries. Do not let parser exceptions or server logs enter user-facing reports.
 
-Use `writeChecked` for a single guarded replacement, `writeTransaction` for related replacements with rollback, and `withHubLock` for an operation that changes hub configuration. These are advisory, compensating operations: several files cannot be replaced simultaneously, and a process or machine crash can leave recovery work. Never describe them as crash-safe transactions.
+Use `writeChecked` for a single guarded replacement, `writeTransaction` for related replacements with rollback, capture a baseline/write intent before mutation, and use `withHubLock` for an operation that changes hub configuration. These are advisory, compensating operations: several files cannot be replaced simultaneously, and a process or machine crash can leave recovery work. Never describe them as crash-safe transactions.
 
 Regression tests should demonstrate observable failures: stale plans, interrupted writes, format preservation, secret redaction or cleanup. Avoid testing implementation details or adding assertions just to improve coverage numbers. Runtime tests must use injected clients or explicit path overrides; never change the real user's home or client files.
 
@@ -32,3 +32,5 @@ Regression tests should demonstrate observable failures: stale plans, interrupte
 The npm package remains private until a public package name and version are selected. Publishing and pushing are explicit maintainer actions. The package allowlist excludes test fixtures, local state, QA reports and design mockups. Run the full checks from a clean checkout before cutting a release.
 
 Production dependency audit must pass. Review development-tool advisories separately: do not force unrelated major-version changes or hide advisories with unexplained overrides. See `docs/CODE_REVIEW.md` for the audited baseline and known limitations.
+
+Original-state recovery is described in [docs/RECOVERY.md](docs/RECOVERY.md). Fixtures that place a hub at the temporary root must also remove its sibling recovery directory during cleanup.

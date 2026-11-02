@@ -43,3 +43,7 @@ The production dependency audit reported **zero vulnerabilities**. The full deve
 - Interactive terminal prompts and desktop browser-opening behavior are not fully automated by the unit suite. Source-level browser helpers and HTTP boundaries are tested; this pass does not claim a full automated browser matrix.
 - Instruction delivery, repository initialization and session indexing remain explicitly unimplemented.
 - The npm name/version and release remain maintainer decisions; no package was published by this review.
+
+## Follow-up: original-state recovery
+
+A later audit added external baselines, a durable write-intent journal, `reset`, explicit stale-lock recovery and regression cases for interrupted sync/reset. See [EDGE_CASES.md](EDGE_CASES.md) and [RECOVERY.md](RECOVERY.md). These improve process-failure recovery; they do not establish database-style crash durability or remove the filesystem limits listed above.

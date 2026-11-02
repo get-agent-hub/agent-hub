@@ -60,7 +60,7 @@ export async function writeChecked(snap: FileSnapshot, next: string | null) {
     if (current.content !== null) await fs.unlink(snap.realFile);
     return;
   }
-  await fs.mkdir(path.dirname(snap.realFile), { recursive: true });
+  await fs.mkdir(path.dirname(snap.realFile), { recursive: true, mode: 0o700 });
   const tmp = `${snap.realFile}.agent-hub-${randomBytes(8).toString('hex')}.tmp`;
   try {
     const handle = await fs.open(tmp, 'wx', snap.mode);

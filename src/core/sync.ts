@@ -1,3 +1,4 @@
+import { ensureBaseline, recordExpectedWrites } from './baseline.js';
 import { HubError } from './errors.js';
 import { isRecord } from './values.js';
 import { writeTransaction } from './file-transaction.js';
@@ -176,7 +177,7 @@ export function syncCommand(context: SyncContext, options: SyncOptions, args: st
   return hubCommand(context, [
     'sync',
     ...(options.client ? ['--client', options.client] : []),
-    ...(options.replace?.length ? ['--replace', ...options.replace] : []),
+    ...(options.replace?.map((name) => `--replace=${name}`) ?? []),
     ...args,
   ]);
 }
@@ -379,6 +380,16 @@ export async function planSync(
       planned.problem = (e as Error).message;
     }
   }
+  const physicalTargets = new Map<string, TargetPlan>();
+  for (const target of targets) {
+    if (target.rows.some((row) => row.name === '*' && row.action === 'skip')) continue;
+    const previous = physicalTargets.get(target.snapshot.realFile);
+    if (previous) {
+      previous.problem =
+        'Multiple clients resolve to the same configuration file. Separate their paths before sync.';
+      target.problem = previous.problem;
+    } else physicalTargets.set(target.snapshot.realFile, target);
+  }
   const sourceRevision = hash(
     stable({
       settings,
@@ -455,12 +466,21 @@ export async function applySync(plan: SyncPlan, expectedRevision?: string) {
   if (plan.options.replace?.length && expectedRevision !== plan.revision)
     throw new HubError('Explicit replacement requires --expect from the reviewed dry run.');
   if (plan.blocked) throw new HubError('Sync is blocked by conflicts. Review the dry run first.');
-  return withSyncLock(plan.context.root, async () => {
+  return withSyncLock(plan.context.root, async (origin) => {
     const fresh = await planSync(plan.options, plan.context);
     if (fresh.revision !== plan.revision)
       throw new HubError('Configuration changed since the preview. Run a new dry run.');
     const changes = fresh.targets.filter((t) => t.next !== (t.snapshot.content ?? ''));
     if (!changes.length) return { changedFiles: 0, backup: null, restoreCommand: null };
+    await ensureBaseline(
+      plan.context.root,
+      plan.context.targets.map((target) => ({
+        file: target.file,
+        client: target.id,
+        installed: target.installed,
+      })),
+      origin,
+    );
     const stateSnapshot = await snapshot(stateFile(plan.context.root));
     if (stateSnapshot.content !== fresh.stateBefore)
       throw new HubError('Sync state changed since planning. Run a new dry run.');
@@ -500,6 +520,10 @@ export async function applySync(plan: SyncPlan, expectedRevision?: string) {
       mode: 0o600,
       flag: 'wx',
     });
+    await recordExpectedWrites(plan.context.root, [
+      ...changes.map((target) => ({ before: target.snapshot, after: target.next })),
+      { before: stateSnapshot, after: nextStateText },
+    ]);
     try {
       await writeTransaction(
         [

@@ -1,3 +1,4 @@
+import { recoveryRoot } from '../dist/core/recovery-paths.js';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import fs from 'node:fs/promises';
@@ -22,6 +23,7 @@ async function fixture(t) {
     if (previous === undefined) delete process.env.AGENT_HUB_HOME;
     else process.env.AGENT_HUB_HOME = previous;
     await fs.rm(root, { recursive: true, force: true });
+    await fs.rm(recoveryRoot(root), { recursive: true, force: true });
   });
   await fs.mkdir(path.join(root, 'mcp'));
   await fs.writeFile(path.join(root, '.env'), '# existing credentials\n', { mode: 0o600 });
@@ -193,6 +195,8 @@ test('CLI initialization and import leave unrelated staged work untouched', asyn
   git(['init', '-q', '-b', 'main']);
   git(['config', 'user.email', 'test@example.com']);
   git(['config', 'user.name', 'Fixture']);
+  git(['config', 'commit.gpgsign', 'false']);
+  git(['config', 'core.hooksPath', path.join(f.root, 'disabled-hooks')]);
   await fs.writeFile(path.join(f.root, 'notes.md'), 'existing notes');
   git(['add', 'notes.md']);
   git(['commit', '-qm', 'initial fixture']);
@@ -323,4 +327,24 @@ test('remote launch preserves proxy routing without copying unrelated hub creden
     assert.equal(launch.env[key], variables.get(key));
   assert.equal(launch.env.OTHER_API_TOKEN, undefined);
   assert.equal(launch.missing.size, 0);
+});
+
+test('re-import recognizes marked launchers from an earlier package path instead of nesting them', async () => {
+  const { collectCandidates } = await import('../dist/core/importer.js');
+  const raw = {
+    command: '/old/runtime/node',
+    args: ['/old/package/dist/cli.js', 'mcp', 'run', 'demo'],
+    env: { AGENT_HUB_HOME: '/some/hub' },
+  };
+  assert.equal(
+    collectCandidates([{ client: 'codex', items: [{ name: 'demo', raw, source: 'fixture' }] }])
+      .size,
+    0,
+  );
+  assert.equal(
+    collectCandidates([
+      { client: 'codex', items: [{ name: 'demo', raw: { ...raw, env: {} }, source: 'fixture' }] },
+    ]).size,
+    1,
+  );
 });

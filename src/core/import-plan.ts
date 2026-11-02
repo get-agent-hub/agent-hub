@@ -1,3 +1,4 @@
+import { ensureBaseline, recordExpectedWrites } from './baseline.js';
 import path from 'node:path';
 import { snapshot, type FileSnapshot } from './file-store.js';
 import { writeTransaction } from './file-transaction.js';
@@ -211,23 +212,38 @@ const digest = (value: unknown) => createHash('sha256').update(JSON.stringify(va
 export async function applyImport(plan: ImportPlan) {
   const changed = plan.rows.filter((row) => row.action === 'add' || row.action === 'update');
   if (!changed.length) return { imported: 0, commit: undefined };
-  return withHubLock(plan.root, async () => {
+  return withHubLock(plan.root, async (origin) => {
     if (digest(await readSources(plan.sources)) !== plan.sourceRevision)
       throw new HubError('Client definitions changed since import planning. Review a new plan.');
+    const detected = await Promise.all(
+      plan.sources.map(async (source) => ({ source, result: await source.detect() })),
+    );
+    await ensureBaseline(
+      plan.root,
+      detected.flatMap(({ source, result }) => {
+        const file = result.paths.config ?? result.paths.profilePatch;
+        return typeof file === 'string'
+          ? [{ file, client: source.id, installed: result.installed }]
+          : [];
+      }),
+      origin,
+    );
     const [registry, environment, provenance] = plan.inputs;
     const env = renderEnvAppend(
       environment.content ?? '',
       plan.newSecrets,
       'Imported by Agent Hub',
     );
-    await writeTransaction([
+    const changes = [
       { before: { ...environment, mode: 0o600 }, after: env.content },
       { before: registry, after: serializeRegistry({ version: 1, servers: plan.next }) },
       {
         before: { ...provenance, mode: 0o600 },
         after: JSON.stringify(plan.imported, null, 2) + '\n',
       },
-    ]);
+    ];
+    await recordExpectedWrites(plan.root, changes);
+    await writeTransaction(changes);
     // Committing is an explicit user action; an import must not stage unrelated hub changes.
     return { imported: changed.length, commit: undefined };
   });

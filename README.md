@@ -53,6 +53,14 @@ node dist/cli.js restore <backup-id> --dry-run
 
 Restore also defaults to dry run and prints an exact apply command. It refuses to overwrite a client file or ownership state changed since that backup. Restart affected clients after sync or restore.
 
+To return to the first recorded state across multiple operations:
+
+```sh
+node dist/cli.js reset --dry-run
+```
+
+Before managed writes, originals are captured privately outside the hub in `<AGENT_HUB_HOME>.recovery`. Reset archives current data and restores recorded originals; `--apply` requires the reviewed `--expect` revision. Later client edits block by default. Existing installations without historical originals get an explicitly labeled checkpoint on their next managed write; no command can invent their pre-install state. See [RECOVERY.md](docs/RECOVERY.md) for scope, external edits, dead-lock recovery and filesystem limits.
+
 Configuration comparisons describe effective launch definitions, not server health. Different launchers and secret references may start equivalent tools. Status resolves hub secret references and recognizes the current hub launcher, so direct equivalent definitions and generated launchers compare consistently. Shared instruction delivery and repository initialization remain later steps.
 
 ## MCP connection checks

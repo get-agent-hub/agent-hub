@@ -1,3 +1,5 @@
+import { HubError } from '../core/errors.js';
+import { ensureBaseline, recordExpectedWrites } from '../core/baseline.js';
 import { withHubLock } from '../core/hub-lock.js';
 import { snapshot, writeChecked } from '../core/file-store.js';
 import fs from 'node:fs/promises';
@@ -58,7 +60,22 @@ export async function initCommand(opts: {
     };
   }
 
-  await withHubLock(root, async () => {
+  await withHubLock(root, async (origin) => {
+    await ensureBaseline(
+      root,
+      detected.flatMap(({ a, d }) => {
+        const file = d.paths.config ?? d.paths.profilePatch;
+        return typeof file === 'string' ? [{ file, client: a.id, installed: d.installed }] : [];
+      }),
+      origin,
+    );
+    if (opts.git !== false && (await exists(path.join(root, '.git')))) {
+      const metadata = await fs.lstat(path.join(root, '.git'));
+      if (!metadata.isDirectory() || metadata.isSymbolicLink())
+        throw new HubError(
+          'Git metadata outside the hub cannot be included in a complete reset. Use --no-git for an existing worktree or linked repository.',
+        );
+    }
     // 2. layout
     for (const d of DIRS) await fs.mkdir(path.join(root, d), { recursive: true });
     await fs.chmod(root, 0o700).catch(() => undefined);
@@ -74,6 +91,13 @@ export async function initCommand(opts: {
     }
 
     const envFile = path.join(root, '.env');
+    const envBefore = await snapshot(envFile);
+    await recordExpectedWrites(root, [
+      {
+        before: { ...envBefore, mode: 0o600 },
+        after: envBefore.content ?? '# agent-hub secrets — git-ignored. KEY=value\n',
+      },
+    ]);
     if (!(await exists(envFile))) {
       await fs.writeFile(envFile, '# agent-hub secrets — git-ignored. KEY=value\n', {
         mode: 0o600,
@@ -91,8 +115,11 @@ export async function initCommand(opts: {
       (l) => l && !l.startsWith('#') && !curGi.split('\n').includes(l),
     );
     const giSnapshot = await snapshot(gi);
-    if (!curGi) await writeChecked(giSnapshot, GITIGNORE);
-    else if (missing.length) await writeChecked(giSnapshot, `${curGi}\n${missing.join('\n')}\n`);
+    if (!curGi || missing.length) {
+      const after = !curGi ? GITIGNORE : `${curGi}\n${missing.join('\n')}\n`;
+      await recordExpectedWrites(root, [{ before: giSnapshot, after }]);
+      await writeChecked(giSnapshot, after);
+    }
 
     // 4. git
     const wantGit =

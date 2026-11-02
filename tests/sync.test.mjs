@@ -1,3 +1,4 @@
+import { recoveryRoot } from '../dist/core/recovery-paths.js';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import fs from 'node:fs/promises';
@@ -40,6 +41,10 @@ async function fixture(t) {
   t.after(async () => {
     await fs.chmod(path.join(root, 'claude'), 0o700).catch(() => undefined);
     await fs.rm(root, { recursive: true, force: true });
+    await fs
+      .chmod(path.join(recoveryRoot(root), 'baseline/hub/claude'), 0o700)
+      .catch(() => undefined);
+    await fs.rm(recoveryRoot(root), { recursive: true, force: true });
   });
   const context = {
     root,
@@ -594,4 +599,64 @@ test('CLI explicit replacement requires a reviewed revision and its copied apply
     }),
   );
   assert.equal(result.result.changedFiles, 1);
+});
+
+test('copied replacement commands support server names beginning with a dash', async (t) => {
+  const f = await fixture(t);
+  const name = '--edge';
+  const reg = parse(await fs.readFile(path.join(f.root, 'mcp/servers.yaml'), 'utf8'));
+  reg.servers[name] = { command: 'desired-fixture' };
+  await fs.writeFile(path.join(f.root, 'mcp/servers.yaml'), stringify(reg));
+  await fs.writeFile(
+    f.file('dsh'),
+    editDefinitions(
+      'dsh',
+      original.dsh,
+      new Map([[name, { serverName: name, command: 'previous-fixture' }]]),
+    ),
+  );
+  const env = {
+    ...process.env,
+    AGENT_HUB_HOME: f.root,
+    DSH_HOME: path.join(f.root, 'dsh'),
+    CODEX_HOME: path.join(f.root, 'codex'),
+    AGENT_HUB_CLAUDE_CONFIG: f.file('claude-code'),
+    CLAUDE_CONFIG_DIR: path.join(f.root, 'claude'),
+    AGENT_HUB_SHARED_SKILLS: path.join(f.root, 'skills'),
+  };
+  const preview = JSON.parse(
+    execFileSync(
+      process.execPath,
+      [cli, 'sync', '--client', 'dsh', `--replace=${name}`, '--dry-run', '--json'],
+      { env, encoding: 'utf8', stdio: 'pipe' },
+    ),
+  );
+  assert.equal(preview.blocked, false);
+  const applied = JSON.parse(
+    execFileSync('/bin/sh', ['-c', preview.commands.apply + ' --json'], {
+      env,
+      encoding: 'utf8',
+      stdio: 'pipe',
+    }),
+  );
+  assert.equal(applied.result.changedFiles, 1);
+});
+
+test('client configs resolving to the same physical file are blocked during preview', async (t) => {
+  const f = await fixture(t);
+  const context = {
+    ...f.context,
+    targets: f.context.targets.map((target) =>
+      target.id === 'codex' ? { ...target, file: f.file('claude-code') } : target,
+    ),
+  };
+  const plan = await planSync({}, context);
+  assert.equal(plan.blocked, true);
+  assert.match(
+    publicSyncPlan(plan).files.find((file) => file.client === 'claude-code').problem,
+    /same configuration file/,
+  );
+  await assert.rejects(applySync(plan), /blocked/);
+  for (const target of f.context.targets)
+    assert.equal(await fs.readFile(target.file, 'utf8'), original[target.id]);
 });

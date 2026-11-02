@@ -1,3 +1,4 @@
+import { ensureBaseline } from './baseline.js';
 import { probe } from './doctor-probe.js';
 import { parseRegistry } from './registry.js';
 import { withHubLock } from './hub-lock.js';
@@ -313,7 +314,8 @@ export async function runDoctor(
   if (options.save !== false) {
     const dir = path.join(context.root, 'state');
     try {
-      await withHubLock(context.root, async () => {
+      await withHubLock(context.root, async (origin) => {
+        await ensureBaseline(context.root, [], origin);
         let previous: DoctorReport | undefined;
         try {
           previous = JSON.parse(await fs.readFile(path.join(dir, 'doctor.json'), 'utf8'));

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { resetCommand } from './commands/reset.js';
 import { Command } from 'commander';
 import { packageVersion } from './core/package.js';
 import { importCommand } from './commands/import.js';
@@ -72,6 +73,20 @@ program
   .option('--expect <revision>', 'apply only if this reviewed revision still matches')
   .option('--json', 'machine-readable output')
   .action(restoreCommand);
+
+program
+  .command('reset')
+  .description('preview return to the first recorded baseline; archive current data')
+  .option('--dry-run', 'show the original-state recovery plan without writing (default)')
+  .option('--apply', 'restore recorded originals and archive current data')
+  .option('--expect <revision>', 'required on apply: exact reviewed reset revision')
+  .option(
+    '--archive-changes',
+    'also restore externally edited client files, saving their current contents',
+  )
+  .option('--recover-lock', 'recover locks only after verifying that their owner has stopped')
+  .option('--json', 'machine-readable output without file contents')
+  .action(resetCommand);
 
 const mcp = program.command('mcp').description('manage MCP registry');
 mcp

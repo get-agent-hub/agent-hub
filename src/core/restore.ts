@@ -1,3 +1,4 @@
+import { ensureBaseline, recordExpectedWrites } from './baseline.js';
 import { writeTransaction } from './file-transaction.js';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -87,17 +88,28 @@ export async function applyRestore(plan: Awaited<ReturnType<typeof planRestore>>
     throw new HubError(
       'Restore is blocked: a client file or sync state changed after this backup.',
     );
-  return withSyncLock(plan.context.root, async () => {
+  return withSyncLock(plan.context.root, async (origin) => {
     const fresh = await planRestore(plan.id, plan.context);
     if (fresh.revision !== plan.revision)
       throw new HubError('Configuration changed since the restore preview.');
-    await writeTransaction([
+    await ensureBaseline(
+      plan.context.root,
+      plan.context.targets.map((target) => ({
+        file: target.file,
+        client: target.id,
+        installed: target.installed,
+      })),
+      origin,
+    );
+    const changes = [
       ...fresh.files.map((file) => ({
         before: { ...file.current, mode: file.mode },
         after: file.original,
       })),
       { before: fresh.state, after: fresh.stateBefore },
-    ]);
+    ];
+    await recordExpectedWrites(plan.context.root, changes);
+    await writeTransaction(changes);
     return { restoredFiles: fresh.files.length };
   });
 }
