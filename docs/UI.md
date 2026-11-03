@@ -6,7 +6,7 @@ The server calls the existing status collector and the shared `src/core/import-p
 
 ## Guided first run
 
-Overview separates **Set up shared Hub** from optional **Connect project memory**. Hub setup works from any folder and previews global MCP, skill and shared instruction/index collection/delivery. Project connection is available for the Git project where the UI started and previews its memory, handoff and hooks. The scope and storage/project paths are labeled separately. Both results show completed, unchanged, skipped and blocked stages, restore previews and the first-baseline reset command. See [QUICKSTART.md](QUICKSTART.md).
+Overview separates **Set up shared Hub** from optional **Connect project memory**. Hub setup works from any folder and previews global MCP, skill and shared instruction/index collection/delivery. The header selects a verified registered project, the startup folder or shared knowledge. Switching expires every preview. Project connection is available for the selected Git project and previews its memory, handoff and hooks. The scope and storage/project paths are labeled separately. Both results show completed, unchanged, skipped and blocked stages, restore previews, per-run undo and the separate first-baseline reset command. See [QUICKSTART.md](QUICKSTART.md).
 
 `POST /api/quick/preview` accepts only `clients` and `prefer`. `POST /api/project/connect/preview` accepts only `clients` and `automation`; its project directory is fixed to the server startup location. The corresponding `/apply` routes consume private single-use `previewId` plus `revision`. A Hub preview cannot be applied through a project route. Unknown or cross-scope options are rejected. IDs expire after five minutes; writes share the UI operation guard and each stage's filesystem lock. No source-bearing internal plan enters the response. Each workflow is staged rather than one transaction.
 
@@ -48,6 +48,12 @@ The probe is an unauthenticated GET to the base URL plus `/healthz/readiness`, w
 
 ## Managed content operations
 
-`POST /api/content/preview` accepts `skills-import`, `skills-sync`, `context-sync` or `init-repo`. It returns only actions, paths, a revision and copyable commands. Source rules and memory text are excluded. `POST /api/content/apply` consumes the opaque preview ID, rebuilds the plan and applies it under the shared Hub lock. The same Host/Origin/token protections and five-minute, single-use preview lifetime apply. All content writes serialize with imports and MCP sync.
+`POST /api/content/preview` accepts `skills-import`, `skills-sync`, `context-sync`, `init-repo` or `project-disconnect`. It returns only actions, paths, a revision and copyable commands. Source rules and memory text are excluded. `POST /api/content/apply` consumes the opaque preview ID, rebuilds the plan and applies it under the shared Hub lock. The same Host/Origin/token protections and five-minute, single-use preview lifetime apply. All content writes serialize with imports and MCP sync.
 
 The local UI has Skills import/delivery controls, context delivery on Instructions/Memory and Prepare repository on Repos & tasks. Init-repo is bound to the server's startup workspace. The isolated QA harness injects fixture-only content targets as well as MCP targets, so these controls never default to the developer's real client directories there.
+
+## Evidence and project selection
+
+Overview distinguishes configuration matching, current/stale/missing MCP check evidence, hook installation and recent observed hook/checkpoint timestamps. A configured hook is not reported as observed. Submitted fact counts include empty acknowledgements and are not a quality claim. The memory metric counts canonical records, separately from read-only Markdown document previews; unconnected folders default record management to shared scope.
+
+`POST /api/project/select` accepts a registered project ID, `@current` or null for shared knowledge. It validates a stored checkout's Git identity, creates a new bound memory session and expires setup, import, content, delivery and memory previews. Arbitrary paths are rejected. Per-item MCP/skill directions open scoped source-import or Hub-delivery previews, with replacement explicitly selected for only that item.

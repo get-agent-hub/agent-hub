@@ -8,16 +8,15 @@ Requires Node.js **22.13 or newer**, npm, and at least one configured client. Gi
 
 ```sh
 npm ci
-npm run build
-npm install --global .
+npm run install:global
 ahub --help
 ```
 
-The package is currently private; `npm install --global agent-hub` from a public registry is not available yet. Install from the downloaded/built source directory using the final dot in `npm install --global .`. Afterwards use `ahub` from any directory; `agent-hub` is an equivalent executable name.
+The package is currently private; `npm install --global agent-hub` from a public registry is not available yet. Run `npm run install:global` from the downloaded source directory. It builds, packs and globally installs a standalone package copy with a production shrinkwrap. Afterwards use `ahub` from any directory; `agent-hub` is an equivalent executable name.
 
-Local-folder global installation normally links to the source checkout. Keep that checkout, its built files and Node at stable paths: generated launchers and memory hooks bind to the installed runtime. If the shell cannot find `ahub`, check `npm prefix --global` and add its binary directory to PATH (on macOS/Linux, `<prefix>/bin`). Use a user-writable npm prefix or your Node version manager when permissions prevent installation.
+The source checkout may be removed after installation. Keep Node and the installed package at stable paths: generated launchers and memory hooks bind to the installed runtime. If the shell cannot find `ahub`, check `npm prefix --global` and add its binary directory to PATH (on macOS/Linux, `<prefix>/bin`). Use a user-writable npm prefix or your Node version manager when permissions prevent installation.
 
-For updates, build the desired source revision and run `npm install --global .` again, then preview quick to review any affected bindings. `npm uninstall --global agent-hub` removes the CLI executables; it does not reset Hub/client data. Preview and apply reset before uninstalling when you intend to restore the recorded originals.
+For updates, run `npm ci` and `npm run install:global` from the desired source revision again, then preview quick to review any affected bindings. `npm uninstall --global agent-hub` removes the CLI executables; it does not reset Hub/client data. Preview and apply reset before uninstalling when you intend to restore the recorded originals.
 
 ## Set up the shared Hub
 
@@ -31,7 +30,7 @@ This is a **preview** and writes nothing, including on the first run. It finds d
 
 The Hub is stored at `~/.agent-hub` by default. This is the shared configuration/knowledge store, not a project directory. `AGENT_HUB_HOME` chooses another Hub location.
 
-Copy the complete **Apply this workflow** command printed by your preview. It includes `--apply`, `--expect` and `--at`; do not invent a revision or drop options. Generated commands pin the installed Node and CLI paths deliberately; ordinary interactive commands use `ahub`. Changed inputs require a new preview.
+For a terminal prompt after the preview, use `ahub quick --interactive` (or `ahub project connect /path/to/project --interactive`). This requires a terminal and applies the same in-memory reviewed revision only after confirmation. Otherwise, copy the complete **Apply this workflow** command printed by your preview. It includes `--apply`, `--expect` and `--at`; do not invent a revision or drop options. Generated commands pin the installed Node and CLI paths deliberately; ordinary interactive commands use `ahub`. Changed inputs require a new preview.
 
 After applying, read the per-stage result and restart affected clients. Native trust and permissions remain client-owned. Check configuration and, when desired, actual MCP connectivity:
 
@@ -40,7 +39,7 @@ ahub status
 ahub doctor
 ```
 
-`status` compares settings. `doctor` starts real MCP processes or connects to endpoints to discover tools; it does not invoke tools or start an offline backend.
+`status` compares configuration and distinguishes cached MCP checks, hook installation and recent observed memory activity. An untested or stale check remains visibly unverified; even an observed empty checkpoint does not prove useful facts were learned. `doctor` starts real MCP processes or connects to endpoints to discover tools; it does not invoke tools or start an offline backend.
 
 ## What each command changes
 
@@ -92,17 +91,28 @@ ahub ui
 
 **Set up shared Hub** works from any folder, even before Hub initialization. It previews global tools, skills and shared instructions only.
 
-For optional project setup, start `ahub ui` from that Git project, then choose **Connect project memory** on Overview or **Connect project memory & handoff** on Repos & tasks. This is a separate preview with a visible project path and an explicit hook option. The server cannot be redirected to another directory through a browser request. Preview IDs expire after five minutes and apply once.
+For optional project setup, start `ahub ui` from that Git project, then choose **Connect project memory** on Overview or **Connect project memory & handoff** on Repos & tasks. This is a separate preview with a visible project path and an explicit hook option. Use the header to switch among verified projects already registered in this Hub, the startup folder or shared knowledge. Requests cannot choose an arbitrary path. Switching expires all setup/content/memory previews. Preview IDs expire after five minutes and apply once.
 
 ## Conflicts, repeat runs and automation boundaries
 
 Neither setup command supplies implicit overwrite, replacement or rebind permissions. Existing Hub definitions remain authoritative. Without `--prefer`, ambiguous new MCP entries remain unimported and differing skill sources block collection. Later edits in a client are not silently merged into existing Hub entries.
 
-For detailed collection, start with `ahub import mcp --dry-run` or `ahub import skills --dry-run`. MCP import retains its older behavior: without `--dry-run` it writes, unlike the setup commands. The local UI always previews before its import action.
+For detailed collection, start with `ahub import mcp --dry-run` or `ahub import skills --dry-run`. Both imports preview by default and apply only with their exact reviewed `--expect` revision. There is no implicit winning client. The local UI always previews before its import action.
+
+For one conflict, open its MCP/skill detail in the UI and choose **Use this client in Hub** or **Use Hub in this client**. The following CLI examples also preview only that item:
+
+```sh
+ahub import mcp:demo --source codex --overwrite
+ahub sync --client codex --only=demo --replace=demo
+ahub import skills:demo --source codex --overwrite
+ahub sync --area skills --client codex --only=demo --replace=demo
+```
+
+`--only` preserves all unselected entries and their ownership. Skills can share physical client directories; the preview lists every affected client, and disabled shared clients still block replacement.
 
 A blocked client/area stays untouched while independent stages can finish. Results use `needs-review` and CLI exits 1 when work remains. Review MCP with `sync --client <id> --dry-run`, skills with `import skills --dry-run` / `sync --area skills --dry-run`, and queued memory conflicts with `memory auto conflict`.
 
-Repeat `quick` to collect new shared items and deliver Hub state. Repeat `project connect` to review one project's setup. Unchanged runs create no new managed writes or backups. Neither command installs an OS service: MCP/skills need an explicit reviewed run, while enabled memory hooks act on client lifecycle events. A native-note foreground watcher is available separately.
+Repeat `quick` to collect new shared items and deliver Hub state. Repeat `project connect` to review one project's setup. Unchanged stages create no new content backups; every applied workflow retains its private per-run recovery snapshot. Neither command installs an OS service: MCP/skills need an explicit reviewed run, while enabled memory hooks act on client lifecycle events. A native-note foreground watcher is available separately.
 
 ## Restore or start over
 
@@ -114,6 +124,18 @@ Most writing stages provide individual restore preview commands. Restore depende
 ahub reset --dry-run
 ```
 
-Apply only the emitted recovery command. Reset archives current data and returns to the **first baseline**, which may predate the current setup run. It is not undo-last-quick or disconnect-one-project. On a newly created Hub it can restore the path to absence and return recorded external files to their originals. See [RECOVERY.md](RECOVERY.md) for external edits and archive scope.
+Apply only the emitted recovery command. Reset archives current data and returns to the **first baseline**, which may predate the current setup run. For a single recorded setup run, preview `ahub undo` instead. For project disconnection, preview `ahub project disconnect <id>`; knowledge and notes are retained. On a newly created Hub it can restore the path to absence and return recorded external files to their originals. See [RECOVERY.md](RECOVERY.md) for external edits and archive scope.
 
 Use [WORKING_GUIDE.md](WORKING_GUIDE.md) for the detailed manual trial and isolated failure laboratory.
+
+## Pause one project or undo a setup run
+
+```sh
+ahub project disconnect <project-id>
+ahub undo
+ahub undo <run-id>
+```
+
+These are previews. Disconnect covers all registered checkouts of that ID, disables its policy and removes pending session tokens. Knowledge, source bindings and repository handoff notes remain. Shared hook handlers remain installed for other projects. A later project connect rechecks the checkout identity before reusing its knowledge.
+
+Undo restores the state immediately before a recorded quick/project-connect run, including a partially completed run. It rejects later changes to the Hub or touched external targets. Its output archives current data and keeps the independent first-baseline reset. Snapshots live outside Hub in its private recovery directory; they include personal configuration and consume disk space. A process killed before finishing snapshot metadata requires manual recovery review or the normal reset preview.

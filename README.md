@@ -6,18 +6,17 @@ Requires Node.js **22.13 or newer** and npm. macOS and Linux are the supported r
 
 ```sh
 npm ci
-npm run build
-npm install --global .
+npm run install:global
 ahub quick
 ```
 
-Install from the unpacked source directory, then run `ahub` from any project. The `agent-hub` executable is also available as an alias. A public registry installation is not available yet. Local-folder global installs normally link to this checkout, so keep it and its built files in place. The npm global binary directory must be on your shell's PATH.
+Install from the unpacked source directory, then run `ahub` from any project. The `agent-hub` executable is also available as an alias. A public registry installation is not available yet. The installer packs a standalone copy with locked production dependencies; the source checkout can be removed afterwards. The npm global binary directory must be on your shell's PATH.
 
 `ahub quick` previews shared Hub setup: create/adopt Hub, collect MCP and skills, then deliver global MCP, skill links and existing shared instruction/index blocks to selected clients. It works from any folder and does not require a Git project. Copy its complete **Apply this workflow** command to apply. Existing Hub values stay authoritative, conflicts need review, and affected clients should be restarted.
 
 Project memory is optional and separate. After the Hub is ready, use `ahub project connect /path/to/project` to preview one Git project's memory, handoff files and hooks. That path selects the project; Hub storage remains `~/.agent-hub` unless `AGENT_HUB_HOME` selects another location. Project connection does not synchronize global tools or skills.
 
-For a graphical start, run `ahub ui` and choose **Set up shared Hub**. From a Git project, **Connect project memory** is a separate action after Hub setup. See [QUICKSTART.md](docs/QUICKSTART.md) for scopes, repeat runs and recovery. Both workflows are staged; `reset` returns to the first baseline, which can predate the current run.
+For a graphical start, run `ahub ui` and choose **Set up shared Hub**. From a Git project, **Connect project memory** is a separate action after Hub setup. See [QUICKSTART.md](docs/QUICKSTART.md) for scopes, repeat runs and recovery. Both workflows are staged and record guarded per-run undo snapshots. `ahub undo` previews the latest run; `reset` returns to the first baseline.
 
 The UI opens at **http://127.0.0.1:3082**. Stop the server with Ctrl+C. Use `--port 3083` to choose another port, or `--no-open` to open the page yourself. Start it from a repository to view that repository's project context.
 
@@ -42,7 +41,7 @@ ahub sync --area context --dry-run
 ahub init-repo --dry-run
 ```
 
-These new commands default to preview and require the exact `--apply --expect` command printed by that plan. MCP import retains its existing behavior: without `--dry-run`, it writes. Plain `sync` still means MCP; select skills or context explicitly. UI pages expose the corresponding review/apply actions.
+These new commands default to preview and require the exact `--apply --expect` command printed by that plan. MCP import also previews by default and requires its exact `--apply --expect` command. Plain `sync` still means MCP; select skills or context explicitly. UI pages expose the corresponding review/apply actions.
 
 Skills are copied with scripts/assets and then linked into selected client roots. Context delivery preserves personal text and delivers common rules plus the shared memory index; it does not relocate native automatic memory. Init-repo prepares normal project files and never stages or commits Git work. Content backups work with `restore`, and `reset` includes first-touch originals of managed files, directories and links.
 
@@ -162,4 +161,13 @@ servers:
 
 Health metadata does not affect launch equivalence or client settings. The n8n preset is an isolated compatibility integration. See [CONTRIBUTING.md](CONTRIBUTING.md) for development checks and [the code review](docs/CODE_REVIEW.md) for findings and release limits.
 
-Global-install verification is available with `npm run install:check`. It uses a temporary npm prefix and fixture-only client paths, checks `ahub` from an unrelated directory, and removes that temporary installation afterwards.
+Standalone global-install verification is available with `npm run install:check`. It uses a temporary npm prefix and fixture-only client paths, checks `ahub` from an unrelated directory, and removes that temporary installation afterwards.
+
+## Clear scope and recovery
+
+- `ahub quick --interactive` reviews shared setup and asks once in the terminal. `project connect --interactive` does the same for one project.
+- `ahub status` separates configuration drift, cached MCP connection evidence, hook installation and recent observed checkpoints. Configuration alone does not prove a client is running or learning useful facts.
+- Select a registered project in the UI header; counts show knowledge records, and unconnected folders default to shared memory.
+- Resolve one MCP or skill in its UI detail panel: **Use this client in Hub** or **Use Hub in this client**. Each opens an exact item preview. CLI equivalents use import `--source` and sync `--only`.
+- `ahub project disconnect <id>` previews disconnecting all checkouts of that project, disables its policy and removes pending session tokens. It retains knowledge, repository notes and hooks shared by other projects. Reconnect verifies repository identity and reuses that knowledge.
+- `ahub undo [run-id]` previews the state before one recorded setup run. Later Hub/client changes block it. `restore` targets one stage; `reset` targets the first baseline.

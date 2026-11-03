@@ -141,7 +141,7 @@ A successful setup test is not evidence of useful model-selected memory or activ
 
 ## Global CLI installation
 
-`npm run install:check` installs the built local folder using npm's global mode with a disposable prefix and isolated client/Hub paths. From a directory outside the source checkout, it verifies both executable names, quick preview/apply, status and the live UI's static assets. The check does not modify the user's normal global prefix or client settings. It is included in the macOS/Linux CI matrix. End-user documentation now starts with `npm ci`, `npm run build`, `npm install --global .`, then uses `ahub` directly.
+`npm run install:check` packs and installs a standalone tarball using npm's global mode with a disposable prefix and isolated client/Hub paths. It deletes the source archive, verifies the installed package is a directory with its own dependencies, and checks both executable names, quick preview/apply, status and the live UI from an unrelated directory. The user's normal global prefix is untouched. End-user installation uses `npm ci` then `npm run install:global`.
 
 ## Shared Hub versus optional project connection
 
@@ -150,3 +150,11 @@ The current command scopes supersede the combined quick workflow described in th
 The suite contains 184 tests. Scope regressions verify that Git cwd and project-note changes do not affect a shared Hub preview; quick creates no repository files or project hooks; connection rejects a missing Hub, invalid Git directory and stale native notes; pending global instruction/tool/skill state is not delivered during project connection. HTTP tests reject project options on quick routes, keep connection bound to the UI startup project and prevent cross-scope preview application. The isolated global-install check now exercises plain `ahub quick` from a Git checkout and separately previews `ahub project connect` without a path.
 
 Browser QA verified the separate shared Hub preview and applied the project-only workflow against temporary profiles. UI copy distinguishes Hub storage from the selected project directory, shows separate setup actions, labels plain sync as MCP-only and removes stale claims that repository initialization is future work. Native activation and the usefulness of model-selected knowledge still require the maintainer's working trial.
+
+## Prioritized usability completion
+
+The current regression suite covers preview-first MCP import and exact approval, explicit source selection, per-item delivery with preserved unselected ownership, terminal confirmation, canonical record counts, registered checkout identity checks, project-switch preview invalidation, shared-only UI gating, disconnected access and reconnection, per-workflow undo after fresh/partial setup, later-edit refusal and independent first-baseline reset. The workflow holds a reentrant lock while nested stages retain their own input checks. Production client profiles are not applied in these checks.
+
+Standalone global-install verification installs a locked tarball copy into a disposable prefix and runs the installed CLI/UI after deleting the source archive. Automated HTTP checks validate functional UI behavior. A new rendered browser pass and the maintainer's real-client usefulness trial remain separate manual checks.
+
+Final local verification: **194/194 tests passed on Node 22.13.0**, with 92.36% line, 84.62% branch and 89.96% function coverage. Formatting, ESLint and TypeScript passed. The 220-file package and its standalone global CLI/UI installation passed in temporary storage on Node 22.13.0. Website checks are maintained in the separate documentation repository; no deployment was performed.

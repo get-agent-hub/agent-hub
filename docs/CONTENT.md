@@ -59,7 +59,7 @@ Run inside an existing Git repository with an initialized Hub. The command locat
 
 Default notes explicitly say that project facts and task progress are not recorded yet. Init-repo does not infer an architecture or claim that checks passed. Files are normal repository files and can be committed with the branch. Optional templates under `hub/templates/repo/` use these same relative paths. A `CLAUDE.md` already linking to `AGENTS.md` is preserved. Other instruction symlinks require review.
 
-The local UI exposes Skills import/delivery, context delivery on Instructions/Memory, scoped memory record management and Prepare repository on Repos & tasks. Repository setup and project memory are bound to the workspace where the UI started; HTTP requests cannot choose an arbitrary directory. Preview IDs expire after five minutes, are single-use and reject changed inputs.
+The local UI exposes Skills import/delivery, context delivery on Instructions/Memory, scoped memory record management and Prepare repository on Repos & tasks. Repository setup and project memory are bound to the selected verified registered project or the startup folder; HTTP requests cannot choose an arbitrary directory. Changing selection expires all previews. Preview IDs expire after five minutes, are single-use and reject changed inputs.
 
 ## Recovery and limitations
 
@@ -74,3 +74,7 @@ File and directory replacement uses same-directory staging and compensating roll
 - [Codex instruction discovery](https://learn.chatgpt.com/docs/agent-configuration/agents-md) and [skill metadata/discovery](https://learn.chatgpt.com/docs/build-skills).
 - [Claude instruction imports](https://code.claude.com/docs/en/memory) and [skills](https://code.claude.com/docs/en/skills).
 - [DSH global instructions](https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/context/agent-instructions/README.md) and [filesystem skill roots](https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/skill/skill-filesystem/README.md). Custom DSH profiles can disable these plugins; delivery does not enable them automatically.
+
+## One item, one direction
+
+Use `import skills:NAME --source CLIENT --overwrite` to accept exactly one selected client bundle into Hub, or `sync --area skills --client CLIENT --only=NAME --replace=NAME` to deliver Hub to that client. MCP uses the same source/item contract with `import mcp:NAME` and `sync --only=NAME`. Both preview first and require exact reviewed application. `--only` also preserves ownership of unselected entries; shared physical skill roots still list all affected clients and protect disabled clients. UI detail panels provide these two directions directly.

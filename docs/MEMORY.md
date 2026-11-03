@@ -114,3 +114,9 @@ Mutations update an owned index block and ownership metadata in the same recover
 Writes default to preview and use the existing managed artifact transaction, revision checks, private backups and first-touch originals. `restore <content-backup-id> --dry-run` previews rollback of records, index and ownership together. Restore refuses externally changed files. Reset restores the recorded Hub baseline and archives current data, including memory; it is not a selective memory deletion command. See [RECOVERY.md](RECOVERY.md).
 
 Backups and project bindings are local and unencrypted. A series of file replacements is recoverable with compensating rollback, not a filesystem-wide transaction or a power-loss guarantee. Independent filesystem editors do not honor the Hub lock. The standalone `@modelcontextprotocol/server-memory` uses a different graph data model; never point it at these Markdown files or maintain two independently writable originals of the same collection. Its interchange adapter remains future work.
+
+## Project selection and disconnection
+
+The UI defaults to shared record management when no project is connected, counts canonical records separately from Markdown documents and lets you select verified registered projects. Switching expires outstanding previews and replaces the bound memory session.
+
+Preview `ahub project disconnect <id>` to disconnect all checkouts of one project, disable its policy and remove transient checkpoint tokens. Facts, source bindings and repository notes remain in place. Project memory access, including a fixed-workspace MCP service, refuses the disconnected binding. A later project connect rechecks Git identity and reuses the retained project ID and records. Shared hook handlers remain for other projects.

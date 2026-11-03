@@ -19,7 +19,7 @@ This operates on the conversation currently available to the agent. It does not 
 
 ## One-time setup
 
-Initialize Hub and register the checkout first; see [MEMORY.md](MEMORY.md). Run from the Agent Hub source checkout, or substitute your installed `ahub` executable:
+Initialize Hub and register the checkout first; see [MEMORY.md](MEMORY.md). Use the installed `ahub` executable from any directory:
 
 ```sh
 ahub memory auto enable --workspace /path/to/project --client claude-code \
@@ -95,3 +95,7 @@ The Memory UI shows project automation state, current source issues, queued conf
 - DSH 0.2.1-rc.5 local native Cordis and Session contracts: `agent/created`, accepted `agent/pre-step`, and `agent/turn-stopping`. From the Hub source checkout, run `npm run build` then `node scripts/check-dsh.mjs /absolute/path/to/installed/dsh` to repeat the no-provider compatibility check. It exercises real Cordis dispatch and session message validation with a fixture agent, not a live model conversation. Extraction uses the active agent's context rather than parsing compressed logs.
 
 For a clean package check, build the source checkout and run `node scripts/check-install.mjs`. This packs and installs the actual tarball into a temporary project, then exercises CLI previews/apply, scoped reads, installed adapter resolution and UI asset availability. Dependencies must already be cached for the default offline run; `--online` permits registry downloads. Client directories are isolated and the temporary installation is removed afterward.
+
+## Observation and disconnect
+
+Readiness separates installed hooks from recent observed callbacks and acknowledged checkpoints. Timestamps come from retained session metadata under the current checkpoint authority; missing observations are not proof a client never ran. Empty fact submissions acknowledge a checkpoint without saving new knowledge. Project disconnect disables the policy, gates project access and removes pending tokens while retaining facts and shared handlers. Reconnect requires the existing Git identity or an explicit reviewed rebind.

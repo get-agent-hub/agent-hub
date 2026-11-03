@@ -52,7 +52,7 @@ Project-matched native Markdown notes can be imported into Hub; original stores 
 
 `quick` manages the shared Hub only: missing Hub files, MCP/skill collection, then global skills/context/MCP delivery for selected clients. Its plan does not depend on cwd or inspect a Git project. Optional `project connect [directory]` requires an existing Hub and a verified Git checkout; it separately plans memory binding, repository handoff, matched native memory and project-gated hooks. It does not collect or deliver shared tools, skills or instructions.
 
-Both reuse existing services in staged workflows. Their previews capture scope and relevant inputs; application verifies the revision before writes, then rebuilds dependent guarded plans. Independent areas can finish when another stage needs review. Neither is one transaction or an unattended MCP/skills service. See [QUICKSTART.md](QUICKSTART.md).
+Both reuse existing services in staged workflows. Their previews capture scope and relevant inputs; application verifies the revision before writes, then rebuilds dependent guarded plans. Independent areas can finish when another stage needs review. Neither is one transaction or an unattended MCP/skills service. Applied workflows hold a reentrant Hub lock and record independent per-run undo snapshots outside Hub; later changes block undo. Project disconnection retains bindings and knowledge behind an explicit disconnected gate. See [QUICKSTART.md](QUICKSTART.md).
 
 ## Services and recovery
 

@@ -1,6 +1,6 @@
 # Original-state recovery
 
-`restore <backup-id>` undoes one sync. `reset` returns recorded client configurations and the complete hub directory to their first saved state, even after several syncs. Both default to dry run.
+`undo [run-id]` returns to immediately before one recorded setup workflow. `restore <backup-id>` undoes one sync or content stage. `reset` returns recorded client configurations and the complete hub directory to their first saved state, even after several syncs. Both default to dry run.
 
 ```sh
 ahub reset --dry-run
@@ -10,7 +10,20 @@ Review every file and the baseline scope. The command prints an exact `reset --a
 
 ## Quick workflow recovery
 
-Shared Hub quick setup and optional project connection each retain their stages' recovery guarantees and list available restore commands. Neither is one transaction or has an undo-last-run snapshot. `reset` always uses the first baseline, including when it predates the current quick run. On a new Hub, reset after either workflow can return Hub to absence and restore external originals. Hooks and MCP may edit the same DSH profile: both writers share the first-touch owner and coordinate expected hashes so Hub's own later writes are not misclassified as external edits. Later independent edits still block recovery by default.
+Every applied shared Hub quick setup or project connection records a private snapshot under `<AGENT_HUB_HOME>.recovery/runs/<run-id>/`. The Hub tree is captured before the workflow; first-touch external originals and guarded write journals are collected as stages run. The entire staged workflow holds one reentrant Hub lock. Independent clients do not honor that lock, so input checks still apply at every stage.
+
+```sh
+ahub undo
+ahub undo <run-id>
+```
+
+These commands preview. Use the emitted `--apply --expect` command. Undo restores the pre-run state and archives current data through the recovery engine. It handles completed stages from partially failed workflows. Later changes to the Hub or touched client paths block undo, even if the changes were made by another Hub operation. Review an individual restore or first-baseline reset when later work must be retained. Undo never silently drops later knowledge. A workflow interrupted before its final metadata was recorded cannot be undone automatically; preserve its recovery data and inspect the normal reset preview.
+
+Completed undo invalidates pending checkpoint authority. First-baseline originals remain separate and available; their journals recognize the restored Hub-owned state. Snapshots include the complete Hub and affected personal files, are not encrypted, and are retained without automatic pruning. No-op applies also retain a workflow snapshot. Keep recovery storage private and account for its disk usage.
+
+`ahub project disconnect <id>` is a separate reviewed content operation. It disconnects all checkouts of that project, disables its policy and removes pending session tokens while retaining knowledge, source history, repository files and shared hook handlers. Reconnect verifies identity and reuses the project ID. Disconnect does not uninstall fixed-workspace Memory MCP configuration; that service refuses the disconnected binding until it is reconnected.
+
+`reset` always uses the first baseline, including when it predates the current run. On a new Hub it can return Hub to absence and restore external originals. Hooks and MCP may edit the same DSH profile: both writers share the first-touch owner and coordinate expected hashes so Hub's own later writes are recognized. Later independent edits still block recovery by default.
 
 ## What is saved
 
