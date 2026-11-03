@@ -2,6 +2,10 @@
 
 Agent Hub can import native Markdown notes automatically and ask the active agent to extract durable knowledge from its current conversation. Enable this once for a registered project/client. Subsequent saves use that project policy, source bindings, revision checks, the Hub lock and private recovery backups; they do not require a separate Hub preview for every fact.
 
+## Fast setup
+
+`ahub quick --workspace /path/to/project` previews project registration, matched Markdown onboarding and lifecycle hook installation together with MCP/skill collection and delivery. Apply its emitted command, then restart clients and handle native trust/permissions. `--no-automation` omits policy/hook enablement without disabling existing automation; `--no-project` omits all project stages. Quick does not configure a standalone Memory MCP server. See [QUICKSTART.md](QUICKSTART.md) for the complete flow and staged recovery contract.
+
 ## What runs automatically
 
 - SessionStart imports changed notes from the selected native directories and supplies a bounded project index plus retrieval guidance.

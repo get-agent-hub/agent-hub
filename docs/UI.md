@@ -4,6 +4,12 @@ The live application is in `ui/app/`, served by `src/ui/server.ts` through `ahub
 
 The server calls the existing status collector and the shared `src/core/import-plan.ts` service. The CLI import command uses the same planner and writer. Internal plans contain secret values; only the explicit public plan projection is sent to the browser.
 
+## Guided first run
+
+Overview exposes **Quick setup & sync** even before Hub initialization. It selects detected, enabled clients; previews MCP/skill collection, project memory and automation scope; then applies the reviewed staged workflow. The result shows completed, unchanged, skipped and blocked stages, individual restore commands and the original-state reset preview. Existing Hub values stay authoritative. Restart clients after applying. See [QUICKSTART.md](QUICKSTART.md).
+
+`POST /api/quick/preview` accepts `clients`, `prefer`, `project` and `automation`. Its workspace is fixed to the server startup directory. `POST /api/quick/apply` consumes `previewId` plus `revision`; IDs are private, single-use, bounded and expire after five minutes. Writes share the UI operation guard and each core stage's filesystem lock. Source-bearing internal plans never enter the browser response. The workflow is not one transaction: dependent delivery is planned after collection, and earlier successful stages remain if a later stage needs review.
+
 ## API
 
 | Route                            | Purpose                                                                                                                                                 |

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { quickCommand } from './commands/quick.js';
 import { resetCommand } from './commands/reset.js';
 import { Command } from 'commander';
 import { packageVersion } from './core/package.js';
@@ -46,6 +47,24 @@ program
     'Single source of truth for your AI coding agents: skills, MCP, instructions, memory, task state.',
   )
   .version(packageVersion);
+
+program
+  .command('quick')
+  .description('preview or run Hub setup, collection, project memory and delivery in one workflow')
+  .option('--workspace <directory>', 'Git workspace (default: cwd)')
+  .option(
+    '--client <ids>',
+    'comma-separated detected clients (default: all enabled detected clients)',
+  )
+  .option('--prefer <id>', 'explicit source preference when imported client copies differ')
+  .option('--no-project', 'only configure global MCP, skills and shared context')
+  .option('--no-automation', 'import project memory without enabling lifecycle hooks')
+  .option('--at <timestamp>', 'timestamp captured in the reviewed quick command')
+  .option('--dry-run', 'preview workflow, write nothing (default)')
+  .option('--apply', 'run the reviewed staged workflow with existing recovery protections')
+  .option('--expect <revision>', 'required reviewed workflow revision')
+  .option('--json', 'machine-readable preview or per-stage result')
+  .action(quickCommand);
 
 program
   .command('status')

@@ -13,6 +13,7 @@ import { publicManagedPlan, applyManagedPlan } from '../core/managed-plan.js';
 import type { ClientId } from '../core/types.js';
 import { createMemorySession, type MemorySession } from '../core/memory-session.js';
 import { hubRoot } from '../core/paths.js';
+import { planQuick, applyQuick } from '../core/quick.js';
 
 const assets = new URL('../../ui/app/', import.meta.url);
 const staticFiles: Record<string, [string, string]> = {
@@ -21,6 +22,7 @@ const staticFiles: Record<string, [string, string]> = {
   '/html.js': ['html.js', 'text/javascript; charset=utf-8'],
   '/health.js': ['health.js', 'text/javascript; charset=utf-8'],
   '/content.js': ['content.js', 'text/javascript; charset=utf-8'],
+  '/quick.js': ['quick.js', 'text/javascript; charset=utf-8'],
   '/memory.js': ['memory.js', 'text/javascript; charset=utf-8'],
   '/app.css': ['app.css', 'text/css; charset=utf-8'],
   '/base.css': ['base.css', 'text/css; charset=utf-8'],
@@ -60,6 +62,8 @@ export async function startUiServer(
     port?: number;
     cwd?: string;
     services?: {
+      quickPlan?: typeof planQuick;
+      quickApply?: typeof applyQuick;
       state?: () => Promise<unknown>;
       plan?: typeof planImport;
       apply?: typeof applyImport;
@@ -73,6 +77,8 @@ export async function startUiServer(
   } = {},
 ) {
   const services = {
+    quickPlan: planQuick,
+    quickApply: applyQuick,
     state: () => uiState(options.cwd ?? process.cwd()),
     plan: planImport,
     apply: applyImport,
@@ -94,6 +100,10 @@ export async function startUiServer(
   const token = randomBytes(32).toString('hex');
   let origin = '';
   let applying = false;
+  const quickPreviews = new Map<
+    string,
+    { plan: Awaited<ReturnType<typeof planQuick>>; expires: number }
+  >();
   const contentPreviews = new Map<
     string,
     { operation: ContentOperation; options: ContentOptions; revision: string; expires: number }
@@ -156,6 +166,63 @@ export async function startUiServer(
       }
       if (req.method === 'GET' && url.pathname === '/api/state') {
         json(200, { ...((await services.state()) as object), token });
+        return;
+      }
+      if (
+        req.method === 'POST' &&
+        ['/api/quick/preview', '/api/quick/apply'].includes(url.pathname)
+      ) {
+        if (req.headers['x-agent-hub-token'] !== token)
+          throw new RequestError(403, 'Refresh the page before running quick setup.');
+        if (applying) throw new RequestError(409, 'Another operation is running.');
+        const body = await jsonBody(req);
+        if (applying) throw new RequestError(409, 'Another operation is running.');
+        if (url.pathname.endsWith('/preview')) {
+          if (
+            body.clients !== undefined &&
+            (!Array.isArray(body.clients) || body.clients.some((id) => typeof id !== 'string'))
+          )
+            throw new RequestError(400, 'Choose known clients.');
+          if (
+            (body.prefer !== undefined && typeof body.prefer !== 'string') ||
+            ['project', 'automation'].some(
+              (key) => body[key] !== undefined && typeof body[key] !== 'boolean',
+            )
+          )
+            throw new RequestError(400, 'Invalid quick setup options.');
+          const plan = await services.quickPlan({
+            workspace: options.cwd ?? process.cwd(),
+            clients: body.clients as ClientId[] | undefined,
+            prefer: body.prefer as ClientId | undefined,
+            project: body.project as boolean | undefined,
+            automation: body.automation as boolean | undefined,
+          });
+          for (const [id, saved] of quickPreviews)
+            if (saved.expires < Date.now()) quickPreviews.delete(id);
+          while (quickPreviews.size >= 10) quickPreviews.delete(quickPreviews.keys().next().value!);
+          const id = randomBytes(16).toString('hex');
+          quickPreviews.set(id, { plan, expires: Date.now() + 5 * 60_000 });
+          json(200, { ...plan.publicPlan, previewId: id });
+          return;
+        }
+        const id = typeof body.previewId === 'string' ? body.previewId : '';
+        const saved = quickPreviews.get(id);
+        quickPreviews.delete(id);
+        if (
+          !saved ||
+          saved.expires < Date.now() ||
+          body.revision !== saved.plan.publicPlan.revision
+        )
+          throw new RequestError(
+            409,
+            'Quick preview expired or was already used. Run a new preview.',
+          );
+        applying = true;
+        try {
+          json(200, await services.quickApply(saved.plan, saved.plan.publicPlan.revision));
+        } finally {
+          applying = false;
+        }
         return;
       }
       if (req.method === 'GET' && url.pathname === '/api/memory') {

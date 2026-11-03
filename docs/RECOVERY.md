@@ -8,6 +8,10 @@ node dist/cli.js reset --dry-run
 
 Review every file and the baseline scope. The command prints an exact `reset --apply --expect <revision>` command. Reset requires that reviewed revision; changed inputs stop it. No reset is performed by a dry run.
 
+## Quick workflow recovery
+
+Quick retains each stage's recovery guarantees and lists its available restore commands. It is not one transaction and has no undo-last-quick snapshot. `reset` always uses the first baseline, including when it predates the current quick run. On a new Hub, the full workflow can return Hub to absence and restore external originals. Hooks and MCP may edit the same DSH profile: both writers share the first-touch owner and coordinate expected hashes so Hub's own later writes are not misclassified as external edits. Later independent edits still block recovery by default.
+
 ## What is saved
 
 Before the first managed write, the hub records an immutable baseline in `<AGENT_HUB_HOME>.recovery/baseline/`. The complete initial hub tree includes its existing `.git`, `.env`, instructions, memory, skills and unrelated files. Client configuration originals are saved separately. New client locations/profiles receive their own first-touch original without replacing older records. Directories are private (700); payloads and metadata are private (600). A local `.gitignore` excludes recovery contents from a parent Git repository.

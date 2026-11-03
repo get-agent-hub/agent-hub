@@ -93,9 +93,13 @@ async function claudeWorkspace(
   return roots.size === 1 ? [...roots][0]! : null;
 }
 
-export async function discoverMemory(root: string, workspace: string): Promise<MemoryDiscovery> {
+export async function discoverMemory(
+  root: string,
+  workspace: string,
+  optionalSettings = false,
+): Promise<MemoryDiscovery> {
   const selected = await memoryCheckout(workspace);
-  const { registry } = await memoryRegistry(root);
+  const { registry } = await memoryRegistry(root, optionalSettings);
   const project =
     registry.projects.find((item) => item.checkouts.some((item) => item.path === selected))?.id ??
     null;

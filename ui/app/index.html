@@ -39,6 +39,53 @@
         </div>
       </main>
     </div>
+    <dialog id="quick-dialog" aria-labelledby="quick-title">
+      <div class="dialog-head">
+        <div>
+          <h2 id="quick-title">Get a working Hub</h2>
+          <p class="muted">One workflow. Review the scope, apply, then see every stage's result.</p>
+        </div>
+        <button class="btn ghost" data-quick-close aria-label="Close quick setup">✕</button>
+      </div>
+      <div class="dialog-body">
+        <div id="quick-options">
+          <fieldset>
+            <legend>Clients to connect</legend>
+            <div id="quick-clients" class="import-options"></div>
+          </fieldset>
+          <div class="import-options">
+            <label
+              >When source copies differ<select class="input" id="quick-prefer">
+                <option value="">Leave conflicts for review</option>
+                <option value="claude-code">Prefer Claude Code</option>
+                <option value="codex">Prefer Codex</option>
+                <option value="dsh">Prefer DSH</option>
+              </select></label
+            >
+            <label class="checkbox"
+              ><input type="checkbox" id="quick-project" checked /> Prepare this Git project and
+              import its matched memory</label
+            >
+            <label class="checkbox"
+              ><input type="checkbox" id="quick-automation" checked /> Enable project memory and
+              install session hooks</label
+            >
+          </div>
+          <p class="small-note">
+            Global MCP, skill and instruction settings affect the selected clients. Project memory
+            stays bound to this checkout. Unknown memory sources need a separate review. Quick does
+            not install a standalone Memory MCP server.
+          </p>
+          <button class="btn" id="quick-preview-button">Preview setup & sync</button>
+        </div>
+        <div id="quick-preview" aria-live="polite"></div>
+      </div>
+      <div class="dialog-foot">
+        <span id="quick-summary" class="muted">Preview writes nothing.</span
+        ><span class="spacer"></span><button class="btn" data-quick-close>Close</button
+        ><button class="btn primary" id="quick-apply" disabled>Apply quick setup</button>
+      </div>
+    </dialog>
     <dialog id="import-dialog" aria-labelledby="import-title">
       <div class="dialog-head">
         <div>

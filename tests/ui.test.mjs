@@ -45,6 +45,17 @@ before(async () => {
   ui = await startUiServer({
     port: 0,
     services: {
+      quickPlan: async (options) => ({
+        options,
+        publicPlan: {
+          revision: 'quick-fixture',
+          blocked: false,
+          workspace: options.workspace,
+          steps: [],
+          clients: options.clients ?? [],
+        },
+      }),
+      quickApply: async () => ({ status: 'complete', steps: [] }),
       state: async () => ({ status: { hub: { root: hub, exists: true } } }),
       plan: (item, opts) => planImport(item, opts, adapters),
     },
@@ -232,4 +243,20 @@ test('parser errors do not echo client configuration or credentials', async () =
   const response = await post('/api/import/preview', {});
   assert.equal(response.status, 500);
   assert.ok(!(await response.text()).includes(secret));
+});
+
+test('quick UI previews stay bound to the startup workspace and apply once with a session token', async () => {
+  assert.equal((await post('/api/quick/preview', {}, { 'X-Agent-Hub-Token': '' })).status, 403);
+  assert.equal((await post('/api/quick/preview', { project: 'yes' })).status, 400);
+  const response = await post('/api/quick/preview', {
+    workspace: '/cannot-select-another-project',
+    clients: ['codex'],
+  });
+  assert.equal(response.status, 200);
+  const plan = await response.json();
+  assert.notEqual(plan.workspace, '/cannot-select-another-project');
+  const body = { previewId: plan.previewId, revision: plan.revision };
+  assert.equal((await post('/api/quick/apply', body)).status, 200);
+  assert.equal((await post('/api/quick/apply', body)).status, 409);
+  assert.equal((await fetch(`${ui.url}/quick.js`)).status, 200);
 });

@@ -13,6 +13,10 @@ import {
   type ArtifactSnapshot,
 } from './artifacts.js';
 import { HubError } from './errors.js';
+import { readBaseline } from './recovery-baseline-store.js';
+import { recordFileIntents, type FileIntent } from './recovery-file-intents.js';
+import type { FileChange } from './file-transaction.js';
+import { hash, stableStringify } from './values.js';
 
 interface OriginalArtifact {
   before: ArtifactSnapshot;
@@ -93,6 +97,7 @@ export async function ensureArtifactBaseline(
   targets: { before: ArtifactSnapshot; client: string }[],
 ): Promise<void> {
   const baseline = await readArtifactBaseline(root);
+  const files = await readBaseline(root);
   const realRoot = await fs.realpath(root);
   const dir = directory(root);
   await fs.mkdir(dir, { recursive: true, mode: 0o700 });
@@ -104,7 +109,11 @@ export async function ensureArtifactBaseline(
       containsPath(realRoot, before.physicalPath)
     )
       continue;
-    if (baseline.entries.some((entry) => entry.before.path === before.path)) continue;
+    if (
+      baseline.entries.some((entry) => entry.before.path === before.path) ||
+      files?.files.some((entry) => entry.file === before.path)
+    )
+      continue;
     if (!sameArtifact(before, await inspectArtifact(before.path)))
       throw new HubError('Artifact changed before baseline capture.');
     for (const entry of baseline.entries)
@@ -158,6 +167,26 @@ export async function recordArtifactWrites(
   inFlight = true,
 ): Promise<void> {
   if (!changes.length) return;
+  // A path has one first-touch owner, even when hooks and MCP edit the same file.
+  const files = await readBaseline(root);
+  const textChanges: FileIntent[] = [];
+  for (const change of changes) {
+    if (!files?.files.some((entry) => entry.file === change.before.path)) continue;
+    const after = change.source ? await inspectArtifact(change.source) : null;
+    if (!['file', 'missing'].includes(change.before.kind) || (after && after.kind !== 'file'))
+      throw new HubError('A text recovery target cannot be replaced with a non-text artifact.');
+    textChanges.push({
+      before: {
+        file: change.before.path,
+        realFile: change.before.physicalPath,
+        content: change.rollbackSource ? await readOptionalText(change.rollbackSource) : null,
+        mode: change.before.mode,
+      },
+      after: change.source ? await readOptionalText(change.source) : null,
+      afterMode: after?.mode,
+    });
+  }
+  if (textChanges.length) await recordFileIntents(root, textChanges);
   const expected = await readIntents(root);
   for (const change of changes)
     Object.defineProperty(expected, change.before.path, {
@@ -197,4 +226,33 @@ export async function planArtifactReset(root: string, archiveChanges: boolean) {
       };
     }),
   );
+}
+
+/** Keep artifact-owned config intents current when the text engine writes them. */
+export async function recordArtifactFileWrites(root: string, changes: FileChange[]): Promise<void> {
+  const baseline = await readArtifactBaseline(root);
+  const selected = changes.filter((change) =>
+    baseline.entries.some((entry) => entry.before.path === path.resolve(change.before.file)),
+  );
+  if (!selected.length) return;
+  const expected = await readIntents(root);
+  for (const change of selected) {
+    const before = await inspectArtifact(change.before.file);
+    const after =
+      change.after === null
+        ? missingArtifactFingerprint
+        : hash(
+            stableStringify({
+              kind: 'file',
+              mode: change.before.mode,
+              content: hash(change.after),
+            }),
+          );
+    Object.defineProperty(expected, before.path, {
+      value: [before.fingerprint, after],
+      enumerable: true,
+      configurable: true,
+    });
+  }
+  await writeAtomic(intentsFile(root), JSON.stringify(expected, null, 2) + '\n', 0o600);
 }

@@ -3,35 +3,32 @@ import path from 'node:path';
 import os from 'node:os';
 import { randomBytes } from 'node:crypto';
 import { HubError } from './errors.js';
-import { snapshot, readOptionalText, writeAtomic, type FileSnapshot } from './file-store.js';
+import { snapshot, writeAtomic } from './file-store.js';
 import { copyTree, inspectTree, type TreeSnapshot } from './recovery-tree.js';
 import { recoveryRoot } from './recovery-paths.js';
 import { hash } from './values.js';
 import type { HubOrigin } from './hub-lock.js';
 import type { FileChange } from './file-transaction.js';
+import { readArtifactBaseline, recordArtifactFileWrites } from './artifact-recovery.js';
+import {
+  baselineDirectory,
+  readBaseline,
+  type Baseline,
+  type OriginalFile,
+} from './recovery-baseline-store.js';
+import { recordFileIntents } from './recovery-file-intents.js';
+export {
+  baselineDirectory,
+  readBaseline,
+  type Baseline,
+  type OriginalFile,
+} from './recovery-baseline-store.js';
+export { readExpectedWrites, type ExpectedWrites } from './recovery-file-intents.js';
 
 export interface BaselineTarget {
   file: string;
   client: string;
   installed?: boolean;
-}
-export interface OriginalFile extends Omit<FileSnapshot, 'content'> {
-  client: string;
-  payload: string | null;
-  hash: string;
-  missingParents?: string[];
-}
-export interface Baseline {
-  version: 1;
-  root: string;
-  capturedAt: string;
-  scope: 'before-hub-creation' | 'existing-hub-checkpoint';
-  hub: TreeSnapshot;
-  files: OriginalFile[];
-}
-export interface ExpectedWrites {
-  version: 1;
-  files: Record<string, { hashes: string[]; modes: number[] }>;
 }
 const inside = (root: string, file: string) => {
   const relative = path.relative(root, file);
@@ -40,62 +37,6 @@ const inside = (root: string, file: string) => {
     (!relative.startsWith('..' + path.sep) && relative !== '..' && !path.isAbsolute(relative))
   );
 };
-export const baselineDirectory = (root: string) => path.join(recoveryRoot(root), 'baseline');
-
-export async function readBaseline(root: string): Promise<Baseline | null> {
-  const text = await readOptionalText(path.join(baselineDirectory(root), 'manifest.json'));
-  if (text === null) return null;
-  try {
-    const doc = JSON.parse(text) as Baseline;
-    if (
-      doc.version !== 1 ||
-      doc.root !== path.resolve(root) ||
-      !Array.isArray(doc.files) ||
-      !doc.hub ||
-      typeof doc.hub.exists !== 'boolean' ||
-      !Number.isInteger(doc.hub.mode) ||
-      doc.hub.mode < 0 ||
-      doc.hub.mode > 0o777 ||
-      !Array.isArray(doc.hub.entries) ||
-      !Number.isFinite(Date.parse(doc.capturedAt)) ||
-      !/^[a-f0-9]{64}$/.test(doc.hub.fingerprint) ||
-      !['before-hub-creation', 'existing-hub-checkpoint'].includes(doc.scope)
-    )
-      throw new Error();
-    const names = new Set<string>();
-    for (const file of doc.files) {
-      if (
-        !path.isAbsolute(file.file) ||
-        !path.isAbsolute(file.realFile) ||
-        !Number.isInteger(file.mode) ||
-        file.mode < 0 ||
-        file.mode > 0o777 ||
-        !/^[a-f0-9]{64}$/.test(file.hash) ||
-        (file.payload !== null && !/^file-[a-f0-9]+\.txt$/.test(file.payload)) ||
-        names.has(file.file)
-      )
-        throw new Error();
-      if (
-        file.missingParents !== undefined &&
-        (!Array.isArray(file.missingParents) ||
-          file.missingParents.some(
-            (directory) =>
-              typeof directory !== 'string' ||
-              !path.isAbsolute(directory) ||
-              directory === path.parse(directory).root ||
-              !inside(directory, file.realFile) ||
-              directory === file.realFile,
-          ))
-      )
-        throw new Error();
-      names.add(file.file);
-    }
-    return doc;
-  } catch {
-    throw new HubError('Baseline metadata is invalid. Original data was not changed.');
-  }
-}
-
 export async function originalContent(root: string, file: OriginalFile): Promise<string | null> {
   const content =
     file.payload === null
@@ -122,9 +63,14 @@ async function captureFiles(
   existing: OriginalFile[],
 ): Promise<OriginalFile[]> {
   const files = [...existing];
+  const artifacts = await readArtifactBaseline(root);
   const realRoot = await fs.realpath(root);
   for (const target of targets) {
-    if (target.installed === false || files.some((file) => file.file === path.resolve(target.file)))
+    if (
+      target.installed === false ||
+      files.some((file) => file.file === path.resolve(target.file)) ||
+      artifacts.entries.some((entry) => entry.before.path === path.resolve(target.file))
+    )
       continue;
     const before = await snapshot(path.resolve(target.file));
     // Ordinary hub files are restored by the complete tree; external symlink targets need their own original.
@@ -229,50 +175,8 @@ export async function ensureBaseline(
   }
 }
 
-export async function readExpectedWrites(root: string): Promise<ExpectedWrites> {
-  const text = await readOptionalText(path.join(recoveryRoot(root), 'expected.json'));
-  if (text === null) return { version: 1, files: {} };
-  try {
-    const doc = JSON.parse(text) as ExpectedWrites;
-    if (
-      doc.version !== 1 ||
-      !doc.files ||
-      typeof doc.files !== 'object' ||
-      Array.isArray(doc.files) ||
-      Object.values(doc.files).some(
-        (entry) =>
-          !entry ||
-          !Array.isArray(entry.hashes) ||
-          entry.hashes.some(
-            (value) => typeof value !== 'string' || !/^[a-f0-9]{64}$/.test(value),
-          ) ||
-          !Array.isArray(entry.modes) ||
-          entry.modes.some((value) => !Number.isInteger(value) || value < 0 || value > 0o777),
-      )
-    )
-      throw new Error();
-    return doc;
-  } catch {
-    throw new HubError('Recovery write journal is invalid.');
-  }
-}
-
 /** Durable intent permits recovery from either side of a partially completed write. */
 export async function recordExpectedWrites(root: string, changes: FileChange[]): Promise<void> {
-  const expected = await readExpectedWrites(root);
-  for (const change of changes)
-    Object.defineProperty(expected.files, path.resolve(change.before.file), {
-      value: {
-        hashes: [...new Set([hash(change.before.content), hash(change.after)])],
-        modes: [change.before.mode],
-      },
-      enumerable: true,
-      configurable: true,
-      writable: true,
-    });
-  await writeAtomic(
-    path.join(recoveryRoot(root), 'expected.json'),
-    JSON.stringify(expected, null, 2) + '\n',
-    0o600,
-  );
+  await recordFileIntents(root, changes);
+  await recordArtifactFileWrites(root, changes);
 }

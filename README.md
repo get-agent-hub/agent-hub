@@ -5,16 +5,20 @@ A local source of truth for the skills, MCP tools and shared context used by Cla
 Requires Node.js **22.13 or newer** and npm. macOS and Linux are the supported release targets; Windows remains experimental. The npm package is marked private until its public name and first release version are chosen.
 
 ```sh
-npm install
+npm ci
 npm run build
-node dist/cli.js ui
+node dist/cli.js quick --workspace /path/to/project
 ```
+
+`quick` previews one workflow: create/adopt Hub, collect MCP and skills, prepare the selected Git project, import its matched Markdown memory, enable project hooks, and deliver to detected clients. Copy its complete **Apply this workflow** command to run it. Conflicts require review; independent stages can finish. Existing Hub definitions stay authoritative, and native SQLite memory is not imported. Restart affected client sessions afterwards.
+
+For a graphical first run, use `node dist/cli.js ui` and choose **Quick setup & sync** on Overview. No prior `init` is needed. See [QUICKSTART.md](docs/QUICKSTART.md) for expected results, scope options, repeat runs and recovery. Quick is a staged workflow; `reset` returns to the first recorded baseline, which can predate this run.
 
 The UI opens at **http://127.0.0.1:3082**. Stop the server with Ctrl+C. Use `--port 3083` to choose another port, or `--no-open` to open the page yourself. Start it from a repository to view that repository's project context.
 
 The UI keeps the visual style of the [original HTML mockups](ui/mockups/README.md), with live data:
 
-- **Overview:** detected clients, configuration differences and actual hub counts.
+- **Overview:** guided Quick setup & sync, per-stage outcomes, detected clients, configuration differences and actual Hub counts.
 - **Skills:** inspect the client matrix and SKILL.md, preview imports, choose source preference and deliver complete skill bundles through individual client links with backups.
 - **MCP servers:** compare definitions, inspect a credential-safe hub configuration, preview imports and dry-run synchronization. Choose a source preference for conflicts; existing definitions are skipped unless replacement is explicitly selected. Apply uses one hub lock and guarded writes for credentials, registry and import provenance, rolling back earlier writes if a later write fails. It never stages or commits unrelated hub files. It does not write client configurations. A plan expires after five minutes and must be reviewed again if its inputs change.
 - **Instructions and memory:** deliver shared rules/index through owned client instruction blocks. Discover existing client memory, review its project scope and import selected Markdown knowledge through CLI or UI. Manage the same scoped records through CLI, UI or an optional MCP server. Project automation imports selected native notes and requests semantic checkpoints from the active agent under a one-time enabled policy, with conflict protection and recovery. Personal text and native sources are preserved.
@@ -49,7 +53,7 @@ node dist/cli.js sync --json
 
 Dry run is the default and writes nothing. It shows each target file, server action and launcher command, then prints an executable apply command with `--expect <revision>`. Copy that command to apply precisely the reviewed inputs. `--apply` is required for any write; combining it with `--dry-run` is rejected.
 
-The UI's **Sync → clients** button opens the same plan. Copy either the dry-run command or the exact apply command, or choose **Apply with backup**. A changed input or expired preview requires another dry run. You can select DSH, Codex or Claude separately.
+The UI's **Sync MCP only** button opens the same plan. Copy either the dry-run command or the exact apply command, or choose **Apply with backup**. A changed input or expired preview requires another dry run. You can select DSH, Codex or Claude separately.
 
 Sync changes MCP definitions only. It preserves client-only entries, unrelated JSON values and TOML/YAML text, and existing Codex tool policies. Disabled clients and application-managed servers such as `node_repl` are skipped. A source chosen during import authorizes replacing the exact client variants reviewed in that import. Private hash-only provenance records this choice; credentials are not stored in it. A later local edit still conflicts rather than being overwritten. Inline/dotted Codex MCP assignments require explicit server tables; unsupported transport settings are blocked for review.
 

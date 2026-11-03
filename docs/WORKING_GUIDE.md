@@ -4,6 +4,12 @@ This guide exercises all implemented flows and the important user-visible failur
 
 Mark each case PASS, FAIL or SKIPPED and record its evidence. A skipped case is not a pass. Timing-sensitive crash, contention, disk-failure and expiry tests remain in the automated suite.
 
+## Get a working Hub first
+
+For the short route, follow [QUICKSTART.md](QUICKSTART.md): preview `quick --workspace /path/to/project`, apply its emitted command, restart clients and check the per-stage result. The same route is available through **Quick setup & sync** in the local UI. This creates the project binding and installs memory hooks by default; Memory MCP remains optional.
+
+The numbered route below deliberately exercises individual commands and explicit project IDs. Choose it for a detailed manual trial. If quick already prepared your checkout, inspect `memory project ls` and reuse its binding instead of attempting to register it under a different example ID. Test destructive/failure cases only in the isolated laboratory.
+
 ## 0. Set up the working terminal
 
 Replace the source path once. Keep the checkout at that path during the trial: launchers and the DSH adapter refer to its built files.

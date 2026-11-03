@@ -128,3 +128,13 @@ Preparing independent client originals exposed a real macOS edge case: nested sy
 The complete quality gate passes **171 tests** on Node 25. All **171** also pass on Node **22.13.0**, with **91.45% lines**, **83.10% branches** and **88.64% functions**. A separate disposable trial-kit exercise passed preparation, A/B project registration, existing-note import, delivery to three synthetic client configs, reset with an archive, exact original-path verification and preparation of a fresh independent repeat. No real client delivery/reset was applied by that exercise.
 
 A private personal Hub and independent originals were prepared outside the source checkout. Read-only delivery previews and a monitored-path comparison confirmed the actual client configs/skills and original Hub inputs were unchanged. Real model-driven acceptance remains the user's working trial. Reset covers recorded managed state; it does not erase conversations, independently written native notes, client-native trust approvals or external API effects.
+
+## Quick setup validation (2026-11-04)
+
+Quick is covered by an isolated CLI flow using temporary Claude, Codex and DSH profiles. The tests verify a read-only first preview, MCP and complete-skill collection/delivery, Git project binding, matched Markdown memory, project-gated hook setup, unchanged repeat runs, stale-plan rejection and full reset of recorded originals. They also cover ambiguous sources, a failed hook stage with independent successful delivery, disabled clients sharing a skill root, both first-touch orders for DSH hooks/MCP, individual content restore and protection of later external edits.
+
+The HTTP checks verify token enforcement, startup-workspace binding, input validation and single-use quick previews. Browser QA exercised the wizard, its conflict preview and the per-stage partial result using temporary profiles only. No production client settings were changed by these checks.
+
+The main suite contains 180 tests. Minimum-runtime verification uses Node 22.13 with the coverage thresholds enforced by the test runner. The separate site has 15 English documentation pages and checks locale-owned bodies, protected code syntax, navigation, anchors, source archive provenance and local HTTP behavior.
+
+A successful setup test is not evidence of useful model-selected memory or activation in every client version. Real-client restart, native trust/permissions, a two-client working task and a review of captured facts remain the maintainer's working trial. Quick does not create an OS service, install a standalone Memory MCP server, import native SQLite or provide a workflow-wide transaction.

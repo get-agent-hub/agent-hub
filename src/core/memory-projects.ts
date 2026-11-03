@@ -14,8 +14,8 @@ interface MemoryProjects {
   projects: { id: string; checkouts: { path: string; identity: string }[] }[];
 }
 
-export async function memoryRegistry(root: string) {
-  await readSettings(root);
+export async function memoryRegistry(root: string, optionalSettings = false) {
+  await readSettings(root, optionalSettings);
   const file = await memoryFile(root, path.join(root, 'memory', 'projects.json'));
   let registry: MemoryProjects = { version: 1, projects: [] };
   if (file.text !== null) {
@@ -65,7 +65,7 @@ export async function memoryCheckout(directory: string): Promise<string> {
   }
 }
 
-async function repositoryBinding(directory: string) {
+export async function memoryCheckoutBinding(directory: string) {
   const checkout = await memoryCheckout(directory);
   try {
     const result = await exec('git', ['rev-parse', '--git-common-dir'], {
@@ -102,7 +102,7 @@ export async function memoryLocation(
       guards: [],
     };
   }
-  const checkout = await repositoryBinding(selector.workspace);
+  const checkout = await memoryCheckoutBinding(selector.workspace);
   const { registry, snapshot } = await memoryRegistry(root);
   const project = registry.projects.find((entry) =>
     entry.checkouts.some((binding) => binding.path === checkout.path),
@@ -138,7 +138,7 @@ export async function planMemoryProject(
   rebind = false,
 ) {
   memoryId(id);
-  const checkout = await repositoryBinding(directory);
+  const checkout = await memoryCheckoutBinding(directory);
   const { registry, snapshot } = await memoryRegistry(root);
   const bound = registry.projects.find((entry) =>
     entry.checkouts.some((binding) => binding.path === checkout.path),

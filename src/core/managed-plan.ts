@@ -15,7 +15,7 @@ import {
   readArtifactBaseline,
   recordArtifactWrites,
 } from './artifact-recovery.js';
-import { ensureBaseline } from './baseline.js';
+import { ensureBaseline, readBaseline } from './baseline.js';
 import { withHubLock } from './hub-lock.js';
 import { HubError } from './errors.js';
 import { hash, stableStringify } from './values.js';
@@ -211,6 +211,7 @@ export async function planManagedRestore(id: string, root: string): Promise<Mana
   if (!/^content-[\w-]+$/.test(id)) throw new HubError('Invalid content backup ID.');
   const directory = path.join(root, 'backups', id);
   const baseline = await readArtifactBaseline(root);
+  const fileBaseline = await readBaseline(root);
   let manifest;
   try {
     manifest = JSON.parse(await fs.readFile(path.join(directory, 'manifest.json'), 'utf8')) as {
@@ -242,7 +243,8 @@ export async function planManagedRestore(id: string, root: string): Promise<Mana
       !/^[a-f0-9]{64}$/.test(entry.afterFingerprint) ||
       (entry.payload !== null && !/^before-\d+$/.test(entry.payload)) ||
       (!containsPath(root, entry.before.path) &&
-        !baseline.entries.some((original) => original.before.path === entry.before.path))
+        !baseline.entries.some((original) => original.before.path === entry.before.path) &&
+        !fileBaseline?.files.some((original) => original.file === entry.before.path))
     )
       throw new HubError('Content backup target is not a recorded managed path.');
     const current = await inspectArtifact(entry.before.path);

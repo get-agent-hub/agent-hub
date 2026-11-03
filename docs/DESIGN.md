@@ -46,7 +46,11 @@ hub.recovery/
 | Shared memory   | memory/MEMORY.md and fact files    | Index and directory reference in the instruction block                |
 | Project handoff | Hub templates or built-in defaults | AGENTS.md, PROJECT.md, NOW.md and Claude import in one Git repository |
 
-Native auto-memory and conversation history are not merged or relocated. Shared facts are read on demand. Custom DSH profiles can disable their instruction/skill plugins; delivery does not change plugin activation.
+Project-matched native Markdown notes can be imported into Hub; original stores remain in place. Archived conversation ingestion and native SQLite interchange are not implemented. Shared facts are read on demand. Custom DSH profiles can disable their instruction/skill plugins; delivery does not change plugin activation.
+
+## Quick workflow
+
+`quick` reuses the individual services in a staged workflow: missing Hub files, MCP collection, skill collection, project binding/handoff, native-memory onboarding, per-client hooks, then per-client skills/context/MCP delivery. Preview is read-only, including for a missing Hub. The initial revision captures selected scope, available source plans, target fingerprints, native-source metadata and matched contents. Application verifies that revision before setup, then rebuilds dependent plans after collection; individual writes retain their own freshness guards and locks. Independent areas can complete when another stage needs review. This is not one transaction or an unattended MCP/skills service. See [QUICKSTART.md](QUICKSTART.md).
 
 ## Services and recovery
 
@@ -58,7 +62,7 @@ The immutable Hub baseline and append-only first-touch originals live outside th
 
 ## Current milestone
 
-Implemented: init, MCP import/launcher/sync/doctor, restore/reset, local UI, skills add/list/remove/import/delivery, shared rules/index delivery, init-repo templates and scoped memory record management through CLI/UI/MCP. Explicit content mutations default to preview and require the reviewed revision. Project automation is enabled through a reviewed setup; subsequent native imports/checkpoints use that policy, the same transaction service and recovery. Plain sync retains MCP-only behavior; `--area skills` and `--area context` select the other projections.
+Implemented: quick setup/sync through CLI and guided UI, init, MCP import/launcher/sync/doctor, restore/reset, local UI, skills add/list/remove/import/delivery, shared rules/index delivery, init-repo templates and scoped memory record management through CLI/UI/MCP. Explicit content mutations default to preview and require the reviewed revision. Project automation is enabled through a reviewed setup; subsequent native imports/checkpoints use that policy, the same transaction service and recovery. Plain sync retains MCP-only behavior; `--area skills` and `--area context` select the other projections.
 
 Next is the maintainer's real working trial in [WORKING_GUIDE.md](WORKING_GUIDE.md), including model-driven retrieval and a two-client memory handoff, followed by remote macOS/Linux CI, package install checks and release identity. Structured interchange with an external graph memory server remains separate future work. The separate English landing page uses locale files for translation PRs; hosting is maintainer-managed and deferred.
 
@@ -70,7 +74,7 @@ CLI/UI/MCP share the implemented record service. See [MEMORY.md](MEMORY.md) for 
 
 Use Hub-managed Markdown as the only authoritative store for the MVP. Expose a small built-in MCP adapter over the same service used by CLI and UI. Reuse the existing managed-plan, Hub lock and artifact recovery mechanisms; verify their behavior with memory record/index updates before claiming equivalent guarantees. Do not introduce a generic backend framework while only one backend is implemented.
 
-The external `@modelcontextprotocol/server-memory` is a planned optional import/export integration, not a runtime dependency or a second live store for Hub records. Its future import must retain source attribution and leave the source untouched. A stable source identity must make repeated import detectable; changed records require an explicit conflict decision. Preserve entities and relationships in the interchange representation or report unsupported data before import; never silently flatten away relationships. Export must create a separate snapshot without overwriting a graph being served by another process. Current import handles only explicitly selected local UTF-8 text as one record body.
+The external `@modelcontextprotocol/server-memory` is a planned optional import/export integration, not a runtime dependency or a second live store for Hub records. Its future import must retain source attribution and leave the source untouched. A stable source identity must make repeated import detectable; changed records require an explicit conflict decision. Preserve entities and relationships in the interchange representation or report unsupported data before import; never silently flatten away relationships. Export must create a separate snapshot without overwriting a graph being served by another process. Manual memory import accepts selected local UTF-8 text as one record body; memory onboarding also discovers and imports project-matched native Markdown notes. Neither path imports a structured external graph.
 
 Do not run automatic bidirectional synchronization or give agents two writable copies of the same collection. An external graph backend can be reconsidered after an actual use case requires graph traversal; it would replace the authoritative store for its collection rather than mirror it. The initial built-in MCP API is not a claim of drop-in compatibility with the external server's graph tools.
 

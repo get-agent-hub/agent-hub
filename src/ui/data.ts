@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import { packageVersion } from '../core/package.js';
 import path from 'node:path';
+import { readSettings } from '../core/settings.js';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { adapters } from '../adapters/index.js';
@@ -126,13 +127,14 @@ async function workspace(cwd: string) {
 }
 
 export async function uiState(cwd: string, sources: ClientAdapter[] = adapters) {
-  const [status, registry, memory, instructions, repo, doctor] = await Promise.all([
+  const [status, registry, memory, instructions, repo, doctor, settings] = await Promise.all([
     collectStatus(sources),
     readRegistry(),
     memoryDocuments(),
     documentAt(path.join(hubRoot(), 'instructions'), 'AGENTS.md'),
     workspace(cwd),
     cachedDoctor(),
+    readSettings(hubRoot(), true),
   ]);
   const servers = Object.entries(registry.servers)
     .sort(([a], [b]) => a.localeCompare(b))
@@ -147,6 +149,9 @@ export async function uiState(cwd: string, sources: ClientAdapter[] = adapters) 
     }));
   // Expose paths and comparison cells only, never args/headers from client snapshots.
   return {
+    quickClients: status.clients
+      .filter((client) => client.installed && settings.clients?.[client.id]?.enabled !== false)
+      .map((client) => client.id),
     version: packageVersion,
     status,
     servers,

@@ -32,10 +32,18 @@ const targets = ids.map((id, i) => ({
     root,
     'clients',
     id,
-    id === 'codex' ? 'config.toml' : id === 'dsh' ? 'cordis.patch.yml' : 'config.json',
+    id === 'codex' ? 'config.toml' : id === 'dsh' ? 'profiles/web/cordis.patch.yml' : 'config.json',
   ),
   installed: true,
 }));
+// Every default service, including quick setup and memory hooks, stays inside this fixture.
+Object.assign(process.env, {
+  AGENT_HUB_CLAUDE_CONFIG: targets[0].file,
+  CLAUDE_CONFIG_DIR: path.join(root, 'clients', 'claude-code'),
+  CODEX_HOME: path.join(root, 'clients', 'codex'),
+  DSH_HOME: path.join(root, 'clients', 'dsh'),
+  AGENT_HUB_SHARED_SKILLS: path.join(root, 'clients', 'shared-skills'),
+});
 for (const dir of ['skills/qa-skill', 'mcp', 'instructions', 'memory', 'state'])
   await fs.mkdir(path.join(hub, dir), { recursive: true });
 await fs.writeFile(

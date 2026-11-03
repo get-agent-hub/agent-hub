@@ -11,6 +11,10 @@ const [archive] = JSON.parse(
 const files = new Set(archive.files.map((file) => file.path));
 for (const required of [
   'dist/cli.js',
+  'dist/core/quick.js',
+  'dist/commands/quick.js',
+  'ui/app/quick.js',
+  'docs/QUICKSTART.md',
   'dist/integrations/dsh-memory.js',
   'dist/core/memory-discovery.js',
   'dist/core/memory-onboarding.js',
@@ -34,7 +38,7 @@ for (const required of [
 }
 for (const file of files)
   assert.ok(
-    /^(dist\/|ui\/app\/|docs\/(CONTENT|MEMORY|AUTOMATION|WORKING_GUIDE|RECOVERY|DESIGN)\.md$|README\.md$|LICENSE$|package\.json$)/.test(
+    /^(dist\/|ui\/app\/|docs\/(QUICKSTART|CONTENT|MEMORY|AUTOMATION|WORKING_GUIDE|RECOVERY|DESIGN)\.md$|README\.md$|LICENSE$|package\.json$)/.test(
       file,
     ),
     `Unexpected package file: ${file}`,

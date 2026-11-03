@@ -48,6 +48,7 @@
     "dist/",
     "ui/app/",
     "README.md",
+    "docs/QUICKSTART.md",
     "docs/CONTENT.md",
     "docs/MEMORY.md",
     "docs/AUTOMATION.md",

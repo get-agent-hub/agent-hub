@@ -17,11 +17,11 @@ import {
 
 export async function planSkillImport(
   item = 'skills',
-  options: { prefer?: string; overwrite?: boolean } = {},
+  options: { prefer?: string; overwrite?: boolean; allowUninitialized?: boolean } = {},
   supplied?: ContentContext,
 ) {
   const context = supplied ?? (await defaultContentContext());
-  const settings = await readSettings(context.root);
+  const settings = await readSettings(context.root, options.allowUninitialized);
   const selected = item.includes(':') ? item.slice(item.indexOf(':') + 1) : undefined;
   if (selected) assertSkillName(selected);
   const priority = options.prefer?.split(',').map((value) => value.trim()) ?? [];

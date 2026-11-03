@@ -1,6 +1,7 @@
 import { escape, link, pill, mark, empty, intro } from './html.js';
 import { setupContentUi } from './content.js';
 import { setupMemoryUi } from './memory.js';
+import { setupQuickUi } from './quick.js';
 import {
   doctorResultText,
   serviceDetails,
@@ -122,14 +123,15 @@ function overview() {
   };
   return (
     intro(
-      'Your agents, one workspace',
-      'Skills, tools and shared context — with your hub as the source of truth.',
-      `<button class="btn" data-action="import">Import from clients</button><button class="btn primary" data-action="sync">Sync → clients</button>`,
+      'Build your Hub, then keep it in sync',
+      'Collect your existing tools and skills, connect your clients, and give this project shared memory in one guided workflow.',
+      `<button class="btn primary" data-quick-open>Quick setup & sync</button><button class="btn" data-action="import">Import MCP only</button><button class="btn" data-action="sync">Sync MCP only</button>`,
     ) +
     (!r.hub.exists
-      ? `<div class="banner"><div><b>Initialize your hub</b><p>Run <code>ahub init</code>, then refresh this page.</p></div></div>`
+      ? `<div class="banner"><div><b>Start with what you already have</b><p>Quick setup creates the Hub, collects client configuration, and connects detected clients. Preview first; no terminal setup is required.</p></div></div>`
       : `<div class="banner ${count ? '' : 'ok'}">${pill(count ? 'Needs review' : 'Up to date', count ? 'warn' : 'ok')}<div><b>${count ? `${unique} items have configuration differences.` : 'Hub and detected clients match.'}</b><p>${count ? `${count} comparisons across clients. Review definitions before synchronizing.` : 'Refresh after making changes in a client.'}</p></div><a class="btn sm" href="${link('mcp')}">Review MCP →</a></div>`) +
     `<div class="grid g-4 metrics"><a class="card stat" href="${link('skills')}"><div class="k">Skills</div><div class="v">${r.skills.filter((s) => s.cells.hub === 'ok').length}</div><div class="s">${r.skills.length} found across all clients</div></a><a class="card stat" href="${link('mcp')}"><div class="k">MCP servers</div><div class="v">${state.servers.length}</div><div class="s">${r.mcp.length} found across all clients</div></a><a class="card stat" href="${link('memory')}"><div class="k">Memory documents</div><div class="v">${state.memory.length}</div><div class="s">stored in your hub</div></a><a class="card stat" href="${link('sessions')}"><div class="k">Session search</div><div class="v small">Coming later</div><div class="s">after project context & handoff</div></a></div>` +
+    `<div class="grid g-3 section-gap"><div class="card card-b"><b>1 · Collect</b><p>Bring MCP definitions and full skill bundles into your Hub. Existing Hub items stay authoritative.</p></div><div class="card card-b"><b>2 · Connect</b><p>Deliver tools, skills and shared instructions to enabled clients. Conflicts get a separate review.</p></div><div class="card card-b"><b>3 · Continue anywhere</b><p>In a Git project, import matched Markdown memory and enable project-gated session hooks. Restart clients after applying.</p></div></div>` +
     renderDoctorSummary(state.doctor) +
     `<div class="section-title" id="clients">Clients ${pill('Configuration only')}</div><div class="grid g-3">${r.clients
       .map((c) => {
@@ -301,6 +303,8 @@ function render() {
   $('#content').innerHTML =
     query && !['skills', 'mcp', 'memory'].includes(page) ? searchResults() : views[page](params);
 }
+
+setupQuickUi({ api, load, notice, getState: () => state });
 
 async function load() {
   $('#refresh').disabled = true;

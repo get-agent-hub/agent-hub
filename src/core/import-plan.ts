@@ -27,6 +27,7 @@ import { parseRegistry, serializeRegistry, validServerName, type HubServer } fro
 import type { ClientAdapter, ClientId } from './types.js';
 
 export interface ImportOptions {
+  allowUninitialized?: boolean;
   prefer?: string;
   overwrite?: boolean;
   chooseClient?: (name: string, clients: ClientId[], preferred: ClientId) => Promise<ClientId>;
@@ -57,7 +58,7 @@ export async function planImport(
   opts: ImportOptions = {},
   sources: ClientAdapter[] = adapters,
 ): Promise<ImportPlan> {
-  if (!(await exists(hubRoot())))
+  if (!opts.allowUninitialized && !(await exists(hubRoot())))
     throw new Error(`No hub at ${tildify(hubRoot())}. Run \`ahub init\` first.`);
   if (item && item !== 'mcp' && !item.startsWith('mcp:'))
     throw new Error(
