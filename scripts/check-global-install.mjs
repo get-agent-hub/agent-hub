@@ -32,6 +32,21 @@ try {
     npm_config_userconfig: path.join(directory, 'npmrc'),
   };
   assert.ok(process.env.npm_execpath, 'Run through npm run install:check.');
+  const [archive] = JSON.parse(
+    execFileSync(
+      process.execPath,
+      [
+        process.env.npm_execpath,
+        'pack',
+        '--ignore-scripts',
+        '--json',
+        '--pack-destination',
+        directory,
+      ],
+      { cwd: source, env, encoding: 'utf8' },
+    ),
+  );
+  const tarball = path.join(directory, archive.filename);
   execFileSync(
     process.execPath,
     [
@@ -40,15 +55,19 @@ try {
       '--global',
       '--prefix',
       prefix,
-      '--cache',
-      path.join(directory, 'cache'),
-      '--offline',
       '--no-audit',
       '--no-fund',
-      source,
+      tarball,
     ],
     { cwd: workspace, env, stdio: 'pipe' },
   );
+
+  await fs.rm(tarball);
+  const installedPackage = path.join(prefix, 'lib/node_modules/agent-hub');
+  assert.equal((await fs.lstat(installedPackage)).isSymbolicLink(), false);
+  assert.ok((await fs.stat(path.join(installedPackage, 'npm-shrinkwrap.json'))).isFile());
+  assert.ok(!(await fs.realpath(installedPackage)).startsWith(source));
+  assert.ok(await fs.stat(path.join(installedPackage, 'node_modules/yaml/package.json')));
 
   const run = (args, name = 'ahub') =>
     execFileSync(name, args, { cwd: workspace, env, encoding: 'utf8' });
@@ -104,7 +123,7 @@ try {
   const state = await (await fetch(`${url}/api/state`)).json();
   assert.equal(state.status.hub.root, home);
   console.log(
-    'Global install verified in a temporary prefix: ahub + agent-hub, quick preview/apply, status and UI assets from an unrelated directory.',
+    'Standalone tarball install verified after deleting its source archive in a temporary prefix: ahub + agent-hub, quick preview/apply, status and UI assets from an unrelated directory.',
   );
 } finally {
   if (ui && ui.exitCode === null) {
