@@ -13,6 +13,7 @@ const home = path.join(directory, 'hub');
 let ui;
 try {
   await fs.mkdir(workspace);
+  execFileSync('git', ['init', '-q', workspace]);
   await fs.mkdir(path.join(directory, 'codex'));
   await fs.writeFile(path.join(directory, 'codex', 'config.toml'), '# fixture only\n');
   await fs.writeFile(path.join(directory, 'npmrc'), '');
@@ -53,12 +54,11 @@ try {
     execFileSync(name, args, { cwd: workspace, env, encoding: 'utf8' });
   assert.match(run(['--help']), /quick/);
   assert.equal(run(['--version']), run(['--version'], 'agent-hub'));
-  const preview = JSON.parse(run(['quick', '--no-project', '--client', 'codex', '--json']));
+  const preview = JSON.parse(run(['quick', '--client', 'codex', '--json']));
   await assert.rejects(fs.access(home), { code: 'ENOENT' });
   const result = JSON.parse(
     run([
       'quick',
-      '--no-project',
       '--client',
       'codex',
       '--apply',
@@ -71,6 +71,11 @@ try {
   );
   assert.equal(result.status, 'complete');
   assert.equal(result.root, home);
+  assert.equal(result.scope, 'hub');
+  await assert.rejects(fs.access(path.join(workspace, 'AGENTS.md')), { code: 'ENOENT' });
+  const project = JSON.parse(run(['project', 'connect', '--json']));
+  assert.equal(project.scope, 'project');
+  assert.equal(project.workspace, await fs.realpath(workspace));
   assert.equal(JSON.parse(run(['status', '--json'])).hub.root, home);
 
   ui = spawn('ahub', ['ui', '--no-open', '--port', '0'], {

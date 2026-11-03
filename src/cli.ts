@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-import { quickCommand } from './commands/quick.js';
+import { quickCommand, projectConnectCommand } from './commands/quick.js';
 import { resetCommand } from './commands/reset.js';
-import { Command } from 'commander';
+import { Command, Option } from 'commander';
 import { packageVersion } from './core/package.js';
 import { importCommand } from './commands/import.js';
 import { initCommand } from './commands/init.js';
@@ -50,21 +50,42 @@ program
 
 program
   .command('quick')
-  .description('preview or run Hub setup, collection, project memory and delivery in one workflow')
-  .option('--workspace <directory>', 'Git workspace (default: cwd)')
+  .description(
+    'set up and sync the shared Hub: global MCP, skills and shared instructions; no project required',
+  )
+  .addOption(new Option('--workspace <directory>').hideHelp())
   .option(
     '--client <ids>',
     'comma-separated detected clients (default: all enabled detected clients)',
   )
   .option('--prefer <id>', 'explicit source preference when imported client copies differ')
-  .option('--no-project', 'only configure global MCP, skills and shared context')
-  .option('--no-automation', 'import project memory without enabling lifecycle hooks')
+  .addOption(new Option('--no-project').hideHelp())
+  .addOption(new Option('--no-automation').hideHelp())
   .option('--at <timestamp>', 'timestamp captured in the reviewed quick command')
   .option('--dry-run', 'preview workflow, write nothing (default)')
   .option('--apply', 'run the reviewed staged workflow with existing recovery protections')
   .option('--expect <revision>', 'required reviewed workflow revision')
   .option('--json', 'machine-readable preview or per-stage result')
   .action(quickCommand);
+
+program
+  .command('project')
+  .description('optional project memory and repository handoff; separate from the shared Hub')
+  .command('connect [directory]')
+  .description(
+    'connect one Git project to an existing Hub; preview memory, handoff files and hooks',
+  )
+  .option(
+    '--client <ids>',
+    'comma-separated detected clients for project memory (default: all enabled detected clients)',
+  )
+  .option('--no-automation', 'import project memory and prepare handoff without enabling hooks')
+  .option('--at <timestamp>', 'timestamp captured in the reviewed connection command')
+  .option('--dry-run', 'preview without writing (default)')
+  .option('--apply', 'apply the reviewed project connection')
+  .option('--expect <revision>', 'required reviewed connection revision')
+  .option('--json', 'machine-readable preview or per-stage result')
+  .action(projectConnectCommand);
 
 program
   .command('status')
@@ -81,7 +102,9 @@ program
   .action(initCommand);
 program
   .command('sync')
-  .description('project hub state into client configs (dry-run by default)')
+  .description(
+    'sync MCP settings only by default; select --area skills or context, or use quick for all shared areas',
+  )
   .option('--apply', 'write changes (with backup)')
   .option('--dry-run', 'show changes and exact commands, write nothing (default)')
   .option('--client <id>', 'only this client')
@@ -95,7 +118,9 @@ program
   .action(syncCommand);
 program
   .command('import [item]')
-  .description('import mcp or skills from clients; skills use guarded preview/apply')
+  .description(
+    'collect MCP or skills: MCP writes unless --dry-run; skills require reviewed preview/apply',
+  )
   .option('--dry-run', 'show the plan, write nothing')
   .option('--apply', 'apply a reviewed skills import')
   .option('--expect <revision>', 'required for applying a skills import')
@@ -123,7 +148,7 @@ program
   .action(repoInitCommand);
 program
   .command('restore <backup>')
-  .description('preview rollback of client configs from a sync backup')
+  .description('preview restoration of one sync or content backup; later edits can block restore')
   .option('--apply', 'restore original files')
   .option('--dry-run', 'show rollback without writing (default)')
   .option('--expect <revision>', 'apply only if this reviewed revision still matches')

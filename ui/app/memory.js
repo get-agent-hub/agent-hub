@@ -68,7 +68,7 @@ export function setupMemoryUi({ api, load, notice }) {
           if (request !== version || !dialog.open) return;
           automation.textContent = automatic.policy.enabled
             ? `Automatic memory enabled for ${automatic.policy.clients.join(', ')}. ${automatic.policy.native.length} native source(s), ${automatic.conflicts.length} conflict(s), ${automatic.pendingCheckpoints} pending checkpoint(s). Inspect memory auto status for details.`
-            : 'Automatic memory is off. Enable it once for this project with memory auto enable; subsequent captures use that policy.';
+            : 'Automatic memory is off. Use Connect project memory to preview setup, or memory auto enable for one client; subsequent captures use that policy.';
           conflicts.innerHTML = automatic.conflicts
             .map(
               (conflict) =>
@@ -89,7 +89,7 @@ export function setupMemoryUi({ api, load, notice }) {
       if (request !== version) return;
       records.textContent = error.message;
       status.textContent =
-        'Project memory needs a registered checkout. Shared memory can be selected explicitly.';
+        'Project memory is optional. Use Connect project memory on Overview, or ahub project connect, to enable this project. Select Shared across projects for shared knowledge.';
     }
   }
 
@@ -138,7 +138,7 @@ export function setupMemoryUi({ api, load, notice }) {
         sources.innerHTML = `<p class="small-note">Choose existing notes for ${escape(report.workspace)}. Unresolved sources need your explicit project choice. No files changed.</p>${report.sources.map((source) => `<label class="small-note"><input type="checkbox" data-native-source value="${escape(source.id)}" ${source.format !== 'markdown' || (source.project && source.project !== report.workspace && source.projectId !== report.project) ? 'data-unavailable disabled' : ''} ${source.format === 'markdown' && report.project && source.projectId === report.project ? 'checked' : ''}> ${escape(source.client)} · ${escape(source.path)} · ${escape(source.format)}<br>${escape(source.evidence)}</label>`).join('')}<p class="small-note">${report.warnings.map(escape).join(' ')}</p><label class="small-note"><input type="checkbox" id="memory-follow"> Follow later changes from these sources. Enables this project's native-sync policy; lifecycle hook installation is separate.</label><button class="btn" data-memory-onboard>Preview importing selected notes</button>`;
         status.textContent = report.project
           ? 'Review source scope and preview the selected import.'
-          : 'Register this checkout with memory project register before importing.';
+          : 'Connect this project first using Connect project memory on Overview or ahub project connect.';
       } catch (error) {
         status.textContent = error.message;
       } finally {

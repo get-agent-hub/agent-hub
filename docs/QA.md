@@ -142,3 +142,11 @@ A successful setup test is not evidence of useful model-selected memory or activ
 ## Global CLI installation
 
 `npm run install:check` installs the built local folder using npm's global mode with a disposable prefix and isolated client/Hub paths. From a directory outside the source checkout, it verifies both executable names, quick preview/apply, status and the live UI's static assets. The check does not modify the user's normal global prefix or client settings. It is included in the macOS/Linux CI matrix. End-user documentation now starts with `npm ci`, `npm run build`, `npm install --global .`, then uses `ahub` directly.
+
+## Shared Hub versus optional project connection
+
+The current command scopes supersede the combined quick workflow described in the earlier trial notes. `ahub quick` now configures shared MCP, skills and instructions only, from any folder. `ahub project connect [directory]` independently configures one Git project's memory, handoff and hooks after Hub setup.
+
+The suite contains 184 tests. Scope regressions verify that Git cwd and project-note changes do not affect a shared Hub preview; quick creates no repository files or project hooks; connection rejects a missing Hub, invalid Git directory and stale native notes; pending global instruction/tool/skill state is not delivered during project connection. HTTP tests reject project options on quick routes, keep connection bound to the UI startup project and prevent cross-scope preview application. The isolated global-install check now exercises plain `ahub quick` from a Git checkout and separately previews `ahub project connect` without a path.
+
+Browser QA verified the separate shared Hub preview and applied the project-only workflow against temporary profiles. UI copy distinguishes Hub storage from the selected project directory, shows separate setup actions, labels plain sync as MCP-only and removes stale claims that repository initialization is future work. Native activation and the usefulness of model-selected knowledge still require the maintainer's working trial.

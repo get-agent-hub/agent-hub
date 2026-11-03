@@ -29,12 +29,18 @@ import { CLIENT_IDS, type ClientId } from './types.js';
 import { hash, stableStringify } from './values.js';
 
 export interface QuickOptions {
-  workspace?: string;
   clients?: ClientId[];
   prefer?: ClientId;
-  project?: boolean;
+  at?: string;
+}
+export interface ProjectConnectOptions {
+  workspace?: string;
+  clients?: ClientId[];
   automation?: boolean;
   at?: string;
+}
+interface SetupOptions extends QuickOptions, ProjectConnectOptions {
+  scope: 'hub' | 'project';
 }
 type ReviewRow = { name: string; action: string; note?: string; client?: string };
 export interface QuickStep {
@@ -53,7 +59,7 @@ const titles = {
   init: 'Create or adopt Hub',
   mcpImport: 'Collect MCP definitions and protect credentials',
   skillImport: 'Collect complete skill bundles',
-  project: 'Bind project memory and prepare handoff files',
+  project: 'Bind project memory',
   memory: 'Import existing project Markdown memory',
   automation: 'Enable project memory and install lifecycle hooks',
   delivery: 'Deliver MCP, skills and shared context to clients',
@@ -65,8 +71,20 @@ const reviewRows = (rows: ReviewRow[]) =>
       (row.action === 'preserve' && row.client === 'memory'),
   );
 
+export function planQuick(input: QuickOptions = {}) {
+  if ('workspace' in input || 'project' in input || 'automation' in input)
+    throw new HubError(
+      'Quick configures the shared Hub. Use ahub project connect <directory> for project memory and handoff.',
+    );
+  return planSetup({ ...input, scope: 'hub' });
+}
+
+export function planProjectConnect(input: ProjectConnectOptions = {}) {
+  return planSetup({ ...input, scope: 'project' });
+}
+
 /** Scope approval for a staged workflow. Dependent plans are rebuilt after collection. */
-export async function planQuick(input: QuickOptions = {}) {
+async function planSetup(input: SetupOptions) {
   if (
     input.clients &&
     (!Array.isArray(input.clients) ||
@@ -80,6 +98,9 @@ export async function planQuick(input: QuickOptions = {}) {
   const at = input.at ?? new Date().toISOString();
   if (!Number.isFinite(Date.parse(at)) || new Date(at).toISOString() !== at)
     throw new HubError('Use an ISO timestamp from the quick preview.');
+  const initialized = (await readOptionalText(path.join(root, 'hub.yaml'))) !== null;
+  if (input.scope === 'project' && !initialized)
+    throw new HubError('Create your shared Hub with ahub quick before connecting a project.');
   const settings = await readSettings(root, true);
   const context = await defaultContentContext();
   const clients = context.clients.filter(
@@ -95,35 +116,30 @@ export async function planQuick(input: QuickOptions = {}) {
     root,
     clients: context.clients.filter((client) => ids.includes(client.id)),
   };
-  let workspace: string | null = null;
-  if (input.project !== false) {
-    try {
-      workspace = await memoryCheckout(input.workspace ?? process.cwd());
-    } catch {
-      /* Global setup remains useful outside a Git checkout. */
-    }
-  }
-  const options = {
-    prefer: input.prefer,
-    workspace: workspace ?? path.resolve(input.workspace ?? process.cwd()),
+  const workspace =
+    input.scope === 'project' ? await memoryCheckout(input.workspace ?? process.cwd()) : null;
+  const options: SetupOptions = {
+    scope: input.scope,
+    prefer: input.scope === 'hub' ? input.prefer : undefined,
+    workspace: workspace ?? undefined,
     clients: ids,
-    project: input.project !== false,
-    automation: input.automation !== false,
+    automation: input.scope === 'project' && input.automation !== false,
     at,
   };
   const sources = adapters.filter((adapter) => ids.includes(adapter.id));
-  const init = await planQuickInit(root, ids);
-  const mcp = await planImport(
-    'mcp',
-    { prefer: input.prefer ?? '', allowUninitialized: true },
-    sources,
-  );
-  const skills = await planSkillImport(
-    'skills',
-    { prefer: input.prefer, allowUninitialized: true },
-    selectedContext,
-  );
-  const initialized = (await readOptionalText(path.join(root, 'hub.yaml'))) !== null;
+  const init = input.scope === 'hub' ? await planQuickInit(root, ids) : null;
+  const mcp =
+    input.scope === 'hub'
+      ? await planImport('mcp', { prefer: input.prefer ?? '', allowUninitialized: true }, sources)
+      : null;
+  const skills =
+    input.scope === 'hub'
+      ? await planSkillImport(
+          'skills',
+          { prefer: input.prefer, allowUninitialized: true },
+          selectedContext,
+        )
+      : null;
   const discovery = workspace ? await discoverMemory(root, workspace, !initialized) : null;
   const registry = workspace ? (await memoryRegistry(root, !initialized)).registry : null;
   const projectId = workspace
@@ -146,32 +162,38 @@ export async function planQuick(input: QuickOptions = {}) {
         (source.project === workspace ||
           (discovery.project !== null && source.projectId === discovery.project)),
     ) ?? [];
-  const files = [
-    'hub.yaml',
-    '.env',
-    '.gitignore',
-    'mcp/servers.yaml',
-    'skills',
-    'instructions',
-    'memory',
-    'state/imported-definitions.json',
-    'state/sync.json',
-    'state/skills.json',
-    'state/context.json',
-    'state/repositories.json',
-  ].map((file) => path.join(root, file));
-  for (const client of clients)
-    files.push(client.skills, ...client.additionalSkills, client.instructions);
-  const detected = await Promise.all(sources.map((source) => source.detect()));
-  files.push(
-    ...detected.flatMap((entry) =>
-      Object.values(entry.paths).filter(
-        (file) =>
-          !file.endsWith(path.sep) &&
+  const files = (
+    input.scope === 'hub'
+      ? [
+          'hub.yaml',
+          '.env',
+          '.gitignore',
+          'mcp/servers.yaml',
+          'skills',
+          'instructions',
+          'memory/MEMORY.md',
+          'state/imported-definitions.json',
+          'state/sync.json',
+          'state/skills.json',
+          'state/context.json',
+        ]
+      : ['hub.yaml', 'memory', 'state/repositories.json', 'templates/repo']
+  ).map((file) => path.join(root, file));
+  if (input.scope === 'hub') {
+    for (const client of clients)
+      files.push(client.skills, ...client.additionalSkills, client.instructions);
+    const detected = await Promise.all(sources.map((source) => source.detect()));
+    files.push(
+      ...detected.flatMap((entry) =>
+        Object.values(entry.paths).filter((file) =>
           ['.json', '.toml', '.yaml', '.yml'].includes(path.extname(file)),
+        ),
       ),
-    ),
-  );
+    );
+  } else if (options.automation && ids.includes('dsh')) {
+    const dsh = await adapters.find((adapter) => adapter.id === 'dsh')!.detect();
+    if (dsh.paths.profilePatch) files.push(dsh.paths.profilePatch);
+  }
   if (options.automation && workspace) {
     if (ids.includes('claude-code'))
       files.push(path.join(clientPaths.claudeHome(), 'settings.json'));
@@ -187,54 +209,70 @@ export async function planQuick(input: QuickOptions = {}) {
     );
   files.push(...native.map((source) => source.path));
   const guards = await Promise.all([...new Set(files)].sort().map((file) => inspectArtifact(file)));
-  const steps: QuickStep[] = [
-    { id: 'init', title: titles.init, status: 'planned', rows: publicManagedPlan(init).rows },
-    {
-      id: 'mcpImport',
-      title: titles.mcpImport,
-      status: reviewRows(mcp.rows).length ? 'review' : 'planned',
-      rows: publicImportPlan(mcp).servers,
-    },
-    {
-      id: 'skillImport',
-      title: titles.skillImport,
-      status: skills.blocked ? 'review' : 'planned',
-      rows: publicManagedPlan(skills).rows,
-    },
-    {
-      id: 'project',
-      title: titles.project,
-      status: workspace ? 'deferred' : 'skipped',
-      note: workspace
-        ? `Project: ${projectId}. Existing repository instructions and notes are preserved.`
-        : 'No Git workspace selected; global MCP, skills and context still work.',
-    },
-    {
-      id: 'memory',
-      title: titles.memory,
-      status: native.length ? 'deferred' : 'skipped',
-      note: `${native.length} project-matched Markdown source(s). Unknown projects and SQLite stores require separate review.`,
-    },
-    {
-      id: 'automation',
-      title: titles.automation,
-      status: workspace && options.automation ? 'deferred' : 'skipped',
-      note:
-        workspace && options.automation
-          ? 'Hooks run project-gated imports and ask the active model for evidenced facts. Client trust/permissions still apply.'
-          : 'Automation disabled or no Git workspace.',
-    },
-    {
-      id: 'delivery',
-      title: titles.delivery,
-      status: 'deferred',
-      note: `Rebuild guarded delivery plans after collection for ${ids.join(', ') || 'no detected clients'}. Conflicts stop that client/area; other areas continue.`,
-    },
-  ];
+  const steps: QuickStep[] =
+    input.scope === 'hub'
+      ? [
+          {
+            id: 'init',
+            title: titles.init,
+            status: 'planned',
+            rows: publicManagedPlan(init!).rows,
+          },
+          {
+            id: 'mcpImport',
+            title: titles.mcpImport,
+            status: reviewRows(mcp!.rows).length ? 'review' : 'planned',
+            rows: publicImportPlan(mcp!).servers,
+          },
+          {
+            id: 'skillImport',
+            title: titles.skillImport,
+            status: skills!.blocked ? 'review' : 'planned',
+            rows: publicManagedPlan(skills!).rows,
+          },
+          {
+            id: 'delivery',
+            title: titles.delivery,
+            status: 'deferred',
+            note: `Global client settings: ${ids.join(', ') || 'no detected clients'}. Delivery is rebuilt after collection; a blocked area stays untouched.`,
+          },
+        ]
+      : [
+          {
+            id: 'project',
+            title: titles.project,
+            status: 'deferred',
+            note: `Project: ${workspace}. Memory ID: ${projectId}. Existing notes are preserved. Global MCP, skills and shared instructions are not synchronized.`,
+          },
+          {
+            id: 'repo',
+            title: 'Prepare repository handoff files',
+            status: 'deferred',
+            note: 'Create missing context files and preserve existing repository instructions and notes.',
+          },
+          {
+            id: 'memory',
+            title: titles.memory,
+            status: native.length ? 'deferred' : 'skipped',
+            note: `${native.length} project-matched Markdown source(s). Unknown projects and SQLite stores require separate review.`,
+          },
+          {
+            id: 'automation',
+            title: titles.automation,
+            status: options.automation ? 'deferred' : 'skipped',
+            note: options.automation
+              ? 'Install handlers in selected clients’ global settings, gated by this project’s policy. Hooks request evidenced learning from the active model; native trust and permissions still apply.'
+              : 'No policy or hook enablement; existing automation remains unchanged.',
+          },
+        ];
   // Existing delivery conflicts are useful before the collection stages run.
   // New imports can introduce additional rows; final delivery still rebuilds each guarded plan.
   const deliveryRevisions: string[] = [];
-  if (initialized && (await readOptionalText(path.join(root, 'mcp/servers.yaml'))) !== null) {
+  if (
+    input.scope === 'hub' &&
+    initialized &&
+    (await readOptionalText(path.join(root, 'mcp/servers.yaml'))) !== null
+  ) {
     for (const client of ids) {
       const current = await planSync({ client });
       deliveryRevisions.push(current.revision);
@@ -254,15 +292,12 @@ export async function planQuick(input: QuickOptions = {}) {
     }
   }
   const args = [
-    'quick',
-    '--workspace',
-    options.workspace,
+    ...(workspace ? ['project', 'connect', workspace] : ['quick']),
     '--at',
     at,
     ...(ids.length ? ['--client', ids.join(',')] : []),
-    ...(input.prefer ? ['--prefer', input.prefer] : []),
-    ...(!options.project ? ['--no-project'] : []),
-    ...(!options.automation ? ['--no-automation'] : []),
+    ...(options.prefer ? ['--prefer', options.prefer] : []),
+    ...(workspace && !options.automation ? ['--no-automation'] : []),
   ];
   const checkoutBinding = workspace ? await memoryCheckoutBinding(workspace) : null;
   const revision = hash(
@@ -274,15 +309,16 @@ export async function planQuick(input: QuickOptions = {}) {
       checkoutBinding,
       discovery,
       deliveryRevisions,
-      import: mcp.revision,
-      skills: skills.revision,
-      init: init.revision,
+      import: mcp?.revision,
+      skills: skills?.revision,
+      init: init?.revision,
       node: process.execPath,
       cli,
     }),
   );
   const command = (args: string[]) => hubCommand({ root, node: process.execPath, cli }, args);
   const publicPlan = {
+    scope: input.scope,
     root,
     workspace,
     projectId,
@@ -303,10 +339,22 @@ export async function planQuick(input: QuickOptions = {}) {
   return { publicPlan, options, selectedContext, context, sources, mcp, skills, native, guards };
 }
 
-export async function applyQuick(plan: Awaited<ReturnType<typeof planQuick>>, expect: string) {
+type SetupPlan = Awaited<ReturnType<typeof planSetup>>;
+export function applyQuick(plan: SetupPlan, expect: string) {
+  if (plan.publicPlan.scope !== 'hub')
+    throw new HubError('Use the project connection apply operation for this preview.');
+  return applySetup(plan, expect);
+}
+export function applyProjectConnect(plan: SetupPlan, expect: string) {
+  if (plan.publicPlan.scope !== 'project')
+    throw new HubError('Use quick apply for this Hub preview.');
+  return applySetup(plan, expect);
+}
+
+async function applySetup(plan: SetupPlan, expect: string) {
   if (expect !== plan.publicPlan.revision)
     throw new HubError('Review a current quick preview before applying.');
-  const fresh = await planQuick(plan.options);
+  const fresh = await planSetup(plan.options);
   if (fresh.publicPlan.revision !== expect)
     throw new HubError('Quick inputs changed since preview. Review a new quick plan.');
   if (fresh.publicPlan.blocked)
@@ -349,33 +397,39 @@ export async function applyQuick(plan: Awaited<ReturnType<typeof planQuick>>, ex
       return false;
     }
   }
-  if (!(await managed('init', titles.init, () => planQuickInit(root, clients)))) return result();
-  try {
-    const imported = await planImport('mcp', { prefer: fresh.options.prefer ?? '' }, fresh.sources);
-    if (imported.sourceRevision !== fresh.mcp.sourceRevision)
-      throw new HubError('Client MCP sources changed during quick setup. Retry a new preview.');
-    const reviews = reviewRows(imported.rows);
-    const written = await applyImport(imported);
-    steps.push({
-      id: 'mcpImport',
-      title: titles.mcpImport,
-      status: reviews.length ? 'review' : written.imported ? 'done' : 'unchanged',
-      rows: reviews,
-      changed: written.imported,
-      note: 'Original Hub and client files are covered by the first-baseline reset. MCP import has no individual restore backup.',
-    });
-  } catch (error) {
-    steps.push({
-      id: 'mcpImport',
-      title: titles.mcpImport,
-      status: 'failed',
-      note: error instanceof Error ? error.message : 'MCP import failed.',
+  if (fresh.publicPlan.scope === 'hub') {
+    if (!(await managed('init', titles.init, () => planQuickInit(root, clients)))) return result();
+    try {
+      const imported = await planImport(
+        'mcp',
+        { prefer: fresh.options.prefer ?? '' },
+        fresh.sources,
+      );
+      if (imported.sourceRevision !== fresh.mcp!.sourceRevision)
+        throw new HubError('Client MCP sources changed during quick setup. Retry a new preview.');
+      const reviews = reviewRows(imported.rows);
+      const written = await applyImport(imported);
+      steps.push({
+        id: 'mcpImport',
+        title: titles.mcpImport,
+        status: reviews.length ? 'review' : written.imported ? 'done' : 'unchanged',
+        rows: reviews,
+        changed: written.imported,
+        note: 'Original Hub and client files are covered by the first-baseline reset. MCP import has no individual restore backup.',
+      });
+    } catch (error) {
+      steps.push({
+        id: 'mcpImport',
+        title: titles.mcpImport,
+        status: 'failed',
+        note: error instanceof Error ? error.message : 'MCP import failed.',
+      });
+    }
+    await managed('skillImport', titles.skillImport, async () => {
+      for (const source of fresh.skills!.sources) await assertArtifact(source);
+      return planSkillImport('skills', { prefer: fresh.options.prefer }, fresh.selectedContext);
     });
   }
-  await managed('skillImport', titles.skillImport, async () => {
-    for (const source of fresh.skills.sources) await assertArtifact(source);
-    return planSkillImport('skills', { prefer: fresh.options.prefer }, fresh.selectedContext);
-  });
   if (workspace && projectId) {
     const bound = await managed('project', 'Bind project memory', () =>
       planMemoryProject(root, projectId, workspace),
@@ -409,7 +463,7 @@ export async function applyQuick(plan: Awaited<ReturnType<typeof planQuick>>, ex
           );
     }
   }
-  for (const client of clients) {
+  for (const client of fresh.publicPlan.scope === 'hub' ? clients : []) {
     await managed(`skills:${client}`, `Deliver skills: ${client}`, () =>
       planSkillSync({ client }, fresh.context),
     );
@@ -452,16 +506,24 @@ export async function applyQuick(plan: Awaited<ReturnType<typeof planQuick>>, ex
       status: steps.some((step) => ['review', 'failed'].includes(step.status))
         ? 'needs-review'
         : 'complete',
+      scope: fresh.publicPlan.scope,
       root,
       workspace,
       projectId,
       clients,
       steps,
-      next: [
-        'Restart client sessions and review their native trust/permission prompts.',
-        'Run ahub doctor to check MCP connectivity; quick does not start external servers.',
-        'Memory uses project-gated hooks and context. A standalone Memory MCP server is optional and must be configured for an explicit workspace.',
-      ],
+      next:
+        fresh.publicPlan.scope === 'hub'
+          ? [
+              'Restart client sessions and review their native trust/permission prompts.',
+              'Run ahub doctor to check MCP connectivity; quick does not start external servers.',
+              'Project memory is optional. Use ahub project connect <directory> when you want to enable it for a Git project.',
+            ]
+          : [
+              'Restart the selected clients and review their native hook trust/permission prompts.',
+              'Project memory uses project-gated hooks. A standalone Memory MCP server remains an optional, separately configured connection.',
+              'Global MCP, skills and shared instruction delivery were not run. Use ahub quick to manage the shared Hub.',
+            ],
       recovery: fresh.publicPlan.recovery,
       resetCommand: fresh.publicPlan.commands.reset,
     };

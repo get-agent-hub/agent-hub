@@ -42,10 +42,12 @@
     <dialog id="quick-dialog" aria-labelledby="quick-title">
       <div class="dialog-head">
         <div>
-          <h2 id="quick-title">Get a working Hub</h2>
-          <p class="muted">One workflow. Review the scope, apply, then see every stage's result.</p>
+          <h2 id="quick-title">Set up shared Hub</h2>
+          <p class="muted" id="quick-description">
+            Global MCP, skills and shared instructions. No project required.
+          </p>
         </div>
-        <button class="btn ghost" data-quick-close aria-label="Close quick setup">✕</button>
+        <button class="btn ghost" data-quick-close aria-label="Close setup">✕</button>
       </div>
       <div class="dialog-body">
         <div id="quick-options">
@@ -54,7 +56,7 @@
             <div id="quick-clients" class="import-options"></div>
           </fieldset>
           <div class="import-options">
-            <label
+            <label id="quick-prefer-field"
               >When source copies differ<select class="input" id="quick-prefer">
                 <option value="">Leave conflicts for review</option>
                 <option value="claude-code">Prefer Claude Code</option>
@@ -62,19 +64,14 @@
                 <option value="dsh">Prefer DSH</option>
               </select></label
             >
-            <label class="checkbox"
-              ><input type="checkbox" id="quick-project" checked /> Prepare this Git project and
-              import its matched memory</label
-            >
-            <label class="checkbox"
-              ><input type="checkbox" id="quick-automation" checked /> Enable project memory and
-              install session hooks</label
-            >
+            <label class="checkbox" id="quick-automation-field" hidden>
+              <input type="checkbox" id="quick-automation" checked /> Enable project memory and
+              install session hooks for this project
+            </label>
           </div>
-          <p class="small-note">
-            Global MCP, skill and instruction settings affect the selected clients. Project memory
-            stays bound to this checkout. Unknown memory sources need a separate review. Quick does
-            not install a standalone Memory MCP server.
+          <p class="small-note" id="quick-scope-note">
+            Shared Hub setup changes global settings for the selected clients. It does not create
+            project files, import project memory or enable project hooks.
           </p>
           <button class="btn" id="quick-preview-button">Preview setup & sync</button>
         </div>

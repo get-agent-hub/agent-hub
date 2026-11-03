@@ -8,20 +8,22 @@ Requires Node.js **22.13 or newer** and npm. macOS and Linux are the supported r
 npm ci
 npm run build
 npm install --global .
-ahub quick --workspace /path/to/project
+ahub quick
 ```
 
 Install from the unpacked source directory, then run `ahub` from any project. The `agent-hub` executable is also available as an alias. A public registry installation is not available yet. Local-folder global installs normally link to this checkout, so keep it and its built files in place. The npm global binary directory must be on your shell's PATH.
 
-`quick` previews one workflow: create/adopt Hub, collect MCP and skills, prepare the selected Git project, import its matched Markdown memory, enable project hooks, and deliver to detected clients. Copy its complete **Apply this workflow** command to run it. Conflicts require review; independent stages can finish. Existing Hub definitions stay authoritative, and native SQLite memory is not imported. Restart affected client sessions afterwards.
+`ahub quick` previews shared Hub setup: create/adopt Hub, collect MCP and skills, then deliver global MCP, skill links and existing shared instruction/index blocks to selected clients. It works from any folder and does not require a Git project. Copy its complete **Apply this workflow** command to apply. Existing Hub values stay authoritative, conflicts need review, and affected clients should be restarted.
 
-For a graphical first run, use `ahub ui` and choose **Quick setup & sync** on Overview. No prior `init` is needed. See [QUICKSTART.md](docs/QUICKSTART.md) for expected results, scope options, repeat runs and recovery. Quick is a staged workflow; `reset` returns to the first recorded baseline, which can predate this run.
+Project memory is optional and separate. After the Hub is ready, use `ahub project connect /path/to/project` to preview one Git project's memory, handoff files and hooks. That path selects the project; Hub storage remains `~/.agent-hub` unless `AGENT_HUB_HOME` selects another location. Project connection does not synchronize global tools or skills.
+
+For a graphical start, run `ahub ui` and choose **Set up shared Hub**. From a Git project, **Connect project memory** is a separate action after Hub setup. See [QUICKSTART.md](docs/QUICKSTART.md) for scopes, repeat runs and recovery. Both workflows are staged; `reset` returns to the first baseline, which can predate the current run.
 
 The UI opens at **http://127.0.0.1:3082**. Stop the server with Ctrl+C. Use `--port 3083` to choose another port, or `--no-open` to open the page yourself. Start it from a repository to view that repository's project context.
 
 The UI keeps the visual style of the [original HTML mockups](ui/mockups/README.md), with live data:
 
-- **Overview:** guided Quick setup & sync, per-stage outcomes, detected clients, configuration differences and actual Hub counts.
+- **Overview:** separate shared Hub setup and optional project connection, per-stage outcomes, detected clients, configuration differences and actual Hub counts.
 - **Skills:** inspect the client matrix and SKILL.md, preview imports, choose source preference and deliver complete skill bundles through individual client links with backups.
 - **MCP servers:** compare definitions, inspect a credential-safe hub configuration, preview imports and dry-run synchronization. Choose a source preference for conflicts; existing definitions are skipped unless replacement is explicitly selected. Apply uses one hub lock and guarded writes for credentials, registry and import provenance, rolling back earlier writes if a later write fails. It never stages or commits unrelated hub files. It does not write client configurations. A plan expires after five minutes and must be reviewed again if its inputs change.
 - **Instructions and memory:** deliver shared rules/index through owned client instruction blocks. Discover existing client memory, review its project scope and import selected Markdown knowledge through CLI or UI. Manage the same scoped records through CLI, UI or an optional MCP server. Project automation imports selected native notes and requests semantic checkpoints from the active agent under a one-time enabled policy, with conflict protection and recovery. Personal text and native sources are preserved.

@@ -10,7 +10,7 @@ Review every file and the baseline scope. The command prints an exact `reset --a
 
 ## Quick workflow recovery
 
-Quick retains each stage's recovery guarantees and lists its available restore commands. It is not one transaction and has no undo-last-quick snapshot. `reset` always uses the first baseline, including when it predates the current quick run. On a new Hub, the full workflow can return Hub to absence and restore external originals. Hooks and MCP may edit the same DSH profile: both writers share the first-touch owner and coordinate expected hashes so Hub's own later writes are not misclassified as external edits. Later independent edits still block recovery by default.
+Shared Hub quick setup and optional project connection each retain their stages' recovery guarantees and list available restore commands. Neither is one transaction or has an undo-last-run snapshot. `reset` always uses the first baseline, including when it predates the current quick run. On a new Hub, reset after either workflow can return Hub to absence and restore external originals. Hooks and MCP may edit the same DSH profile: both writers share the first-touch owner and coordinate expected hashes so Hub's own later writes are not misclassified as external edits. Later independent edits still block recovery by default.
 
 ## What is saved
 

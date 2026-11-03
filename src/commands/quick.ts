@@ -1,9 +1,9 @@
-import { planQuick, applyQuick } from '../core/quick.js';
+import { planQuick, applyQuick, planProjectConnect, applyProjectConnect } from '../core/quick.js';
 import { printJson, table } from '../core/output.js';
 import { HubError } from '../core/errors.js';
 import type { ClientId } from '../core/types.js';
 
-export async function quickCommand(options: {
+interface Options {
   workspace?: string;
   client?: string;
   prefer?: ClientId;
@@ -14,26 +14,48 @@ export async function quickCommand(options: {
   dryRun?: boolean;
   expect?: string;
   json?: boolean;
-}) {
+}
+
+export function quickCommand(options: Options) {
+  if (options.workspace !== undefined || options.automation === false)
+    throw new HubError(
+      'ahub quick sets up the shared Hub without a project. Use ahub project connect <directory> for project memory, handoff files and hooks.',
+    );
+  return runSetup(options, 'hub');
+}
+
+export function projectConnectCommand(directory: string | undefined, options: Options) {
+  return runSetup({ ...options, workspace: directory ?? process.cwd() }, 'project');
+}
+
+async function runSetup(options: Options, scope: 'hub' | 'project') {
   if (options.apply && options.dryRun) throw new HubError('Choose either --apply or --dry-run.');
   if (options.apply && (!options.expect || !options.at))
     throw new HubError(
-      'Run ahub quick first, then use its reviewed apply command with --expect and --at.',
+      'Run a preview first, then use its complete apply command with --expect and --at.',
     );
-  const plan = await planQuick({
-    ...options,
-    clients: options.client?.split(',') as ClientId[] | undefined,
-  });
-  const result = options.apply ? await applyQuick(plan, options.expect!) : plan.publicPlan;
+  const clients = options.client?.split(',') as ClientId[] | undefined;
+  const plan =
+    scope === 'hub'
+      ? await planQuick({ clients, prefer: options.prefer, at: options.at })
+      : await planProjectConnect({
+          clients,
+          workspace: options.workspace,
+          automation: options.automation,
+          at: options.at,
+        });
+  const result = options.apply
+    ? await (scope === 'hub' ? applyQuick : applyProjectConnect)(plan, options.expect!)
+    : plan.publicPlan;
   if (options.json) printJson(result);
   else {
     console.log(
       options.apply
-        ? `Quick setup: ${'status' in result ? result.status : ''}`
-        : 'Quick setup preview — no files changed',
+        ? `${scope === 'hub' ? 'Shared Hub setup' : 'Project connection'}: ${'status' in result ? result.status : ''}`
+        : `${scope === 'hub' ? 'Shared Hub setup' : 'Project connection'} preview — no files changed`,
     );
     console.log(
-      `Hub: ${result.root}\nWorkspace: ${result.workspace ?? 'global setup only'}\nClients: ${result.clients.join(', ') || 'none detected'}`,
+      `Scope: ${scope === 'hub' ? 'Shared Hub · global client settings' : 'One Git project · memory and handoff'}\nHub storage: ${result.root}${result.workspace ? `\nProject directory: ${result.workspace}` : ''}\nClients: ${result.clients.join(', ') || 'none detected'}`,
     );
     console.log(
       table(

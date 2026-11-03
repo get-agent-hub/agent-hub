@@ -7,6 +7,7 @@ export function setupQuickUi({ api, load, notice, getState }) {
   const apply = document.querySelector('#quick-apply');
   const preview = document.querySelector('#quick-preview-button');
   const options = document.querySelector('#quick-options');
+  let operation = 'hub';
   let plan;
   let busy = false;
   let version = 0;
@@ -24,8 +25,8 @@ export function setupQuickUi({ api, load, notice, getState }) {
     return 'memory';
   }
   function render(result, applied = false) {
-    output.innerHTML = `<p class="route-note">${applied ? 'Setup results. Review anything that needs attention below.' : 'This approves a staged workflow. Delivery plans are rebuilt after collection. A blocked client or area stays untouched while independent stages continue.'}</p>
-      <p><b>Hub:</b> <code>${escape(result.root)}</code><br><b>Project:</b> ${escape(result.workspace || 'Global setup only')}${result.projectId ? ` · ${escape(result.projectId)}` : ''}</p>
+    output.innerHTML = `<p class="route-note">${applied ? 'Setup results. Review anything that needs attention below.' : result.scope === 'project' ? 'Project memory and handoff only. Plans are rebuilt after the project binding is created. Global tool and skill delivery are separate.' : 'Shared Hub setup only. Delivery plans are rebuilt after collection. A blocked client or area stays untouched while independent stages continue.'}</p>
+      <p><b>Scope:</b> ${result.scope === 'project' ? 'One Git project · memory and handoff' : 'Shared Hub · global client settings'}<br><b>Hub storage:</b> <code>${escape(result.root)}</code>${result.workspace ? `<br><b>Project directory:</b> ${escape(result.workspace)} · ${escape(result.projectId)}` : ''}</p>
       <ul class="list">${result.steps
         .map(
           (step) =>
@@ -51,16 +52,22 @@ export function setupQuickUi({ api, load, notice, getState }) {
     const current = ++version;
     plan = undefined;
     controls(true);
-    output.textContent = 'Finding your clients, tools, skills and project memory…';
+    output.textContent =
+      operation === 'project'
+        ? 'Finding this project’s memory and handoff files…'
+        : 'Finding your clients, MCP tools and skills…';
     try {
-      const result = await api('/api/quick/preview', {
-        clients: [...dialog.querySelectorAll('[data-quick-client]:checked')].map(
-          (input) => input.value,
-        ),
-        prefer: document.querySelector('#quick-prefer').value || undefined,
-        project: document.querySelector('#quick-project').checked,
-        automation: document.querySelector('#quick-automation').checked,
-      });
+      const result = await api(
+        operation === 'project' ? '/api/project/connect/preview' : '/api/quick/preview',
+        {
+          clients: [...dialog.querySelectorAll('[data-quick-client]:checked')].map(
+            (input) => input.value,
+          ),
+          ...(operation === 'project'
+            ? { automation: document.querySelector('#quick-automation').checked }
+            : { prefer: document.querySelector('#quick-prefer').value || undefined }),
+        },
+      );
       if (current !== version) return;
       plan = result;
       render(result);
@@ -89,16 +96,21 @@ export function setupQuickUi({ api, load, notice, getState }) {
     controls(true);
     summary.textContent = 'Applying guarded setup stages…';
     try {
-      const result = await api('/api/quick/apply', {
-        previewId: reviewed.previewId,
-        revision: reviewed.revision,
-      });
+      const result = await api(
+        operation === 'project' ? '/api/project/connect/apply' : '/api/quick/apply',
+        {
+          previewId: reviewed.previewId,
+          revision: reviewed.revision,
+        },
+      );
       render(result, true);
       options.hidden = true;
       apply.hidden = true;
       summary.textContent =
         result.status === 'complete'
-          ? 'Hub connected. Restart your client sessions.'
+          ? operation === 'project'
+            ? 'Project connected. Restart selected client sessions.'
+            : 'Shared Hub connected. Restart your client sessions.'
           : 'Setup finished with items that need review.';
       await load();
     } catch (error) {
@@ -111,7 +123,24 @@ export function setupQuickUi({ api, load, notice, getState }) {
   });
   document.addEventListener('click', (event) => {
     if (event.target.closest('[data-quick-close]') && !busy) dialog.close();
-    if (!event.target.closest('[data-quick-open]') || busy) return;
+    const trigger = event.target.closest('[data-quick-open], [data-project-connect]');
+    if (!trigger || busy) return;
+    operation = trigger.hasAttribute('data-project-connect') ? 'project' : 'hub';
+    document.querySelector('#quick-title').textContent =
+      operation === 'project' ? 'Connect this project' : 'Set up shared Hub';
+    document.querySelector('#quick-description').textContent =
+      operation === 'project'
+        ? 'Project memory, handoff files and optional session hooks.'
+        : 'Global MCP, skills and shared instructions. No project required.';
+    document.querySelector('#quick-prefer-field').hidden = operation === 'project';
+    document.querySelector('#quick-automation-field').hidden = operation !== 'project';
+    document.querySelector('#quick-scope-note').textContent =
+      operation === 'project'
+        ? `Project: ${getState().workspace?.path || 'No Git project selected'}. Connects memory and handoff only; global MCP, skills and shared instruction delivery are separate. Hook handlers are registered in client settings and activate only for enabled projects. Existing automation stays enabled when setup is omitted.`
+        : 'Shared Hub setup changes global settings for the selected clients. It does not create project files, import project memory or enable project hooks.';
+    preview.textContent =
+      operation === 'project' ? 'Preview project connection' : 'Preview shared Hub setup';
+    apply.textContent = operation === 'project' ? 'Connect this project' : 'Apply shared Hub setup';
     plan = undefined;
     options.hidden = false;
     apply.hidden = false;

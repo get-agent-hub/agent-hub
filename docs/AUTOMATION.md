@@ -4,7 +4,7 @@ Agent Hub can import native Markdown notes automatically and ask the active agen
 
 ## Fast setup
 
-`ahub quick --workspace /path/to/project` previews project registration, matched Markdown onboarding and lifecycle hook installation together with MCP/skill collection and delivery. Apply its emitted command, then restart clients and handle native trust/permissions. `--no-automation` omits policy/hook enablement without disabling existing automation; `--no-project` omits all project stages. Quick does not configure a standalone Memory MCP server. See [QUICKSTART.md](QUICKSTART.md) for the complete flow and staged recovery contract.
+Run `ahub quick` first to prepare the shared Hub without project setup. Then `ahub project connect /path/to/project` previews the selected Git project's memory binding, matched Markdown onboarding, handoff files and lifecycle hooks. Apply the emitted command, restart clients and review native trust/permissions. `--no-automation` omits new policy/hook enablement without disabling existing automation. Project connection does not synchronize global MCP, skills or shared instructions, and does not install a standalone Memory MCP server. See [QUICKSTART.md](QUICKSTART.md).
 
 ## What runs automatically
 

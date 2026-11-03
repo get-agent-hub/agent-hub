@@ -6,9 +6,9 @@ The server calls the existing status collector and the shared `src/core/import-p
 
 ## Guided first run
 
-Overview exposes **Quick setup & sync** even before Hub initialization. It selects detected, enabled clients; previews MCP/skill collection, project memory and automation scope; then applies the reviewed staged workflow. The result shows completed, unchanged, skipped and blocked stages, individual restore commands and the original-state reset preview. Existing Hub values stay authoritative. Restart clients after applying. See [QUICKSTART.md](QUICKSTART.md).
+Overview separates **Set up shared Hub** from optional **Connect project memory**. Hub setup works from any folder and previews global MCP, skill and shared instruction/index collection/delivery. Project connection is available for the Git project where the UI started and previews its memory, handoff and hooks. The scope and storage/project paths are labeled separately. Both results show completed, unchanged, skipped and blocked stages, restore previews and the first-baseline reset command. See [QUICKSTART.md](QUICKSTART.md).
 
-`POST /api/quick/preview` accepts `clients`, `prefer`, `project` and `automation`. Its workspace is fixed to the server startup directory. `POST /api/quick/apply` consumes `previewId` plus `revision`; IDs are private, single-use, bounded and expire after five minutes. Writes share the UI operation guard and each core stage's filesystem lock. Source-bearing internal plans never enter the browser response. The workflow is not one transaction: dependent delivery is planned after collection, and earlier successful stages remain if a later stage needs review.
+`POST /api/quick/preview` accepts only `clients` and `prefer`. `POST /api/project/connect/preview` accepts only `clients` and `automation`; its project directory is fixed to the server startup location. The corresponding `/apply` routes consume private single-use `previewId` plus `revision`. A Hub preview cannot be applied through a project route. Unknown or cross-scope options are rejected. IDs expire after five minutes; writes share the UI operation guard and each stage's filesystem lock. No source-bearing internal plan enters the response. Each workflow is staged rather than one transaction.
 
 ## API
 

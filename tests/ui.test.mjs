@@ -50,12 +50,24 @@ before(async () => {
         publicPlan: {
           revision: 'quick-fixture',
           blocked: false,
-          workspace: options.workspace,
+          scope: 'hub',
+          workspace: null,
           steps: [],
           clients: options.clients ?? [],
         },
       }),
-      quickApply: async () => ({ status: 'complete', steps: [] }),
+      quickApply: async () => ({ status: 'complete', scope: 'hub', steps: [] }),
+      projectPlan: async (options) => ({
+        options,
+        publicPlan: {
+          scope: 'project',
+          revision: 'project-fixture',
+          workspace: options.workspace,
+          blocked: false,
+          steps: [],
+        },
+      }),
+      projectApply: async () => ({ status: 'complete', scope: 'project', steps: [] }),
       state: async () => ({ status: { hub: { root: hub, exists: true } } }),
       plan: (item, opts) => planImport(item, opts, adapters),
     },
@@ -245,18 +257,49 @@ test('parser errors do not echo client configuration or credentials', async () =
   assert.ok(!(await response.text()).includes(secret));
 });
 
-test('quick UI previews stay bound to the startup workspace and apply once with a session token', async () => {
+test('shared Hub previews reject project options and apply once with a session token', async () => {
   assert.equal((await post('/api/quick/preview', {}, { 'X-Agent-Hub-Token': '' })).status, 403);
-  assert.equal((await post('/api/quick/preview', { project: 'yes' })).status, 400);
-  const response = await post('/api/quick/preview', {
-    workspace: '/cannot-select-another-project',
-    clients: ['codex'],
-  });
+  for (const payload of [
+    { project: true },
+    { workspace: '/another-project' },
+    { automation: true },
+  ])
+    assert.equal((await post('/api/quick/preview', payload)).status, 400);
+  const response = await post('/api/quick/preview', { clients: ['codex'] });
   assert.equal(response.status, 200);
   const plan = await response.json();
-  assert.notEqual(plan.workspace, '/cannot-select-another-project');
+  assert.equal(plan.scope, 'hub');
+  assert.equal(plan.workspace, null);
   const body = { previewId: plan.previewId, revision: plan.revision };
   assert.equal((await post('/api/quick/apply', body)).status, 200);
   assert.equal((await post('/api/quick/apply', body)).status, 409);
   assert.equal((await fetch(`${ui.url}/quick.js`)).status, 200);
+});
+
+test('project connection is bound to the startup project and cannot apply a shared Hub preview', async () => {
+  assert.equal(
+    (await post('/api/project/connect/preview', {}, { 'X-Agent-Hub-Token': '' })).status,
+    403,
+  );
+  assert.equal(
+    (await post('/api/project/connect/preview', { workspace: '/another-project' })).status,
+    400,
+  );
+  assert.equal((await post('/api/project/connect/preview', { automation: 'yes' })).status, 400);
+  const hubPlan = await (await post('/api/quick/preview', {})).json();
+  assert.equal(
+    (
+      await post('/api/project/connect/apply', {
+        previewId: hubPlan.previewId,
+        revision: hubPlan.revision,
+      })
+    ).status,
+    409,
+  );
+  const plan = await (await post('/api/project/connect/preview', { automation: true })).json();
+  assert.equal(plan.scope, 'project');
+  assert.equal(plan.workspace, process.cwd());
+  const body = { previewId: plan.previewId, revision: plan.revision };
+  assert.equal((await post('/api/project/connect/apply', body)).status, 200);
+  assert.equal((await post('/api/project/connect/apply', body)).status, 409);
 });

@@ -6,9 +6,9 @@ Mark each case PASS, FAIL or SKIPPED and record its evidence. A skipped case is 
 
 ## Get a working Hub first
 
-For the short route, follow [QUICKSTART.md](QUICKSTART.md): preview `quick --workspace /path/to/project`, apply its emitted command, restart clients and check the per-stage result. The same route is available through **Quick setup & sync** in the local UI. This creates the project binding and installs memory hooks by default; Memory MCP remains optional.
+For the short route, follow [QUICKSTART.md](QUICKSTART.md): preview `ahub quick`, apply its emitted command and restart clients. This prepares shared tools, skills and instructions without a project. Optional `ahub project connect /path/to/project` separately sets up that Git project's memory, handoff and hooks. The local UI has separate **Set up shared Hub** and **Connect project memory** actions.
 
-The numbered route below deliberately exercises individual commands and explicit project IDs. Choose it for a detailed manual trial. If quick already prepared your checkout, inspect `memory project ls` and reuse its binding instead of attempting to register it under a different example ID. Test destructive/failure cases only in the isolated laboratory.
+The numbered route below deliberately exercises individual commands and explicit project IDs. Choose it for a detailed manual trial. If project connect already registered your checkout, inspect `memory project ls` and reuse its binding instead of assigning another example ID. Keep intentional failures inside the isolated laboratory.
 
 ## 0. Set up the working terminal
 

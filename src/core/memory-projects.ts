@@ -61,7 +61,7 @@ export async function memoryCheckout(directory: string): Promise<string> {
     });
     return await fs.realpath(result.stdout.trim());
   } catch {
-    throw new HubError('Choose a workspace inside an existing Git repository.');
+    throw new HubError('Choose a project directory inside an existing Git repository.');
   }
 }
 
@@ -109,7 +109,7 @@ export async function memoryLocation(
   );
   if (!project)
     throw new HubError(
-      'Workspace has no memory binding. Preview memory project register <id> first.',
+      'This project has no memory binding. Preview ahub project connect first, or use memory project register <id> for an explicit project ID.',
     );
   if (
     !project.checkouts.some(
@@ -117,7 +117,7 @@ export async function memoryLocation(
     )
   )
     throw new HubError(
-      'Repository identity changed at this checkout. Review an explicit project register --rebind before using its memory.',
+      'Repository identity changed at this checkout. Review ahub memory project register <id> --rebind before using its memory.',
     );
   const directory = path.join(root, 'memory', 'projects', project.id);
   return {

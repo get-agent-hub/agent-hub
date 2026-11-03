@@ -13,7 +13,7 @@ import { publicManagedPlan, applyManagedPlan } from '../core/managed-plan.js';
 import type { ClientId } from '../core/types.js';
 import { createMemorySession, type MemorySession } from '../core/memory-session.js';
 import { hubRoot } from '../core/paths.js';
-import { planQuick, applyQuick } from '../core/quick.js';
+import { planQuick, applyQuick, planProjectConnect, applyProjectConnect } from '../core/quick.js';
 
 const assets = new URL('../../ui/app/', import.meta.url);
 const staticFiles: Record<string, [string, string]> = {
@@ -64,6 +64,8 @@ export async function startUiServer(
     services?: {
       quickPlan?: typeof planQuick;
       quickApply?: typeof applyQuick;
+      projectPlan?: typeof planProjectConnect;
+      projectApply?: typeof applyProjectConnect;
       state?: () => Promise<unknown>;
       plan?: typeof planImport;
       apply?: typeof applyImport;
@@ -79,6 +81,8 @@ export async function startUiServer(
   const services = {
     quickPlan: planQuick,
     quickApply: applyQuick,
+    projectPlan: planProjectConnect,
+    projectApply: applyProjectConnect,
     state: () => uiState(options.cwd ?? process.cwd()),
     plan: planImport,
     apply: applyImport,
@@ -170,14 +174,28 @@ export async function startUiServer(
       }
       if (
         req.method === 'POST' &&
-        ['/api/quick/preview', '/api/quick/apply'].includes(url.pathname)
+        [
+          '/api/quick/preview',
+          '/api/quick/apply',
+          '/api/project/connect/preview',
+          '/api/project/connect/apply',
+        ].includes(url.pathname)
       ) {
+        const project = url.pathname.startsWith('/api/project/');
         if (req.headers['x-agent-hub-token'] !== token)
-          throw new RequestError(403, 'Refresh the page before running quick setup.');
+          throw new RequestError(403, 'Refresh the page before running setup.');
         if (applying) throw new RequestError(409, 'Another operation is running.');
         const body = await jsonBody(req);
         if (applying) throw new RequestError(409, 'Another operation is running.');
         if (url.pathname.endsWith('/preview')) {
+          const allowed = project ? ['clients', 'automation'] : ['clients', 'prefer'];
+          if (Object.keys(body).some((key) => !allowed.includes(key)))
+            throw new RequestError(
+              400,
+              project
+                ? 'Project connection is bound to the UI startup project.'
+                : 'Quick configures the shared Hub only. Use Connect project for memory and handoff.',
+            );
           if (
             body.clients !== undefined &&
             (!Array.isArray(body.clients) || body.clients.some((id) => typeof id !== 'string'))
@@ -185,18 +203,19 @@ export async function startUiServer(
             throw new RequestError(400, 'Choose known clients.');
           if (
             (body.prefer !== undefined && typeof body.prefer !== 'string') ||
-            ['project', 'automation'].some(
-              (key) => body[key] !== undefined && typeof body[key] !== 'boolean',
-            )
+            (body.automation !== undefined && typeof body.automation !== 'boolean')
           )
-            throw new RequestError(400, 'Invalid quick setup options.');
-          const plan = await services.quickPlan({
-            workspace: options.cwd ?? process.cwd(),
-            clients: body.clients as ClientId[] | undefined,
-            prefer: body.prefer as ClientId | undefined,
-            project: body.project as boolean | undefined,
-            automation: body.automation as boolean | undefined,
-          });
+            throw new RequestError(400, 'Invalid setup options.');
+          const plan = project
+            ? await services.projectPlan({
+                workspace: options.cwd ?? process.cwd(),
+                clients: body.clients as ClientId[] | undefined,
+                automation: body.automation as boolean | undefined,
+              })
+            : await services.quickPlan({
+                clients: body.clients as ClientId[] | undefined,
+                prefer: body.prefer as ClientId | undefined,
+              });
           for (const [id, saved] of quickPreviews)
             if (saved.expires < Date.now()) quickPreviews.delete(id);
           while (quickPreviews.size >= 10) quickPreviews.delete(quickPreviews.keys().next().value!);
@@ -210,6 +229,7 @@ export async function startUiServer(
         quickPreviews.delete(id);
         if (
           !saved ||
+          saved.plan.publicPlan.scope !== (project ? 'project' : 'hub') ||
           saved.expires < Date.now() ||
           body.revision !== saved.plan.publicPlan.revision
         )
@@ -219,7 +239,13 @@ export async function startUiServer(
           );
         applying = true;
         try {
-          json(200, await services.quickApply(saved.plan, saved.plan.publicPlan.revision));
+          json(
+            200,
+            await (project ? services.projectApply : services.quickApply)(
+              saved.plan,
+              saved.plan.publicPlan.revision,
+            ),
+          );
         } finally {
           applying = false;
         }

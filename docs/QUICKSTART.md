@@ -1,6 +1,6 @@
-# Quick start: get a working Hub
+# Quick start: one shared Hub
 
-Quick setup collects the configuration you already have and connects your detected clients in one reviewed workflow. It supports Claude Code, Codex CLI and DeepSeek Harness. No cloud account or Hub Git repository is required.
+Agent Hub manages shared MCP tools, skills and instructions for Claude Code, Codex CLI and DeepSeek Harness. Start with one shared Hub; no project path or Git repository is required. Project memory and handoff are optional, separate setup.
 
 ## Install the CLI once
 
@@ -19,28 +19,70 @@ Local-folder global installation normally links to the source checkout. Keep tha
 
 For updates, build the desired source revision and run `npm install --global .` again, then preview quick to review any affected bindings. `npm uninstall --global agent-hub` removes the CLI executables; it does not reset Hub/client data. Preview and apply reset before uninstalling when you intend to restore the recorded originals.
 
-## Preview, apply, use
+## Set up the shared Hub
 
-Choose your actual Git project:
+Run this from any folder:
 
 ```sh
-ahub quick --workspace /path/to/project
+ahub quick
 ```
 
-This writes **nothing**, including on the first run. It shows detected clients, the proposed local Hub, MCP/skill collection, the project memory binding, matched Markdown sources, automation scope, known MCP conflicts and deferred delivery stages. By default the Hub is `~/.agent-hub`; `AGENT_HUB_HOME` selects another location.
+This is a **preview** and writes nothing, including on the first run. It finds detected, enabled clients and shows collection of MCP definitions and complete skill bundles, delivery of existing shared rules/index, known conflicts and affected client scope. It does not inspect the current Git project, create repository files, import project memory or enable project hooks.
 
-Copy the complete **Apply this workflow** command printed by your preview. It includes `--apply`, `--expect` and `--at`; do not invent a revision or drop the selected options. Generated apply, launcher and hook commands deliberately pin the installed Node and CLI paths; normal interactive commands use `ahub`. Inputs are checked again before setup starts. A changed input requires a new preview.
+The Hub is stored at `~/.agent-hub` by default. This is the shared configuration/knowledge store, not a project directory. `AGENT_HUB_HOME` chooses another Hub location.
 
-After application, read the per-stage result, restart the affected client sessions, and accept any native client trust or permission prompts you choose to grant. Quick does not start the clients or bypass those prompts.
+Copy the complete **Apply this workflow** command printed by your preview. It includes `--apply`, `--expect` and `--at`; do not invent a revision or drop options. Generated commands pin the installed Node and CLI paths deliberately; ordinary interactive commands use `ahub`. Changed inputs require a new preview.
 
-For a connectivity check, run:
+After applying, read the per-stage result and restart affected clients. Native trust and permissions remain client-owned. Check configuration and, when desired, actual MCP connectivity:
 
 ```sh
 ahub status
 ahub doctor
 ```
 
-`status` compares configuration. `doctor` starts real MCP processes/connects to endpoints and discovers tools; it does not invoke tools or start an offline backend.
+`status` compares settings. `doctor` starts real MCP processes or connects to endpoints to discover tools; it does not invoke tools or start an offline backend.
+
+## What each command changes
+
+| Command                                 | Scope and result                                                                                                                                                                                                                                           |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ahub quick`                            | Shared Hub and global settings for selected clients: create missing Hub files, collect MCP/skills, deliver tools, skill links and existing shared instruction/index blocks. Personal text is preserved. No project setup or Git needed.                    |
+| `ahub project connect /path/to/project` | One existing Git project: bind its memory, prepare missing handoff files, import matched Markdown notes and install project-gated hooks for selected clients. Requires an existing Hub. Does not import or sync global MCP, skills or shared instructions. |
+| `ahub sync`                             | MCP settings only. Use `--area skills` or `--area context` to review an individual shared area.                                                                                                                                                            |
+| `ahub init-repo`                        | Repository handoff files only. Does not register project memory or install hooks.                                                                                                                                                                          |
+| `ahub memory …`                         | Read or manage explicitly scoped knowledge. Detailed operations retain their own workspace/scope options.                                                                                                                                                  |
+
+Shared rules come from `instructions/AGENTS.md`; the shared index is `memory/MEMORY.md`. Empty sources have nothing to deliver. Global personal client instructions are not automatically imported into shared rules.
+
+## Optional: connect a project
+
+Once the shared Hub is ready, connect a project only when you want its memory and handoff:
+
+```sh
+ahub project connect /path/to/project
+```
+
+The path is **the Git project**, not the Hub directory. From inside that project, `ahub project connect` uses the current checkout. Unlike `quick`, this command validates the Git checkout and requires an initialized Hub. Apply its own emitted command after reviewing the scope.
+
+Connection reuses an existing verified memory binding or creates a stable local ID; changed repository identity requires an explicit rebind. Existing repository notes and instructions are preserved. Only matched Markdown sources from selected clients are imported. Unknown-project sources and native SQLite stores need a separate review; source notes stay in place.
+
+By default, connection enables that project's memory policy and installs client lifecycle hooks. Handlers are registered in client settings and reused across connected projects. These hooks are gated by project and policy; they do not authorize learning from every project. Restart clients and handle native hook permissions. Semantic learning uses the active model, which can return no useful facts. A standalone Memory MCP server is optional and configured separately for a fixed project; neither setup command installs it automatically.
+
+```sh
+# Select clients for the shared Hub
+ahub quick --client claude-code,codex
+
+# Explicit source preference for ambiguous new imports
+ahub quick --prefer codex
+
+# Connect a project without enabling new automation
+ahub project connect /path/to/project --no-automation
+
+# Enable project memory for selected clients only
+ahub project connect /path/to/project --client codex
+```
+
+These commands preview. Use each plan's own apply command. `--no-automation` omits enablement; it does not turn off an existing policy. Use `memory auto disable` for a reviewed disable operation. The old `quick --workspace` form now directs you to `project connect`; `--no-project` is unnecessary for ordinary quick setup.
 
 ## Prefer the local UI?
 
@@ -48,63 +90,30 @@ ahub doctor
 ahub ui
 ```
 
-Open **Quick setup & sync** on Overview. Choose clients and whether to prepare the current project and enable automation, select **Preview setup & sync**, then **Apply quick setup**. The UI works with an uninitialized Hub and targets the workspace where its server was started. To target another project, change to that project and run `ahub ui` there. Preview IDs expire after five minutes and can be applied once.
+**Set up shared Hub** works from any folder, even before Hub initialization. It previews global tools, skills and shared instructions only.
 
-## What you get
-
-| Area            | Result                                                                                                                                                                                                                                                                    |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Hub             | Missing `hub.yaml`, private `.env`, empty registry and secret ignore rules are created. Existing settings and Hub definitions are preserved. No Git commit or remote is created.                                                                                          |
-| MCP             | New definitions are collected from selected clients; credentials move into the Hub environment. Client configurations use the shared Hub launcher after guarded delivery.                                                                                                 |
-| Skills          | Complete local bundles are copied into Hub and delivered through managed links, including scripts and assets. No skill scripts are executed. Shared client roots retain their existing protections.                                                                       |
-| Shared context  | Existing Hub rules and the shared memory index are delivered through owned instruction blocks. Personal text stays intact. Empty Hub sources have nothing to deliver. Global personal instructions are not imported into shared rules.                                    |
-| Project handoff | A verified Git checkout gets a stable local memory binding and missing handoff files. Existing `AGENTS.md`, project notes and task notes are preserved. An existing binding is reused; changed repository identity requires explicit review.                              |
-| Existing memory | Only project-matched Markdown sources from selected clients are imported. Source notes stay intact. Unknown-project sources and native SQLite stores are left for separate review.                                                                                        |
-| Automation      | By default, selected clients receive project-gated hooks and an enabled project policy. Lifecycle events import followed native notes and request evidenced knowledge from the active model. The model may decline or produce no useful facts. No extra model is started. |
-
-Project knowledge is loaded through the memory hooks. A standalone **Memory MCP server is optional** and is not installed by quick: it requires a separately chosen, fixed workspace and explicit permissions. See [MEMORY.md](MEMORY.md).
-
-## Choose less, or resolve a source choice
-
-```sh
-# Only connect these detected, enabled clients
-ahub quick --workspace /path/to/project --client claude-code,codex
-
-# Deliberately prefer a source when collected copies differ
-ahub quick --workspace /path/to/project --prefer codex
-
-# Import project memory without enabling new automation
-ahub quick --workspace /path/to/project --no-automation
-
-# Global tools, skills and shared context only
-ahub quick --no-project
-
-# Machine-readable preview/result
-ahub quick --workspace /path/to/project --json
-```
-
-These are previews. Use each preview's own apply command. `--no-project` and `--no-automation` omit setup stages; they do not disable a policy or hooks you enabled earlier. Outside a Git checkout, default quick performs global setup and explicitly skips project stages.
+For optional project setup, start `ahub ui` from that Git project, then choose **Connect project memory** on Overview or **Connect project memory & handoff** on Repos & tasks. This is a separate preview with a visible project path and an explicit hook option. The server cannot be redirected to another directory through a browser request. Preview IDs expire after five minutes and apply once.
 
 ## Conflicts, repeat runs and automation boundaries
 
-Quick never supplies `--overwrite`, `--replace` or `--rebind`. Without an explicit `--prefer`, ambiguous new MCP definitions stay unimported and differing skill sources block skill collection. Existing Hub definitions remain authoritative; later edits made in a client are not automatically merged back into an existing Hub MCP entry or skill.
+Neither setup command supplies implicit overwrite, replacement or rebind permissions. Existing Hub definitions remain authoritative. Without `--prefer`, ambiguous new MCP entries remain unimported and differing skill sources block collection. Later edits in a client are not silently merged into existing Hub entries.
 
-A blocked client/area stays untouched while independent stages continue. For example, DSH MCP conflicts do not prevent Claude MCP delivery or project memory setup. The final result is `needs-review`, and CLI exits with code 1. Review MCP using `sync --client <id> --dry-run`, skills using `import skills --dry-run` / `sync --area skills --dry-run`, and queued memory conflicts using `memory auto conflict`. Prefer selecting an exact individual resolution over changing a broad preference just to clear a warning.
+For detailed collection, start with `ahub import mcp --dry-run` or `ahub import skills --dry-run`. MCP import retains its older behavior: without `--dry-run` it writes, unlike the setup commands. The local UI always previews before its import action.
 
-Run quick again whenever you want to collect new items and deliver Hub state. An unchanged setup creates no new managed writes or backups. This command is an explicit workflow, not a background synchronizer: MCP and skill edits require another reviewed run; enabled project memory hooks run at client lifecycle events. A foreground native-note watcher is available separately. There is no installed OS service.
+A blocked client/area stays untouched while independent stages can finish. Results use `needs-review` and CLI exits 1 when work remains. Review MCP with `sync --client <id> --dry-run`, skills with `import skills --dry-run` / `sync --area skills --dry-run`, and queued memory conflicts with `memory auto conflict`.
+
+Repeat `quick` to collect new shared items and deliver Hub state. Repeat `project connect` to review one project's setup. Unchanged runs create no new managed writes or backups. Neither command installs an OS service: MCP/skills need an explicit reviewed run, while enabled memory hooks act on client lifecycle events. A native-note foreground watcher is available separately.
 
 ## Restore or start over
 
-Quick is a **staged workflow**, not one transaction. Each writing stage uses its existing lock, freshness checks and recovery mechanism. Dependent stages rebuild their guarded plans after collection. The initial approval covers this workflow and its selected scope; it is not a precomputed flat list of every final file edit. A failure can leave earlier stages completed, and the result lists those stages. An interrupted process can be inspected with `status` and a fresh quick preview.
+Both are **staged workflows**, not one transaction. Dependent plans are rebuilt after earlier stages; a later failure can leave completed stages in place. Each writing stage retains its guards, lock and recovery mechanism. The scope preview is not a precomputed flat list of every dependent file edit.
 
-Most writing stages print an individual `restore` preview command. Restore dependent stages in reverse order, and review each plan; subsequent changes can block an older backup. MCP import has first-baseline recovery rather than its own restore backup.
-
-To preview returning the entire setup to its first recorded state:
+Most writing stages provide individual restore preview commands. Restore dependent operations in reverse order and review each plan; later edits can block older backups. MCP import has first-baseline recovery rather than an individual restore backup.
 
 ```sh
 ahub reset --dry-run
 ```
 
-Apply the exact command printed by that plan. Current data is archived. If quick created a new Hub, reset removes it and restores recorded external originals. For an existing Hub, the first baseline may predate this quick run: reset is **not** an undo-last-quick command. External edits block by default; review deliberate archiving through [RECOVERY.md](RECOVERY.md).
+Apply only the emitted recovery command. Reset archives current data and returns to the **first baseline**, which may predate the current setup run. It is not undo-last-quick or disconnect-one-project. On a newly created Hub it can restore the path to absence and return recorded external files to their originals. See [RECOVERY.md](RECOVERY.md) for external edits and archive scope.
 
-Use [WORKING_GUIDE.md](WORKING_GUIDE.md) for the detailed manual test route, project-switching checks and isolated failure laboratory.
+Use [WORKING_GUIDE.md](WORKING_GUIDE.md) for the detailed manual trial and isolated failure laboratory.
