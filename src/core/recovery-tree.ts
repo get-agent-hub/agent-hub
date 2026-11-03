@@ -90,7 +90,13 @@ export async function copyTree(
       await fs.chmod(output, entry.mode);
       const stat = await fs.stat(input);
       await fs.utimes(output, stat.atime, stat.mtime);
-    } else if (entry.kind === 'symlink') await fs.symlink(entry.target!, output);
+    } else if (entry.kind === 'symlink') {
+      await fs.symlink(entry.target!, output);
+      // macOS applies umask to link modes. Preserve existing snapshot fingerprints
+      // without following the link or changing permissions on its target.
+      if (((await fs.lstat(output)).mode & 0o777) !== entry.mode)
+        await fs.lchmod(output, entry.mode);
+    }
   }
   for (const entry of directories.reverse())
     await fs.chmod(path.join(destination, entry.path), entry.mode);
