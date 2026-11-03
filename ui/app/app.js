@@ -1,5 +1,6 @@
 import { escape, link, pill, mark, empty, intro } from './html.js';
 import { setupContentUi } from './content.js';
+import { setupMemoryUi } from './memory.js';
 import {
   doctorResultText,
   serviceDetails,
@@ -223,8 +224,8 @@ function memoryPage(params) {
   return (
     intro(
       'Memory',
-      'Documents in your hub memory directory. Read and search what is actually there.',
-      `<button class="btn primary" data-content-operation="context-sync">Deliver rules & memory index</button>`,
+      'Scoped knowledge shared between agents, with reviewed writes and recovery. Existing documents remain readable below.',
+      `<button class="btn primary" data-memory-open>Manage records</button><button class="btn" data-content-operation="context-sync">Deliver rules & memory index</button>`,
     ) +
     (items.length
       ? `<div class="split"><div class="card">${items.map((m) => `<a class="document-list ${m === selected ? 'active' : ''}" href="${link('memory', { name: m.name })}"><b>${escape(m.name)}</b><span>${m.content !== null ? `${m.content.length.toLocaleString()} characters` : escape(m.reason)}</span></a>`).join('')}</div><div class="card detail"><div class="card-h"><h2 class="mono">${escape(selected.name)}</h2>${pill('Read only')}</div>${selected.content !== null ? `<pre class="document-view">${escape(selected.content)}</pre>` : empty('Preview unavailable', selected.reason)}</div></div>`
@@ -676,4 +677,5 @@ $('#theme').addEventListener('click', () => {
   }
 });
 setupContentUi({ api, load, notice });
+setupMemoryUi({ api, load, notice });
 load();

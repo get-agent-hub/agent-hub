@@ -28,7 +28,7 @@ Nested relative links must stay within the imported bundle and resolve successfu
 
 ## Instructions and shared memory
 
-Place common rules in `hub/instructions/AGENTS.md` and a shared index in `hub/memory/MEMORY.md`. Put facts referenced by the index beside it.
+Place common rules in `hub/instructions/AGENTS.md`. [Memory operations](MEMORY.md) maintain structured shared/project records and an owned shared index block in `hub/memory/MEMORY.md`; existing hand-written index text and fact files remain separate and readable.
 
 ```sh
 node dist/cli.js sync --area context --dry-run
@@ -59,7 +59,7 @@ Run inside an existing Git repository with an initialized Hub. The command locat
 
 Default notes explicitly say that project facts and task progress are not recorded yet. Init-repo does not infer an architecture or claim that checks passed. Files are normal repository files and can be committed with the branch. Optional templates under `hub/templates/repo/` use these same relative paths. A `CLAUDE.md` already linking to `AGENTS.md` is preserved. Other instruction symlinks require review.
 
-The local UI exposes Skills import/delivery, context delivery on Instructions/Memory and Prepare repository on Repos & tasks. Repository setup is bound to the workspace where the UI started; HTTP requests cannot choose an arbitrary directory. Preview IDs expire after five minutes, are single-use and reject changed inputs.
+The local UI exposes Skills import/delivery, context delivery on Instructions/Memory, scoped memory record management and Prepare repository on Repos & tasks. Repository setup and project memory are bound to the workspace where the UI started; HTTP requests cannot choose an arbitrary directory. Preview IDs expire after five minutes, are single-use and reject changed inputs.
 
 ## Recovery and limitations
 

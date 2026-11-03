@@ -11,6 +11,8 @@ import type { DoctorReport, DoctorResult } from '../core/doctor-types.js';
 import { planContent, type ContentOperation, type ContentOptions } from './content.js';
 import { publicManagedPlan, applyManagedPlan } from '../core/managed-plan.js';
 import type { ClientId } from '../core/types.js';
+import { createMemorySession, type MemorySession } from '../core/memory-session.js';
+import { hubRoot } from '../core/paths.js';
 
 const assets = new URL('../../ui/app/', import.meta.url);
 const staticFiles: Record<string, [string, string]> = {
@@ -19,6 +21,7 @@ const staticFiles: Record<string, [string, string]> = {
   '/html.js': ['html.js', 'text/javascript; charset=utf-8'],
   '/health.js': ['health.js', 'text/javascript; charset=utf-8'],
   '/content.js': ['content.js', 'text/javascript; charset=utf-8'],
+  '/memory.js': ['memory.js', 'text/javascript; charset=utf-8'],
   '/app.css': ['app.css', 'text/css; charset=utf-8'],
   '/base.css': ['base.css', 'text/css; charset=utf-8'],
 };
@@ -32,13 +35,16 @@ class RequestError extends Error {
   }
 }
 
-async function jsonBody(req: http.IncomingMessage): Promise<Record<string, unknown>> {
+async function jsonBody(
+  req: http.IncomingMessage,
+  limit = 16 * 1024,
+): Promise<Record<string, unknown>> {
   if (req.headers['content-type'] !== 'application/json')
     throw new RequestError(415, 'Expected application/json.');
   let body = '';
   for await (const chunk of req) {
     body += chunk;
-    if (Buffer.byteLength(body) > 16 * 1024) throw new RequestError(413, 'Request is too large.');
+    if (Buffer.byteLength(body) > limit) throw new RequestError(413, 'Request is too large.');
   }
   try {
     const parsed: unknown = JSON.parse(body);
@@ -62,6 +68,7 @@ export async function startUiServer(
       syncApply?: typeof applySync;
       doctor?: typeof runDoctor;
       contentPlan?: typeof planContent;
+      memory?: MemorySession;
     };
   } = {},
 ) {
@@ -75,6 +82,13 @@ export async function startUiServer(
     doctor: runDoctor,
     contentPlan: (operation: ContentOperation, contentOptions: ContentOptions) =>
       planContent(operation, contentOptions, options.cwd ?? process.cwd()),
+    memory: createMemorySession({
+      root: hubRoot(),
+      workspace: options.cwd ?? process.cwd(),
+      includeShared: true,
+      writable: true,
+      sharedWritable: true,
+    }),
     ...options.services,
   };
   const token = randomBytes(32).toString('hex');
@@ -142,6 +156,66 @@ export async function startUiServer(
       }
       if (req.method === 'GET' && url.pathname === '/api/state') {
         json(200, { ...((await services.state()) as object), token });
+        return;
+      }
+      if (req.method === 'GET' && url.pathname === '/api/memory') {
+        const scope = url.searchParams.get('scope') ?? 'project';
+        const id = url.searchParams.get('id');
+        json(
+          200,
+          id === null
+            ? await services.memory.list(
+                scope,
+                url.searchParams.get('query') ?? '',
+                Number(url.searchParams.get('limit') ?? 50),
+              )
+            : await services.memory.get(id, scope),
+        );
+        return;
+      }
+      if (req.method === 'GET' && url.pathname === '/api/memory/automation') {
+        json(200, await services.memory.automation());
+        return;
+      }
+      if (req.method === 'GET' && url.pathname === '/api/memory/conflict') {
+        json(200, await services.memory.conflict(url.searchParams.get('id') ?? ''));
+        return;
+      }
+      if (
+        req.method === 'POST' &&
+        ['/api/memory/preview', '/api/memory/conflict/preview', '/api/memory/apply'].includes(
+          url.pathname,
+        )
+      ) {
+        if (req.headers['x-agent-hub-token'] !== token)
+          throw new RequestError(403, 'Refresh the page before making changes.');
+        if (applying) throw new RequestError(409, 'Another operation is running.');
+        const body = await jsonBody(req, 160 * 1024);
+        if (applying) throw new RequestError(409, 'Another operation is running.');
+        if (url.pathname === '/api/memory/conflict/preview') {
+          if (
+            Object.keys(body).some((key) => !['id', 'take'].includes(key)) ||
+            typeof body.id !== 'string' ||
+            typeof body.take !== 'string'
+          )
+            throw new RequestError(400, 'A conflict ID and resolution choice are required.');
+          json(200, await services.memory.previewConflict(body.id, body.take));
+        } else if (url.pathname.endsWith('/preview'))
+          json(200, await services.memory.preview(body));
+        else {
+          if (
+            Object.keys(body).some((key) => !['id', 'revision'].includes(key)) ||
+            typeof body.id !== 'string' ||
+            typeof body.revision !== 'string'
+          )
+            throw new RequestError(400, 'A preview ID and revision are required.');
+          applying = true;
+          try {
+            json(200, await services.memory.apply(body.id, body.revision));
+          } finally {
+            applying = false;
+          }
+        }
         return;
       }
       if (req.method === 'GET' && url.pathname === '/api/skill') {

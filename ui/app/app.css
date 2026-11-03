@@ -719,6 +719,48 @@ dialog::backdrop {
     flex-wrap: wrap;
   }
 }
+.memory-layout {
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) minmax(0, 2fr);
+  gap: 20px;
+}
+.memory-records,
+.memory-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+.memory-record {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+.memory-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.memory-form textarea {
+  resize: vertical;
+}
+.memory-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 20px 0;
+}
+#memory-status {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 600px) {
+  .memory-layout {
+    grid-template-columns: 1fr;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   * {
     transition: none !important;

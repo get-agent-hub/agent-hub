@@ -22,6 +22,7 @@ import { fileURLToPath } from 'node:url';
 import { planArtifactReset, recordArtifactWrites } from './artifact-recovery.js';
 import { inspectArtifact, writeArtifactTransaction, type ArtifactChange } from './artifacts.js';
 import { prepareArtifacts } from './managed-plan.js';
+import { revokeAutomationCheckpoints } from './memory-auto-authority.js';
 
 export interface ResetOptions {
   archiveChanges?: boolean;
@@ -217,6 +218,7 @@ export async function applyReset(
       const fresh = await planReset(plan.options, plan.root, process.pid);
       if (fresh.revision !== plan.revision || fresh.blocked)
         throw new HubError('State changed since the reset preview. Review again.');
+      await revokeAutomationCheckpoints(plan.root);
       const id = `reset-${new Date().toISOString().replace(/[:.]/g, '-')}-${randomBytes(4).toString('hex')}`;
       const archive = path.join(recoveryRoot(plan.root), 'archives', id);
       await fs.mkdir(archive, { recursive: true, mode: 0o700 });

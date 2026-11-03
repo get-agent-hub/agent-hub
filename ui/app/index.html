@@ -145,6 +145,86 @@
         ><button class="btn primary" id="content-apply" disabled>Apply with backup</button>
       </div>
     </dialog>
+    <dialog id="memory-dialog" aria-labelledby="memory-title">
+      <div class="dialog-head">
+        <div>
+          <h2 id="memory-title">Manage knowledge</h2>
+          <p class="muted">Project memory belongs to the workspace where this UI started.</p>
+        </div>
+        <button class="btn ghost" data-memory-close aria-label="Close memory">✕</button>
+      </div>
+      <div class="dialog-body">
+        <div class="import-options">
+          <label
+            >Scope<select class="input" id="memory-scope">
+              <option value="project">Current project</option>
+              <option value="shared">Shared across projects</option>
+            </select></label
+          >
+          <label
+            >Search<input
+              class="input"
+              id="memory-query"
+              maxlength="500"
+              placeholder="Words in titles, tags or knowledge"
+          /></label>
+          <button class="btn" data-memory-search>Search</button
+          ><button class="btn" data-memory-new>New record</button>
+        </div>
+        <p id="memory-automation" class="small-note" aria-live="polite"></p>
+        <div id="memory-conflicts"></div>
+        <div class="memory-layout">
+          <div id="memory-records" class="memory-records"></div>
+          <form id="memory-form" class="memory-form">
+            <label
+              >ID<input
+                class="input"
+                name="id"
+                required
+                pattern="[a-z0-9][a-z0-9-]{0,63}"
+                maxlength="64"
+                placeholder="api-retry-rule"
+            /></label>
+            <label>Title<input class="input" name="title" required maxlength="200" /></label>
+            <label
+              >Kind<select class="input" name="kind">
+                <option value="fact">Fact</option>
+                <option value="preference">Preference</option>
+                <option value="decision">Decision</option>
+                <option value="lesson">Lesson</option>
+              </select></label
+            >
+            <label>Tags, separated by commas<input class="input" name="tags" /></label>
+            <label
+              >Source reference<input
+                class="input"
+                name="source"
+                maxlength="2048"
+                placeholder="Document, issue or other provenance"
+            /></label>
+            <label
+              >Knowledge<textarea
+                class="input"
+                name="body"
+                required
+                rows="7"
+                maxlength="131072"
+              ></textarea>
+            </label>
+          </form>
+        </div>
+        <div class="memory-actions">
+          <button class="btn" data-memory-preview>Preview save</button
+          ><button class="btn danger" data-memory-delete disabled>Preview deletion</button>
+        </div>
+        <div id="memory-output" aria-live="polite"></div>
+      </div>
+      <div class="dialog-foot">
+        <span id="memory-status" class="muted">No files changed.</span><span class="spacer"></span
+        ><button class="btn" data-memory-close>Close</button
+        ><button class="btn primary" id="memory-apply" disabled>Apply with backup</button>
+      </div>
+    </dialog>
     <dialog id="doctor-dialog" aria-labelledby="doctor-title">
       <div class="dialog-head">
         <div>

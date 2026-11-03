@@ -21,6 +21,7 @@ import { HubError } from './errors.js';
 import { hash, stableStringify } from './values.js';
 import { hubCommand } from './shell.js';
 import { fileURLToPath } from 'node:url';
+import { revokeAutomationCheckpoints } from './memory-auto-authority.js';
 
 export type ArtifactValue =
   | { kind: 'file'; content: string; mode: number }
@@ -150,6 +151,7 @@ export async function applyManagedPlan(
     const fresh = await rebuild();
     if (fresh.revision !== plan.revision || fresh.blocked)
       throw new HubError('Inputs changed since preview. Review a new dry run.');
+    if (fresh.command[0] === 'restore') await revokeAutomationCheckpoints(plan.root);
     await ensureBaseline(plan.root, [], origin);
     await ensureArtifactBaseline(plan.root, fresh.requests);
     const id = `content-${new Date().toISOString().replace(/[:.]/g, '-')}-${randomBytes(4).toString('hex')}`;

@@ -17,7 +17,7 @@ The UI keeps the visual style of the [original HTML mockups](ui/mockups/README.m
 - **Overview:** detected clients, configuration differences and actual hub counts.
 - **Skills:** inspect the client matrix and SKILL.md, preview imports, choose source preference and deliver complete skill bundles through individual client links with backups.
 - **MCP servers:** compare definitions, inspect a credential-safe hub configuration, preview imports and dry-run synchronization. Choose a source preference for conflicts; existing definitions are skipped unless replacement is explicitly selected. Apply uses one hub lock and guarded writes for credentials, registry and import provenance, rolling back earlier writes if a later write fails. It never stages or commits unrelated hub files. It does not write client configurations. A plan expires after five minutes and must be reviewed again if its inputs change.
-- **Instructions and memory:** inspect Hub Markdown and deliver shared rules plus the memory index through owned client instruction blocks. Personal text and native auto-memory are preserved; editing remains file-based.
+- **Instructions and memory:** deliver shared rules/index through owned client instruction blocks. Manage scoped Markdown knowledge through CLI, UI or an optional MCP server. Project automation imports selected native notes and requests semantic checkpoints from the active agent under a one-time enabled policy, with conflict protection and recovery. Personal text and native sources are preserved.
 - **Repos & tasks:** inspect the current repository and preview guarded init-repo setup of AGENTS.md, PROJECT.md, NOW.md and the Claude import. Existing notes are preserved. Repository scanning and agent launching remain future work.
 - **Sessions:** shows the planned work; no session index is created.
 
@@ -37,7 +37,7 @@ These new commands default to preview and require the exact `--apply --expect` c
 
 Skills are copied with scripts/assets and then linked into selected client roots. Context delivery preserves personal text and delivers common rules plus the shared memory index; it does not relocate native automatic memory. Init-repo prepares normal project files and never stages or commits Git work. Content backups work with `restore`, and `reset` includes first-touch originals of managed files, directories and links.
 
-See [CONTENT.md](docs/CONTENT.md) for contracts and limitations, and [WORKING_GUIDE.md](docs/WORKING_GUIDE.md) for a first personal run. `mcp add/rm` and session indexing remain unimplemented.
+See [CONTENT.md](docs/CONTENT.md) for delivery contracts, [MEMORY.md](docs/MEMORY.md) for scoped records and MCP setup, [AUTOMATION.md](docs/AUTOMATION.md) for native-note sync and automatic checkpoints, and [WORKING_GUIDE.md](docs/WORKING_GUIDE.md) for a first personal run. `mcp add/rm`, graph-memory interchange and archived session indexing remain unimplemented.
 
 ## MCP sync: dry run and an exact command
 

@@ -11,6 +11,26 @@ import { syncCommand, restoreCommand } from './commands/sync.js';
 import { doctorCommand } from './commands/doctor.js';
 import { notImplemented } from './commands/stub.js';
 import {
+  memoryGetCommand,
+  memoryListCommand,
+  memoryWriteCommand,
+  memoryProjectCommand,
+  memoryProjectsCommand,
+} from './commands/memory.js';
+import { serveMemory } from './mcp/memory.js';
+import { hubRoot } from './core/paths.js';
+import {
+  autoEnableCommand,
+  autoDisableCommand,
+  autoSyncCommand,
+  autoHookCommand,
+  autoCheckpointCommand,
+  autoStatusCommand,
+  autoWatchCommand,
+  autoConflictGetCommand,
+  autoConflictResolveCommand,
+} from './commands/memory-auto.js';
+import {
   skillListCommand,
   skillAddCommand,
   skillRemoveCommand,
@@ -141,6 +161,163 @@ skill
   .option('--expect <revision>', 'required reviewed revision')
   .option('--json', 'machine-readable output')
   .action(skillRemoveCommand);
+
+const memory = program
+  .command('memory')
+  .description('manage scoped knowledge shared between agents');
+function memoryScope(command: Command) {
+  return command
+    .option('--shared', 'explicitly select shared memory instead of the current project')
+    .option('--workspace <directory>', 'select the project bound to this checkout (default: cwd)')
+    .option('--json', 'machine-readable output');
+}
+function memoryWriteOptions(command: Command) {
+  return memoryScope(command)
+    .option('--title <text>', 'record title (required on create)')
+    .option('--file <path>', 'read selected knowledge from a local UTF-8 file')
+    .option('--kind <kind>', 'fact, preference, decision or lesson')
+    .option(
+      '--tag <tag>',
+      'record tag; repeat to set multiple tags',
+      (value: string, previous: string[] = []) => [...previous, value],
+    )
+    .option('--clear-tags', 'remove all tags on update')
+    .option('--source <reference>', 'source attribution; no source is fetched')
+    .option('--clear-source', 'remove source attribution on update')
+    .option('--record-revision <revision>', 'required current record revision on update/delete')
+    .option('--at <timestamp>', 'timestamp captured in the reviewed command')
+    .option('--dry-run', 'preview without writing (default)')
+    .option('--apply', 'apply the reviewed operation with a backup')
+    .option('--expect <revision>', 'required reviewed plan revision');
+}
+memoryScope(memory.command('ls').description('list records in the selected scope'))
+  .option('--limit <count>', 'maximum results, 1–100', '50')
+  .action((options) => memoryListCommand('', options));
+memoryScope(
+  memory.command('search <query>').description('search titles, tags and bodies in one scope'),
+)
+  .option('--limit <count>', 'maximum results, 1–100', '50')
+  .action(memoryListCommand);
+memoryScope(
+  memory.command('get <id>').description('read a record and its current revision'),
+).action(memoryGetCommand);
+for (const [name, operation] of [
+  ['add', 'create'],
+  ['update', 'update'],
+  ['rm', 'delete'],
+] as const)
+  memoryWriteOptions(memory.command(`${name} <id>`)).action((id, options) =>
+    memoryWriteCommand(operation, id, options),
+  );
+memoryWriteOptions(
+  memory
+    .command('import <id>')
+    .description('copy explicitly selected local knowledge into a new record; preserve the source'),
+).action((id, options) => memoryWriteCommand('create', id, options, true));
+const memoryProject = memory
+  .command('project')
+  .description('explicit local project/checkout bindings');
+memoryProject
+  .command('register <id> [directory]')
+  .option('--rebind', 'explicitly accept a changed repository identity for the same project')
+  .option('--dry-run', 'preview without writing (default)')
+  .option('--apply', 'apply the reviewed binding')
+  .option('--expect <revision>', 'required reviewed revision')
+  .option('--json', 'machine-readable output')
+  .action(memoryProjectCommand);
+memoryProject
+  .command('ls')
+  .option('--json', 'machine-readable output')
+  .action(memoryProjectsCommand);
+const automatic = memory
+  .command('auto')
+  .description('project-scoped native memory sync and automatic session checkpoints');
+function automaticOptions(command: Command) {
+  return command
+    .option('--workspace <directory>', 'registered checkout (default: cwd)')
+    .option('--json', 'machine-readable output');
+}
+function automaticWriteOptions(command: Command) {
+  return automaticOptions(command)
+    .option('--dry-run', 'preview without writing (default)')
+    .option('--apply', 'apply the reviewed automation setup or sync')
+    .option('--expect <revision>', 'required reviewed revision');
+}
+automaticWriteOptions(
+  automatic
+    .command('enable')
+    .description('enable scoped autosave and install project-gated lifecycle hooks'),
+)
+  .requiredOption('--client <id>', 'claude-code, codex or dsh')
+  .option(
+    '--native-dir <directory>',
+    'explicit native Markdown source directory to import automatically',
+  )
+  .action(autoEnableCommand);
+automaticWriteOptions(
+  automatic
+    .command('disable')
+    .description('disable project automation; global hooks become no-ops for this project'),
+).action(autoDisableCommand);
+automaticWriteOptions(
+  automatic.command('sync').description('preview native notes, duplicates and conflicts'),
+)
+  .option('--at <timestamp>', 'timestamp captured in the reviewed command')
+  .option(
+    '--resolve <id>',
+    'explicitly accept the source for one conflicted record; repeat as needed',
+    (value: string, previous: string[] = []) => [...previous, value],
+  )
+  .action(autoSyncCommand);
+automaticOptions(automatic.command('status')).action(autoStatusCommand);
+const conflicts = automatic
+  .command('conflict')
+  .description('inspect and resolve queued native or session knowledge');
+automaticOptions(conflicts.command('get <id>'))
+  .option('--version <hash>', 'inspect an immutable incoming history version')
+  .action(autoConflictGetCommand);
+automaticWriteOptions(conflicts.command('resolve <id>'))
+  .requiredOption('--take <side>', 'incoming or hub; the latter also acknowledges a Hub deletion')
+  .option('--at <timestamp>', 'timestamp captured in the reviewed plan')
+  .action(autoConflictResolveCommand);
+automaticOptions(
+  automatic
+    .command('watch')
+    .description('foreground native memory sync while the project policy is enabled'),
+)
+  .option('--interval <seconds>', 'scan interval, 5–300 seconds', '30')
+  .action(autoWatchCommand);
+automatic
+  .command('hook')
+  .description('lifecycle callback; read client JSON on stdin')
+  .requiredOption('--client <id>', 'source client')
+  .action(autoHookCommand);
+automaticOptions(
+  automatic
+    .command('checkpoint')
+    .description('automatic capture authorized by a one-use Stop-hook token; JSON on stdin'),
+)
+  .requiredOption('--client <id>', 'source client')
+  .requiredOption('--token <token>', 'current Stop-hook token')
+  .action(autoCheckpointCommand);
+memory
+  .command('serve')
+  .description('serve memory over MCP stdio for one registered workspace')
+  .requiredOption('--workspace <directory>', 'fixed checkout binding for this server')
+  .option('--include-shared', 'also allow explicitly scoped shared reads')
+  .option('--allow-write', 'expose reviewed project write tools')
+  .option('--allow-auto', 'expose checkpoint autosave under an explicitly enabled project policy')
+  .option('--allow-shared-write', 'also allow shared writes; requires both preceding flags')
+  .action(async (options) => {
+    await serveMemory({
+      root: hubRoot(),
+      workspace: options.workspace,
+      includeShared: options.includeShared,
+      writable: options.allowWrite,
+      automatic: options.allowAuto,
+      sharedWritable: options.allowSharedWrite,
+    });
+  });
 
 program
   .command('ui')

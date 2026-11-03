@@ -49,6 +49,8 @@
     "ui/app/",
     "README.md",
     "docs/CONTENT.md",
+    "docs/MEMORY.md",
+    "docs/AUTOMATION.md",
     "docs/WORKING_GUIDE.md",
     "docs/RECOVERY.md",
     "docs/DESIGN.md",

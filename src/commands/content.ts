@@ -4,6 +4,7 @@ import { printJson, table } from '../core/output.js';
 import { hubRoot } from '../core/paths.js';
 import { listHubSkills, planSkillAdd, planSkillRemove } from '../core/skills.js';
 import { planRepoInit } from '../core/repo-init.js';
+import { CLIENT_IDS, type ClientId } from '../core/types.js';
 
 export interface ManagedOptions {
   apply?: boolean;
@@ -26,7 +27,8 @@ export async function runManaged(build: () => Promise<ManagedPlan>, options: Man
         `Updated ${result.changedPaths} managed path(s).${result.backup ? ` Backup: ${result.backup}` : ''}`,
       );
       if (result.restoreCommand) console.log(`Preview rollback:\n${result.restoreCommand}`);
-      console.log('Restart affected clients to reload delivered content.');
+      if (plan.requests.some((request) => CLIENT_IDS.includes(request.client as ClientId)))
+        console.log('Restart affected clients to reload delivered content.');
     }
     return;
   }

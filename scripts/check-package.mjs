@@ -11,13 +11,17 @@ const [archive] = JSON.parse(
 const files = new Set(archive.files.map((file) => file.path));
 for (const required of [
   'dist/cli.js',
+  'dist/integrations/dsh-memory.js',
   'ui/app/index.html',
   'ui/app/app.js',
   'ui/app/html.js',
   'ui/app/health.js',
   'ui/app/content.js',
+  'ui/app/memory.js',
   'ui/app/base.css',
   'docs/CONTENT.md',
+  'docs/MEMORY.md',
+  'docs/AUTOMATION.md',
   'docs/WORKING_GUIDE.md',
   'docs/RECOVERY.md',
   'docs/DESIGN.md',
@@ -27,7 +31,7 @@ for (const required of [
 }
 for (const file of files)
   assert.ok(
-    /^(dist\/|ui\/app\/|docs\/(CONTENT|WORKING_GUIDE|RECOVERY|DESIGN)\.md$|README\.md$|LICENSE$|package\.json$)/.test(
+    /^(dist\/|ui\/app\/|docs\/(CONTENT|MEMORY|AUTOMATION|WORKING_GUIDE|RECOVERY|DESIGN)\.md$|README\.md$|LICENSE$|package\.json$)/.test(
       file,
     ),
     `Unexpected package file: ${file}`,
