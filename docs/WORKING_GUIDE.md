@@ -12,16 +12,14 @@ The numbered route below deliberately exercises individual commands and explicit
 
 ## 0. Set up the working terminal
 
-Replace the source path once. Keep the checkout at that path during the trial: launchers and the DSH adapter refer to its built files.
+Install the CLI using [Quick start](QUICKSTART.md) first. Use the installed `ahub` executable throughout the working trial; no shell wrapper or source-directory cwd is needed. Capture its resolved runtime path only for the explicit Memory MCP launch definition below.
 
-    export AHUB_SOURCE="/absolute/path/to/agent-hub"
+    command -v ahub
+    ahub --version
     export AHUB_NODE="$(command -v node)"
+    export AHUB_CLI="$(node -e 'process.stdout.write(require("node:fs").realpathSync(process.argv[1]))' "$(command -v ahub)")"
     export AHUB_RUN="$(mktemp -d /tmp/agent-hub-manual.XXXXXX)"
     chmod 700 "$AHUB_RUN"
-    ahub() { "$AHUB_NODE" "$AHUB_SOURCE/dist/cli.js" "$@"; }
-    cd "$AHUB_SOURCE"
-    npm run build
-    git rev-parse --short HEAD
     node --version
     ahub status
     ahub memory project ls
@@ -115,12 +113,12 @@ Apply and check that the source file is unchanged. This copies selected text, no
 
 ## 4. Deliver the same Memory MCP server to DSH and Claude
 
-Open the existing Hub **mcp/servers.yaml**. Add this entry under its existing servers mapping, substituting absolute paths from AHUB_NODE, AHUB_SOURCE, AHUB_PROJECT and your actual Hub directory:
+Open the existing Hub **mcp/servers.yaml**. Add this entry under its existing servers mapping, substituting absolute paths from AHUB_NODE, AHUB_CLI, AHUB_PROJECT and your actual Hub directory:
 
     ahub-trial-memory:
       command: "/absolute/path/to/node"
       args:
-        - "/absolute/path/to/agent-hub/dist/cli.js"
+        - "/absolute/path/to/installed/agent-hub/dist/cli.js"
         - memory
         - serve
         - --workspace
@@ -348,7 +346,7 @@ Open a **new terminal**. These overrides isolate all Hub/client writes. Do not l
     export DSH_AGENTS_HOME="$AHUB_LAB/agents"
     export AGENT_HUB_SHARED_SKILLS="$AHUB_LAB/shared/skills"
     export AGENT_HUB_DSH_PROFILE="trial"
-    ahub() { "$AHUB_NODE" "$AHUB_SOURCE/dist/cli.js" "$@"; }
+    command -v ahub
     mkdir -p "$CLAUDE_CONFIG_DIR" "$CODEX_HOME" "$DSH_HOME/profiles/trial" "$AHUB_LAB/project" "$AHUB_LAB/native"
     git -C "$AHUB_LAB/project" init -q
     echo '{"mcpServers":{}}' > "$AGENT_HUB_CLAUDE_CONFIG"

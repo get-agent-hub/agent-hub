@@ -22,7 +22,7 @@ This operates on the conversation currently available to the agent. It does not 
 Initialize Hub and register the checkout first; see [MEMORY.md](MEMORY.md). Run from the Agent Hub source checkout, or substitute your installed `ahub` executable:
 
 ```sh
-node dist/cli.js memory auto enable --workspace /path/to/project --client claude-code \
+ahub memory auto enable --workspace /path/to/project --client claude-code \
   --native-dir /path/to/that-project/native-memory --dry-run
 ```
 
@@ -61,10 +61,10 @@ Source/heading bindings give imported facts stable IDs while their body changes.
 Manual edits or deletions are preserved. A conflicting incoming version goes into a private pending file; automatic processing continues with independent facts. Checkpoint tokens retain the memory revision from the start of the user turn. If another agent changes project memory during that conversation, an attempted replacement with different content is queued rather than overwriting knowledge from a newer view; equivalent content and independent new facts can still be retained. This conservative check may queue an update after an unrelated record changed, so inspect the evidence before resolving it. Deleting a source note does not delete Hub knowledge. Source directories, policies, bindings and non-target records are rechecked before applying.
 
 ```sh
-node dist/cli.js memory auto status --workspace /path/to/project --json
-node dist/cli.js memory auto sync --workspace /path/to/project --dry-run
-node dist/cli.js memory auto conflict get auto-<source-id> --workspace /path/to/project
-node dist/cli.js memory auto conflict resolve auto-<source-id> --workspace /path/to/project \
+ahub memory auto status --workspace /path/to/project --json
+ahub memory auto sync --workspace /path/to/project --dry-run
+ahub memory auto conflict get auto-<source-id> --workspace /path/to/project
+ahub memory auto conflict resolve auto-<source-id> --workspace /path/to/project \
   --take hub --dry-run
 # Or preview --take incoming to accept the queued source version.
 ```
@@ -76,8 +76,8 @@ Common private-key/token patterns and credential assignments are skipped before 
 ## Watching, disabling and recovery
 
 ```sh
-node dist/cli.js memory auto watch --workspace /path/to/project --interval 30
-node dist/cli.js memory auto disable --workspace /path/to/project --dry-run
+ahub memory auto watch --workspace /path/to/project --interval 30
+ahub memory auto disable --workspace /path/to/project --dry-run
 ```
 
 The watcher is a foreground process, not an installed OS service. It retries transient sync failures on the next interval, supports SIGINT/SIGTERM and stops when the policy is disabled. It does not run semantic extraction without an active agent. SessionStart/Stop imports work without the watcher.

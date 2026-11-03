@@ -2,36 +2,42 @@
 
 Quick setup collects the configuration you already have and connects your detected clients in one reviewed workflow. It supports Claude Code, Codex CLI and DeepSeek Harness. No cloud account or Hub Git repository is required.
 
-## Build once
+## Install the CLI once
 
 Requires Node.js **22.13 or newer**, npm, and at least one configured client. Git is needed for project memory and handoff files. Download/unpack the source, then run these commands from its directory:
 
 ```sh
 npm ci
 npm run build
+npm install --global .
+ahub --help
 ```
 
-The source package is currently private; an `npx agent-hub` installation is not published. Keep the built source at a stable path: client launchers and memory hooks refer to this CLI and Node executable.
+The package is currently private; `npm install --global agent-hub` from a public registry is not available yet. Install from the downloaded/built source directory using the final dot in `npm install --global .`. Afterwards use `ahub` from any directory; `agent-hub` is an equivalent executable name.
+
+Local-folder global installation normally links to the source checkout. Keep that checkout, its built files and Node at stable paths: generated launchers and memory hooks bind to the installed runtime. If the shell cannot find `ahub`, check `npm prefix --global` and add its binary directory to PATH (on macOS/Linux, `<prefix>/bin`). Use a user-writable npm prefix or your Node version manager when permissions prevent installation.
+
+For updates, build the desired source revision and run `npm install --global .` again, then preview quick to review any affected bindings. `npm uninstall --global agent-hub` removes the CLI executables; it does not reset Hub/client data. Preview and apply reset before uninstalling when you intend to restore the recorded originals.
 
 ## Preview, apply, use
 
 Choose your actual Git project:
 
 ```sh
-node dist/cli.js quick --workspace /path/to/project
+ahub quick --workspace /path/to/project
 ```
 
 This writes **nothing**, including on the first run. It shows detected clients, the proposed local Hub, MCP/skill collection, the project memory binding, matched Markdown sources, automation scope, known MCP conflicts and deferred delivery stages. By default the Hub is `~/.agent-hub`; `AGENT_HUB_HOME` selects another location.
 
-Copy the complete **Apply this workflow** command printed by your preview. It includes `--apply`, `--expect` and `--at`; do not invent a revision or drop the selected options. Inputs are checked again before setup starts. A changed input requires a new preview.
+Copy the complete **Apply this workflow** command printed by your preview. It includes `--apply`, `--expect` and `--at`; do not invent a revision or drop the selected options. Generated apply, launcher and hook commands deliberately pin the installed Node and CLI paths; normal interactive commands use `ahub`. Inputs are checked again before setup starts. A changed input requires a new preview.
 
 After application, read the per-stage result, restart the affected client sessions, and accept any native client trust or permission prompts you choose to grant. Quick does not start the clients or bypass those prompts.
 
 For a connectivity check, run:
 
 ```sh
-node dist/cli.js status
-node dist/cli.js doctor
+ahub status
+ahub doctor
 ```
 
 `status` compares configuration. `doctor` starts real MCP processes/connects to endpoints and discovers tools; it does not invoke tools or start an offline backend.
@@ -39,10 +45,10 @@ node dist/cli.js doctor
 ## Prefer the local UI?
 
 ```sh
-node dist/cli.js ui
+ahub ui
 ```
 
-Open **Quick setup & sync** on Overview. Choose clients and whether to prepare the current project and enable automation, select **Preview setup & sync**, then **Apply quick setup**. The UI works with an uninitialized Hub and targets the workspace where its server was started. To target another project, start it there using the CLI's absolute path. Preview IDs expire after five minutes and can be applied once.
+Open **Quick setup & sync** on Overview. Choose clients and whether to prepare the current project and enable automation, select **Preview setup & sync**, then **Apply quick setup**. The UI works with an uninitialized Hub and targets the workspace where its server was started. To target another project, change to that project and run `ahub ui` there. Preview IDs expire after five minutes and can be applied once.
 
 ## What you get
 
@@ -62,19 +68,19 @@ Project knowledge is loaded through the memory hooks. A standalone **Memory MCP 
 
 ```sh
 # Only connect these detected, enabled clients
-node dist/cli.js quick --workspace /path/to/project --client claude-code,codex
+ahub quick --workspace /path/to/project --client claude-code,codex
 
 # Deliberately prefer a source when collected copies differ
-node dist/cli.js quick --workspace /path/to/project --prefer codex
+ahub quick --workspace /path/to/project --prefer codex
 
 # Import project memory without enabling new automation
-node dist/cli.js quick --workspace /path/to/project --no-automation
+ahub quick --workspace /path/to/project --no-automation
 
 # Global tools, skills and shared context only
-node dist/cli.js quick --no-project
+ahub quick --no-project
 
 # Machine-readable preview/result
-node dist/cli.js quick --workspace /path/to/project --json
+ahub quick --workspace /path/to/project --json
 ```
 
 These are previews. Use each preview's own apply command. `--no-project` and `--no-automation` omit setup stages; they do not disable a policy or hooks you enabled earlier. Outside a Git checkout, default quick performs global setup and explicitly skips project stages.
@@ -96,7 +102,7 @@ Most writing stages print an individual `restore` preview command. Restore depen
 To preview returning the entire setup to its first recorded state:
 
 ```sh
-node dist/cli.js reset --dry-run
+ahub reset --dry-run
 ```
 
 Apply the exact command printed by that plan. Current data is archived. If quick created a new Hub, reset removes it and restores recorded external originals. For an existing Hub, the first baseline may predate this quick run: reset is **not** an undo-last-quick command. External edits block by default; review deliberate archiving through [RECOVERY.md](RECOVERY.md).

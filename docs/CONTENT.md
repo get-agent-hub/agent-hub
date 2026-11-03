@@ -5,13 +5,13 @@ These features use the same local Hub lock as MCP operations. Every new mutating
 ## Skills
 
 ```sh
-node dist/cli.js skill ls --json
-node dist/cli.js skill add /path/to/my-skill --dry-run
-node dist/cli.js import skills --dry-run
-node dist/cli.js import skills:my-skill --prefer codex --dry-run
-node dist/cli.js sync --area skills --dry-run
-node dist/cli.js sync --area skills --client codex --replace=my-skill --dry-run
-node dist/cli.js skill rm my-skill --dry-run
+ahub skill ls --json
+ahub skill add /path/to/my-skill --dry-run
+ahub import skills --dry-run
+ahub import skills:my-skill --prefer codex --dry-run
+ahub sync --area skills --dry-run
+ahub sync --area skills --client codex --replace=my-skill --dry-run
+ahub skill rm my-skill --dry-run
 ```
 
 `skill add` copies a local directory into `hub/skills/<name>`. It includes binary assets, references and executable modes without running code. A `SKILL.md` path is also accepted. `--name` chooses the directory alias; it does not rewrite the skill's metadata. Keep that metadata consistent with the intended catalog name. `--overwrite` explicitly permits replacing an existing Hub copy. Remote URLs are rejected: use a trusted external skills installer, then import its local result.
@@ -31,8 +31,8 @@ Nested relative links must stay within the imported bundle and resolve successfu
 Place common rules in `hub/instructions/AGENTS.md`. [Memory operations](MEMORY.md) maintain structured shared/project records and an owned shared index block in `hub/memory/MEMORY.md`; existing hand-written index text and fact files remain separate and readable.
 
 ```sh
-node dist/cli.js sync --area context --dry-run
-node dist/cli.js sync --area context --client codex --dry-run
+ahub sync --area context --dry-run
+ahub sync --area context --client codex --dry-run
 ```
 
 The target files are Claude's user `CLAUDE.md`, Codex's global `AGENTS.md` and DSH's home `AGENTS.md`. Claude receives escaped `@` imports of the Hub source files. Codex and DSH receive the rules and index text with the shared memory directory explicitly identified. Agents can read relevant fact files on demand. This is shared context delivery, not a merge or relocation of client-native automatic memory. Existing native memory, conversations and hooks stay separate.
@@ -44,8 +44,8 @@ When both sources disappear or become empty, sync removes its own block. It remo
 ## Repository setup
 
 ```sh
-node dist/cli.js init-repo --dry-run
-node dist/cli.js init-repo /path/to/repository --dry-run
+ahub init-repo --dry-run
+ahub init-repo /path/to/repository --dry-run
 ```
 
 Run inside an existing Git repository with an initialized Hub. The command locates the repository root, including from a subdirectory. It does not initialize Git, stage files or commit work.

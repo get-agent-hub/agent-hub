@@ -7,12 +7,15 @@ Requires Node.js **22.13 or newer** and npm. macOS and Linux are the supported r
 ```sh
 npm ci
 npm run build
-node dist/cli.js quick --workspace /path/to/project
+npm install --global .
+ahub quick --workspace /path/to/project
 ```
+
+Install from the unpacked source directory, then run `ahub` from any project. The `agent-hub` executable is also available as an alias. A public registry installation is not available yet. Local-folder global installs normally link to this checkout, so keep it and its built files in place. The npm global binary directory must be on your shell's PATH.
 
 `quick` previews one workflow: create/adopt Hub, collect MCP and skills, prepare the selected Git project, import its matched Markdown memory, enable project hooks, and deliver to detected clients. Copy its complete **Apply this workflow** command to run it. Conflicts require review; independent stages can finish. Existing Hub definitions stay authoritative, and native SQLite memory is not imported. Restart affected client sessions afterwards.
 
-For a graphical first run, use `node dist/cli.js ui` and choose **Quick setup & sync** on Overview. No prior `init` is needed. See [QUICKSTART.md](docs/QUICKSTART.md) for expected results, scope options, repeat runs and recovery. Quick is a staged workflow; `reset` returns to the first recorded baseline, which can predate this run.
+For a graphical first run, use `ahub ui` and choose **Quick setup & sync** on Overview. No prior `init` is needed. See [QUICKSTART.md](docs/QUICKSTART.md) for expected results, scope options, repeat runs and recovery. Quick is a staged workflow; `reset` returns to the first recorded baseline, which can predate this run.
 
 The UI opens at **http://127.0.0.1:3082**. Stop the server with Ctrl+C. Use `--port 3083` to choose another port, or `--no-open` to open the page yourself. Start it from a repository to view that repository's project context.
 
@@ -30,11 +33,11 @@ Search filters skills, MCP servers and memory; ⌘K / Ctrl+K focuses it. The the
 ## Skills, shared context and repository handoff
 
 ```sh
-node dist/cli.js import skills --dry-run
-node dist/cli.js skill add /path/to/local-skill --dry-run
-node dist/cli.js sync --area skills --dry-run
-node dist/cli.js sync --area context --dry-run
-node dist/cli.js init-repo --dry-run
+ahub import skills --dry-run
+ahub skill add /path/to/local-skill --dry-run
+ahub sync --area skills --dry-run
+ahub sync --area context --dry-run
+ahub init-repo --dry-run
 ```
 
 These new commands default to preview and require the exact `--apply --expect` command printed by that plan. MCP import retains its existing behavior: without `--dry-run`, it writes. Plain `sync` still means MCP; select skills or context explicitly. UI pages expose the corresponding review/apply actions.
@@ -46,9 +49,9 @@ See [CONTENT.md](docs/CONTENT.md) for delivery contracts, [MEMORY.md](docs/MEMOR
 ## MCP sync: dry run and an exact command
 
 ```sh
-node dist/cli.js sync --dry-run
-node dist/cli.js sync --client dsh --dry-run
-node dist/cli.js sync --json
+ahub sync --dry-run
+ahub sync --client dsh --dry-run
+ahub sync --json
 ```
 
 Dry run is the default and writes nothing. It shows each target file, server action and launcher command, then prints an executable apply command with `--expect <revision>`. Copy that command to apply precisely the reviewed inputs. `--apply` is required for any write; combining it with `--dry-run` is rejected.
@@ -60,7 +63,7 @@ Sync changes MCP definitions only. It preserves client-only entries, unrelated J
 To migrate an existing conflicting client record while keeping the hub definition, select exact names and one client:
 
 ```sh
-node dist/cli.js sync --client dsh --replace example-server --dry-run
+ahub sync --client dsh --replace example-server --dry-run
 ```
 
 The plan explicitly marks these replacements. Its copied apply command includes `--replace` and the reviewed `--expect` revision; applying an explicit replacement without that revision is rejected. Other conflicts, unsupported fields, missing variables and application-owned servers retain their normal protections. The hub registry and credentials are not rewritten by this operation. No wrapper names or migration-specific script paths are recognized automatically.
@@ -68,7 +71,7 @@ The plan explicitly marks these replacements. Its copied apply command includes 
 Before writing, sync saves private backups in `hub/backups/<id>/`, uses guarded atomic writes and records ownership hashes. If a later write fails, it rolls back the earlier writes. A later removal from the registry removes only previously owned definitions that have not been changed locally.
 
 ```sh
-node dist/cli.js restore <backup-id> --dry-run
+ahub restore <backup-id> --dry-run
 ```
 
 Restore also defaults to dry run and prints an exact apply command. It refuses to overwrite a client file or ownership state changed since that backup. Restart affected clients after sync or restore.
@@ -76,7 +79,7 @@ Restore also defaults to dry run and prints an exact apply command. It refuses t
 To return to the first recorded state across multiple operations:
 
 ```sh
-node dist/cli.js reset --dry-run
+ahub reset --dry-run
 ```
 
 Before managed writes, originals are captured privately outside the hub in `<AGENT_HUB_HOME>.recovery`. Reset archives current data and restores recorded originals; `--apply` requires the reviewed `--expect` revision. Later client edits block by default. Existing installations without historical originals get an explicitly labeled checkpoint on their next managed write; no command can invent their pre-install state. See [RECOVERY.md](docs/RECOVERY.md) for scope, external edits, dead-lock recovery and filesystem limits.
@@ -86,9 +89,9 @@ Configuration comparisons describe effective launch definitions, not server heal
 ## MCP connection checks
 
 ```sh
-node dist/cli.js doctor
-node dist/cli.js doctor firecrawl --timeout 30
-node dist/cli.js doctor --client dsh --json
+ahub doctor
+ahub doctor firecrawl --timeout 30
+ahub doctor --client dsh --json
 ```
 
 `doctor` starts each selected server through the same hub launcher used by the clients, performs MCP initialization and walks every `tools/list` page. It does not call tools or test provider API operations. A passed check confirms connection and discovery; it does not prove that credentials for every upstream operation are valid. Resource-only servers can pass initialization without advertising tools.
@@ -108,13 +111,13 @@ Reports contain no raw server stdout, stderr, response bodies or credential valu
 ## CLI
 
 ```sh
-node dist/cli.js status
-node dist/cli.js status --json
-node dist/cli.js init
-node dist/cli.js import mcp --dry-run
-node dist/cli.js import mcp
-node dist/cli.js mcp ls
-node dist/cli.js mcp run <name>
+ahub status
+ahub status --json
+ahub init
+ahub import mcp --dry-run
+ahub import mcp
+ahub mcp ls
+ahub mcp run <name>
 ```
 
 `AGENT_HUB_HOME` selects a hub directory instead of `~/.agent-hub`. Client locations respect `CLAUDE_CONFIG_DIR`, `CODEX_HOME` and `DSH_HOME`; `AGENT_HUB_CLAUDE_CONFIG` and `AGENT_HUB_SHARED_SKILLS` override the Claude JSON file and shared skills directory. `AGENT_HUB_DSH_PROFILE` overrides the DSH profile in `hub.yaml`. See [DESIGN.md](docs/DESIGN.md) for the architecture and remaining work.
@@ -156,3 +159,5 @@ servers:
 ```
 
 Health metadata does not affect launch equivalence or client settings. The n8n preset is an isolated compatibility integration. See [CONTRIBUTING.md](CONTRIBUTING.md) for development checks and [the code review](docs/CODE_REVIEW.md) for findings and release limits.
+
+Global-install verification is available with `npm run install:check`. It uses a temporary npm prefix and fixture-only client paths, checks `ahub` from an unrelated directory, and removes that temporary installation afterwards.

@@ -3,7 +3,7 @@
 `restore <backup-id>` undoes one sync. `reset` returns recorded client configurations and the complete hub directory to their first saved state, even after several syncs. Both default to dry run.
 
 ```sh
-node dist/cli.js reset --dry-run
+ahub reset --dry-run
 ```
 
 Review every file and the baseline scope. The command prints an exact `reset --apply --expect <revision>` command. Reset requires that reviewed revision; changed inputs stop it. No reset is performed by a dry run.
@@ -36,7 +36,7 @@ Unrelated files captured inside the hub are part of its directory reset. The arc
 Later client edits or mode changes block reset by default. To explicitly preserve those current files in the archive and then restore their originals, review another plan:
 
 ```sh
-node dist/cli.js reset --archive-changes --dry-run
+ahub reset --archive-changes --dry-run
 ```
 
 This is a whole-file restore, not a merge. A repointed symlink remains blocked even with `--archive-changes`; resolve the binding manually. Baseline corruption or a private-storage symlink also stops recovery before client writes.
@@ -48,7 +48,7 @@ A flushed per-file write-intent journal records the before/after hashes before m
 If a process left locks behind, inspect their owners and review:
 
 ```sh
-node dist/cli.js reset --recover-lock --dry-run
+ahub reset --recover-lock --dry-run
 ```
 
 The option never removes a lock whose PID is alive, whose ownership is unknown or whose contents changed. The copied apply command includes the recovery option. A live process must be stopped normally. Do not run mixed versions against the same hub during reset.

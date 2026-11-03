@@ -30,26 +30,26 @@ Instructions stay in instruction files, procedures in skills, repository context
 Run these commands from the Agent Hub source checkout, or substitute the installed `ahub` executable. Initialize Hub first if necessary.
 
 ```sh
-node dist/cli.js memory project register example-project /path/to/project --dry-run
+ahub memory project register example-project /path/to/project --dry-run
 ```
 
 Apply the exact command printed by preview. Registration binds a canonical Git checkout and local Git-directory identity to a stable project ID. Repeating the same binding is a no-op. Explicitly registering another checkout under the same ID shares that project's facts; another folder with the same basename is not automatically attached. Replacing a repository at a previously bound path blocks memory access. Preview `project register <same-id> <directory> --rebind` only if the new repository should inherit that project's knowledge. A checkout already bound to another project remains a conflict, including with `--rebind`. Restore the binding backup before reassigning; moved checkouts require explicit registration. Local filesystem identity is an accidental-reuse guard, not a cryptographic repository identity or a portable binding across machines.
 
 ```sh
-node dist/cli.js memory add retry-rule --workspace /path/to/project \
+ahub memory add retry-rule --workspace /path/to/project \
   --title 'Use idempotency keys for API retries' --kind lesson \
   --file /path/to/selected-note.md --source 'Issue or document reference' --dry-run
-node dist/cli.js memory ls --workspace /path/to/project --json
-node dist/cli.js memory search 'API retries' --workspace /path/to/project --json
-node dist/cli.js memory get retry-rule --workspace /path/to/project --json
+ahub memory ls --workspace /path/to/project --json
+ahub memory search 'API retries' --workspace /path/to/project --json
+ahub memory get retry-rule --workspace /path/to/project --json
 ```
 
 Creation needs a title and body from a local UTF-8 file. Tags can be repeated with `--tag`. For shared knowledge, replace `--workspace ...` with `--shared`. Sources are attribution strings; no URL is fetched and no script is executed.
 
 ```sh
-node dist/cli.js memory update retry-rule --workspace /path/to/project \
+ahub memory update retry-rule --workspace /path/to/project \
   --file /path/to/revised-note.md --record-revision <revision-from-get> --dry-run
-node dist/cli.js memory rm retry-rule --workspace /path/to/project \
+ahub memory rm retry-rule --workspace /path/to/project \
   --record-revision <revision-from-get> --dry-run
 ```
 
@@ -62,8 +62,8 @@ Updates preserve omitted metadata. `--clear-tags` and `--clear-source` remove th
 After registering the checkout, inspect existing sources before starting a new conversation:
 
 ```sh
-node dist/cli.js memory discover --workspace /path/to/project
-node dist/cli.js memory onboard --workspace /path/to/project --follow --dry-run
+ahub memory discover --workspace /path/to/project
+ahub memory onboard --workspace /path/to/project --follow --dry-run
 ```
 
 Discovery does not import records or change client settings. It reports stable source IDs, format, physical path, checkout evidence and any known Hub project ID. It checks existing policy sources, workspace-local memory directories, client memory directories and Claude project collections/custom autoMemoryDirectory settings. Claude project association uses bounded session cwd metadata, not a lossy decoding of folder names; conversation text is neither returned nor archived. Ambiguous, missing or over-budget evidence stays unresolved. Explicitly registered checkouts of the same Hub project may share its sources.
@@ -71,7 +71,7 @@ Discovery does not import records or change client settings. It reports stable s
 Onboarding selects supported sources belonging to that registered project by default. To choose an unresolved source, use its ID from discovery:
 
 ```sh
-node dist/cli.js memory onboard --workspace /path/to/project \
+ahub memory onboard --workspace /path/to/project \
   --source source-<id> --follow --dry-run
 ```
 
@@ -88,7 +88,7 @@ The UI provides **Memory → Manage records → Find existing client memory**, s
 ## MCP workflow
 
 ```sh
-node dist/cli.js memory serve --workspace /path/to/project
+ahub memory serve --workspace /path/to/project
 ```
 
 The workspace must already be registered. Configure this command as a stdio MCP server in the desired client, with the same `AGENT_HUB_HOME` used by the CLI. Use absolute executable/workspace paths appropriate to that installation. Do not depend on the MCP process's working directory to select a project.

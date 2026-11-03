@@ -138,3 +138,7 @@ The HTTP checks verify token enforcement, startup-workspace binding, input valid
 The main suite contains 180 tests. Minimum-runtime verification uses Node 22.13 with the coverage thresholds enforced by the test runner. The separate site has 15 English documentation pages and checks locale-owned bodies, protected code syntax, navigation, anchors, source archive provenance and local HTTP behavior.
 
 A successful setup test is not evidence of useful model-selected memory or activation in every client version. Real-client restart, native trust/permissions, a two-client working task and a review of captured facts remain the maintainer's working trial. Quick does not create an OS service, install a standalone Memory MCP server, import native SQLite or provide a workflow-wide transaction.
+
+## Global CLI installation
+
+`npm run install:check` installs the built local folder using npm's global mode with a disposable prefix and isolated client/Hub paths. From a directory outside the source checkout, it verifies both executable names, quick preview/apply, status and the live UI's static assets. The check does not modify the user's normal global prefix or client settings. It is included in the macOS/Linux CI matrix. End-user documentation now starts with `npm ci`, `npm run build`, `npm install --global .`, then uses `ahub` directly.

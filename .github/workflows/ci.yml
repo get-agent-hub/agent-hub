@@ -26,3 +26,4 @@ jobs:
       - run: npm run test:coverage
       - run: npm audit --omit=dev --audit-level=moderate
       - run: npm run package:check
+      - run: npm run install:check
