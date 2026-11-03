@@ -30,6 +30,7 @@ export interface SyncOptions {
   client?: ClientId;
   /** Exact existing records explicitly selected for a reviewed replacement. */
   replace?: string[];
+  only?: string[];
 }
 export interface SyncTarget {
   id: ClientId;
@@ -177,6 +178,7 @@ export function syncCommand(context: SyncContext, options: SyncOptions, args: st
   return hubCommand(context, [
     'sync',
     ...(options.client ? ['--client', options.client] : []),
+    ...(options.only?.map((name) => `--only=${name}`) ?? []),
     ...(options.replace?.map((name) => `--replace=${name}`) ?? []),
     ...args,
   ]);
@@ -197,6 +199,18 @@ export async function planSync(
     )
       throw new HubError('Select valid server names for replacement.');
     options = { ...options, replace: [...new Set(options.replace)].sort() };
+  }
+  if (options.only !== undefined) {
+    if (
+      !Array.isArray(options.only) ||
+      !options.only.length ||
+      options.only.length > 100 ||
+      options.only.some((name) => typeof name !== 'string' || !validServerName(name))
+    )
+      throw new HubError('Choose valid exact server names for --only.');
+    options = { ...options, only: [...new Set(options.only)].sort() };
+    if (options.replace?.some((name) => !options.only!.includes(name)))
+      throw new HubError('Replacement names must be inside --only.');
   }
   const context = supplied ?? (await defaultSyncContext());
   const settings = await settingsAt(context.root);
@@ -252,6 +266,13 @@ export async function planSync(
     }
     const previous =
       state.clients[target.id]?.file === target.file ? state.clients[target.id]!.entries : {};
+    if (options.only)
+      Object.assign(
+        owned,
+        Object.fromEntries(
+          Object.entries(previous).filter(([name]) => !options.only!.includes(name)),
+        ),
+      );
     let current: Map<string, Definition>;
     try {
       current = readDefinitions(target.id, snap.content);
@@ -265,6 +286,7 @@ export async function planSync(
     for (const [name, server] of Object.entries(registry.servers).sort(([a], [b]) =>
       a.localeCompare(b),
     )) {
+      if (options.only && !options.only.includes(name)) continue;
       if ((server.only && !server.only.includes(target.id)) || appManaged(server)) {
         rows.push({
           name,
@@ -356,6 +378,7 @@ export async function planSync(
       if (!already) changes.set(name, desired);
     }
     for (const [name, before] of current) {
+      if (options.only && !options.only.includes(name)) continue;
       if (rows.some((r) => r.name === name && r.action !== 'skip')) continue;
       if (previous[name]) {
         if (definitionHash(before) === previous[name]) {
@@ -474,7 +497,7 @@ export async function applySync(plan: SyncPlan, expectedRevision?: string) {
     if (!changes.length) return { changedFiles: 0, backup: null, restoreCommand: null };
     await ensureBaseline(
       plan.context.root,
-      plan.context.targets.map((target) => ({
+      changes.map(({ target }) => ({
         file: target.file,
         client: target.id,
         installed: target.installed,

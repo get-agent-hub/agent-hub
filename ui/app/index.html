@@ -21,6 +21,15 @@
           <h1 id="page-title">Overview</h1>
           <span class="pill ok"><span class="dot"></span>Local</span>
           <span class="spacer"></span>
+          <label class="small-note"
+            >Knowledge scope<select
+              class="input"
+              id="project-picker"
+              aria-label="Select registered project or shared knowledge"
+            >
+              <option value="">Shared knowledge</option>
+            </select></label
+          >
           <div class="search-field">
             <input
               id="search"
@@ -100,6 +109,7 @@
           >
           <label
             >When client definitions differ, prefer<select class="input" id="import-prefer">
+              <option value="">Leave differences for review</option>
               <option value="claude-code,codex,dsh">Claude Code → Codex → DSH</option>
               <option value="codex,claude-code,dsh">Codex → Claude Code → DSH</option>
               <option value="dsh,claude-code,codex">DSH → Claude Code → Codex</option>

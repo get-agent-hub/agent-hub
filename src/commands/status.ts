@@ -1,5 +1,6 @@
 import { collectStatus, type Col, type SkillCell } from '../core/status.js';
 import { c, printJson, table } from '../core/output.js';
+import { readiness } from '../core/readiness.js';
 import { tildify } from '../core/paths.js';
 
 const skillMark: Record<SkillCell, string> = {
@@ -11,7 +12,13 @@ const skillMark: Record<SkillCell, string> = {
 
 export async function statusCommand(opts: { json?: boolean }): Promise<void> {
   const r = await collectStatus();
-  if (opts.json) return printJson(r);
+  const ready = await readiness({ status: r });
+  if (opts.json) return printJson({ ...r, readiness: ready });
+  console.log(
+    `${ready.label}\nConfiguration: ${ready.configuration} · MCP connections: ${ready.connections} · Project memory: ${ready.memory.state}`,
+  );
+  for (const issue of ready.issues) console.log(`Review: ${issue}`);
+  if (ready.next) console.log(`Next: ${ready.next}`);
 
   const cols: Col[] = ['hub', ...r.clients.filter((x) => x.installed).map((x) => x.id)];
   const head = (first: string) => [first, ...cols];
@@ -20,7 +27,7 @@ export async function statusCommand(opts: { json?: boolean }): Promise<void> {
     c.bold('Hub   ') +
       (r.hub.exists
         ? tildify(r.hub.root)
-        : c.yellow(`${tildify(r.hub.root)} (not initialized — run \`ahub init\`)`)),
+        : c.yellow(`${tildify(r.hub.root)} (not initialized — run \`ahub quick\`)`)),
   );
   for (const cl of r.clients) {
     console.log(

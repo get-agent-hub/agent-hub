@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 import { quickCommand, projectConnectCommand } from './commands/quick.js';
+import { planProjectDisconnect } from './core/project-disconnect.js';
+import { runManaged } from './commands/content.js';
+import { undoCommand } from './commands/undo.js';
 import { resetCommand } from './commands/reset.js';
 import { Command, Option } from 'commander';
 import { packageVersion } from './core/package.js';
@@ -62,15 +65,17 @@ program
   .addOption(new Option('--no-project').hideHelp())
   .addOption(new Option('--no-automation').hideHelp())
   .option('--at <timestamp>', 'timestamp captured in the reviewed quick command')
+  .option('--interactive', 'preview, then confirm this same plan in the terminal')
   .option('--dry-run', 'preview workflow, write nothing (default)')
   .option('--apply', 'run the reviewed staged workflow with existing recovery protections')
   .option('--expect <revision>', 'required reviewed workflow revision')
   .option('--json', 'machine-readable preview or per-stage result')
   .action(quickCommand);
 
-program
+const project = program
   .command('project')
-  .description('optional project memory and repository handoff; separate from the shared Hub')
+  .description('optional project memory and repository handoff; separate from the shared Hub');
+project
   .command('connect [directory]')
   .description(
     'connect one Git project to an existing Hub; preview memory, handoff files and hooks',
@@ -81,11 +86,33 @@ program
   )
   .option('--no-automation', 'import project memory and prepare handoff without enabling hooks')
   .option('--at <timestamp>', 'timestamp captured in the reviewed connection command')
+  .option('--interactive', 'preview, then confirm this same project connection')
   .option('--dry-run', 'preview without writing (default)')
   .option('--apply', 'apply the reviewed project connection')
   .option('--expect <revision>', 'required reviewed connection revision')
   .option('--json', 'machine-readable preview or per-stage result')
   .action(projectConnectCommand);
+
+project
+  .command('disconnect <id>')
+  .description('disconnect all checkouts of a project; retain knowledge, notes and shared hooks')
+  .option('--dry-run', 'preview without writing (default)')
+  .option('--apply', 'apply the exact reviewed disconnection')
+  .option('--expect <revision>', 'required reviewed revision')
+  .option('--json', 'machine-readable output')
+  .action((id, options) => runManaged(() => planProjectDisconnect(hubRoot(), id), options));
+
+program
+  .command('undo')
+  .description(
+    'preview undo of quick or project connect; refuses later changes; distinct from first-baseline reset',
+  )
+  .argument('[run]', 'recorded workflow ID or latest', 'latest')
+  .option('--dry-run', 'preview without writing (default)')
+  .option('--apply', 'restore this workflow snapshot and archive current data')
+  .option('--expect <revision>', 'required exact reviewed undo revision')
+  .option('--json', 'machine-readable output')
+  .action(undoCommand);
 
 program
   .command('status')
@@ -108,6 +135,10 @@ program
   .option('--apply', 'write changes (with backup)')
   .option('--dry-run', 'show changes and exact commands, write nothing (default)')
   .option('--client <id>', 'only this client')
+  .option(
+    '--only <name...>',
+    'deliver only these exact MCP or skill names; preserve all other entries',
+  )
   .option('--area <area>', 'sync mcp, skills or context (default: mcp)', 'mcp')
   .option(
     '--replace <name...>',
@@ -118,16 +149,16 @@ program
   .action(syncCommand);
 program
   .command('import [item]')
-  .description(
-    'collect MCP or skills: MCP writes unless --dry-run; skills require reviewed preview/apply',
-  )
+  .description('collect MCP or skills: preview by default; apply only the exact reviewed revision')
+  .option('--interactive', 'preview MCP import, then confirm this same plan in the terminal')
   .option('--dry-run', 'show the plan, write nothing')
-  .option('--apply', 'apply a reviewed skills import')
-  .option('--expect <revision>', 'required for applying a skills import')
+  .option('--apply', 'apply a reviewed MCP or skills import')
+  .option('--expect <revision>', 'required exact reviewed import revision')
   .option(
     '--prefer <clients>',
-    'source preference (MCP default: claude-code,codex; skills require an explicit choice for differences)',
+    'explicit source preference when client definitions differ; no default winner',
   )
+  .option('--source <id>', 'read definitions from this client only')
   .option('--overwrite', 'replace servers that already exist in the hub')
   .option('--json', 'machine-readable output')
   .action(importCommand);
@@ -169,14 +200,16 @@ program
   .option('--json', 'machine-readable output without file contents')
   .action(resetCommand);
 
-const mcp = program.command('mcp').description('manage MCP registry');
+const mcp = program
+  .command('mcp')
+  .description('list or launch MCP entries; use import to collect existing definitions');
 mcp
   .command('ls')
   .description('list servers in the hub registry')
   .option('--json')
   .action(mcpLsCommand);
-mcp.command('add <name>').action(notImplemented('mcp add'));
-mcp.command('rm <name>').action(notImplemented('mcp rm'));
+mcp.command('add <name>', { hidden: true }).action(notImplemented('mcp add'));
+mcp.command('rm <name>', { hidden: true }).action(notImplemented('mcp rm'));
 mcp
   .command('run <name>')
   .description('launcher: start MCP over stdio with secrets from .env')

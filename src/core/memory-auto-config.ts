@@ -32,10 +32,14 @@ export function autoClient(value: unknown): ClientId {
 export async function readAutomation(root: string, workspace: string) {
   const location = await memoryLocation(root, { workspace });
   const file = await memoryFile(root, autoPolicyPath(location));
+  return { location, policy: parseAutomation(file.text), file };
+}
+
+export function parseAutomation(text: string | null): MemoryAutomation {
   let policy: MemoryAutomation = { version: 1, enabled: false, clients: [], native: [] };
-  if (file.text !== null) {
+  if (text !== null) {
     try {
-      const value: unknown = JSON.parse(file.text);
+      const value: unknown = JSON.parse(text);
       if (
         !isRecord(value) ||
         value.version !== 1 ||
@@ -61,7 +65,7 @@ export async function readAutomation(root: string, workspace: string) {
       throw new HubError('Invalid memory automation policy. Preserve it and resolve the metadata.');
     }
   }
-  return { location, policy, file };
+  return policy;
 }
 
 export function autoJson(

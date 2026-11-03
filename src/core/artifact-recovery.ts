@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { randomBytes } from 'node:crypto';
-import { recoveryRoot } from './recovery-paths.js';
+import { recoveryStorage, mirrorRecovery } from './recovery-storage.js';
 import { readOptionalText, writeAtomic } from './file-store.js';
 import {
   containsPath,
@@ -29,7 +29,7 @@ interface ArtifactBaseline {
   root: string;
   entries: OriginalArtifact[];
 }
-const directory = (root: string) => path.join(recoveryRoot(root), 'artifacts');
+const directory = (root: string) => path.join(recoveryStorage(root), 'artifacts');
 const manifestFile = (root: string) => path.join(directory(root), 'manifest.json');
 const intentsFile = (root: string) => path.join(directory(root), 'expected.json');
 const digest = (value: unknown): value is string =>
@@ -96,6 +96,7 @@ export async function ensureArtifactBaseline(
   root: string,
   targets: { before: ArtifactSnapshot; client: string }[],
 ): Promise<void> {
+  await mirrorRecovery(root, () => ensureArtifactBaseline(root, targets));
   const baseline = await readArtifactBaseline(root);
   const files = await readBaseline(root);
   const realRoot = await fs.realpath(root);
@@ -167,6 +168,7 @@ export async function recordArtifactWrites(
   inFlight = true,
 ): Promise<void> {
   if (!changes.length) return;
+  await mirrorRecovery(root, () => recordArtifactWrites(root, changes, inFlight));
   // A path has one first-touch owner, even when hooks and MCP edit the same file.
   const files = await readBaseline(root);
   const textChanges: FileIntent[] = [];

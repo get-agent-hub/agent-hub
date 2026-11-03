@@ -11,7 +11,7 @@ import { hash, isRecord, stableStringify } from './values.js';
 const exec = promisify(execFile);
 interface MemoryProjects {
   version: 1;
-  projects: { id: string; checkouts: { path: string; identity: string }[] }[];
+  projects: { id: string; connected?: boolean; checkouts: { path: string; identity: string }[] }[];
 }
 
 export async function memoryRegistry(root: string, optionalSettings = false) {
@@ -27,6 +27,8 @@ export async function memoryRegistry(root: string, optionalSettings = false) {
       const checkouts = new Set<string>();
       for (const project of value.projects) {
         if (!isRecord(project) || !Array.isArray(project.checkouts) || !project.checkouts.length)
+          throw new Error();
+        if (project.connected !== undefined && typeof project.connected !== 'boolean')
           throw new Error();
         const id = memoryId(project.id);
         if (ids.has(id)) throw new Error();
@@ -111,6 +113,10 @@ export async function memoryLocation(
     throw new HubError(
       'This project has no memory binding. Preview ahub project connect first, or use memory project register <id> for an explicit project ID.',
     );
+  if (project.connected === false)
+    throw new HubError(
+      'This project is disconnected. Preview ahub project connect <directory> to reconnect its retained knowledge.',
+    );
   if (
     !project.checkouts.some(
       (binding) => binding.path === checkout.path && binding.identity === checkout.identity,
@@ -155,12 +161,19 @@ export async function planMemoryProject(
     });
   } else if (
     bound &&
+    bound.connected !== false &&
     bound.checkouts.some(
       (binding) => binding.path === checkout.path && binding.identity === checkout.identity,
     )
   ) {
     rows.push({ path: checkout.path, client: 'memory', name: id, action: 'keep' });
-  } else if (bound && !rebind) {
+  } else if (
+    bound &&
+    !rebind &&
+    !bound.checkouts.some(
+      (binding) => binding.path === checkout.path && binding.identity === checkout.identity,
+    )
+  ) {
     rows.push({
       path: checkout.path,
       client: 'memory',
@@ -170,6 +183,8 @@ export async function planMemoryProject(
     });
   } else {
     const entry = registry.projects.find((project) => project.id === id);
+    if (bound) bound.connected = true;
+    if (entry) entry.connected = true;
     if (bound)
       bound.checkouts = bound.checkouts.map((binding) =>
         binding.path === checkout.path ? checkout : binding,

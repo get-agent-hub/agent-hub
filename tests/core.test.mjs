@@ -117,12 +117,29 @@ test('import rolls back credentials and registry if provenance cannot be saved',
 
 test('hub updates use one lock and release it after failure', async (t) => {
   const { root } = await fixture(t);
-  await withHubLock(root, async () => {
+  let entered;
+  let release;
+  const ready = new Promise((resolve) => {
+    entered = resolve;
+  });
+  const wait = new Promise((resolve) => {
+    release = resolve;
+  });
+  const held = withHubLock(root, async () => {
+    await withHubLock(root, async () => {}); // Dependent stages reuse their workflow lock.
+    entered();
+    await wait;
+  });
+  await ready;
+  try {
     await assert.rejects(
       withHubLock(root, async () => {}),
       /Another hub update/,
     );
-  });
+  } finally {
+    release();
+    await held;
+  }
   await assert.rejects(
     withHubLock(root, async () => {
       throw new Error('fixture failure');
@@ -290,7 +307,9 @@ test('production CLI completes import, copied sync, discovery and copied restore
       stdio: 'pipe',
     });
   run(['init', '--yes', '--no-git']);
-  const imported = JSON.parse(run(['import', 'mcp', '--json']));
+  const importPreview = JSON.parse(run(['import', 'mcp', '--json']));
+  assert.equal(importPreview.dryRun, true);
+  const imported = JSON.parse(exact(importPreview.commands.apply));
   assert.equal(imported.result.imported, 1);
   assert.ok(!JSON.stringify(imported).includes('fixture-private-cli-token'));
   const preview = JSON.parse(run(['sync', '--json']));

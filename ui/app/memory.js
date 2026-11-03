@@ -1,6 +1,6 @@
 import { escape } from './html.js';
 
-export function setupMemoryUi({ api, load, notice }) {
+export function setupMemoryUi({ api, load, notice, getState }) {
   const dialog = document.querySelector('#memory-dialog');
   const form = dialog.querySelector('#memory-form');
   const scope = dialog.querySelector('#memory-scope');
@@ -95,7 +95,10 @@ export function setupMemoryUi({ api, load, notice }) {
 
   document.addEventListener('click', (event) => {
     if (!event.target.closest('[data-memory-open]') || busy) return;
-    scope.value = 'project';
+    scope.value =
+      getState?.().selection?.memoryScope ||
+      getState?.().readiness?.memory.defaultScope ||
+      'shared';
     dialog.querySelector('#memory-query').value = '';
     reset();
     dialog.showModal();

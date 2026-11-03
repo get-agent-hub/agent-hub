@@ -182,13 +182,13 @@ const ui = await startUiServer({
   port,
   cwd: repo,
   services: {
-    state: () => uiState(repo, sources),
+    state: (cwd = repo) => uiState(cwd, sources),
     skill: (name, source) => skillDocument(name, source, sources),
     plan: (item, opts) => planImport(item, opts, sources),
     syncPlan: (opts) => planSync(opts, context),
     doctor: (opts, _, control) => runDoctor(opts, doctorContext, control),
-    contentPlan: (operation, opts) =>
-      planContent(operation, opts, repo, {
+    contentPlan: (operation, opts, cwd = repo) =>
+      planContent(operation, opts, cwd, {
         root: hub,
         clients: targets.map((target) => ({
           id: target.id,

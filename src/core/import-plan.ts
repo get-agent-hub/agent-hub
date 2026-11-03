@@ -3,6 +3,9 @@ import path from 'node:path';
 import { snapshot, type FileSnapshot } from './file-store.js';
 import { writeTransaction } from './file-transaction.js';
 import { withHubLock } from './hub-lock.js';
+import { fileURLToPath } from 'node:url';
+import { hubCommand } from './shell.js';
+import { CLIENT_IDS } from './types.js';
 import { HubError } from './errors.js';
 import { createHash } from 'node:crypto';
 import { adapters } from '../adapters/index.js';
@@ -27,10 +30,10 @@ import { parseRegistry, serializeRegistry, validServerName, type HubServer } fro
 import type { ClientAdapter, ClientId } from './types.js';
 
 export interface ImportOptions {
+  source?: ClientId;
   allowUninitialized?: boolean;
   prefer?: string;
   overwrite?: boolean;
-  chooseClient?: (name: string, clients: ClientId[], preferred: ClientId) => Promise<ClientId>;
 }
 export type ImportRow = {
   name: string;
@@ -43,6 +46,9 @@ export type ImportRow = {
 /** Internal plan contains credentials. Never serialize it; use publicImportPlan. */
 export interface ImportPlan {
   root: string;
+  item: string;
+  options: { source?: ClientId; prefer: string; overwrite: boolean };
+  blocked: boolean;
   inputs: FileSnapshot[];
   sources: ClientAdapter[];
   sourceRevision: string;
@@ -64,8 +70,18 @@ export async function planImport(
     throw new Error(
       `Only MCP import is implemented yet (try \`ahub import mcp\` or \`ahub import mcp:<name>\`).`,
     );
+  if (opts.source && !CLIENT_IDS.includes(opts.source))
+    throw new HubError('Unknown source client.');
+  sources = sources.filter((source) => !opts.source || source.id === opts.source);
   const only = item?.startsWith('mcp:') ? item.slice(4) : undefined;
-  const prefer = (opts.prefer ?? 'claude-code,codex').split(',').map((s) => s.trim()) as ClientId[];
+  if (item?.startsWith('mcp:') && (!only || !validServerName(only)))
+    throw new HubError('Choose a valid exact server name.');
+  const prefer = (opts.prefer ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean) as ClientId[];
+  if (prefer.some((id) => !CLIENT_IDS.includes(id)))
+    throw new HubError('Unknown source preference.');
 
   const root = path.resolve(hubRoot());
   const inputs = await Promise.all(
@@ -106,12 +122,7 @@ export async function planImport(
 
     let res = merge(name, cands, []);
     if (res.conflict && !res.server) {
-      // ask, or fall back to --prefer order
-      let pick = prefer.find((p) => cands.some((c) => c.client === p));
-      if (opts.chooseClient) {
-        const clientsWithVariant = [...new Set(cands.map((c) => c.client))];
-        pick = await opts.chooseClient(name, clientsWithVariant, pick ?? clientsWithVariant[0]);
-      }
+      const pick = prefer.find((p) => cands.some((c) => c.client === p));
       res = merge(name, cands, pick ? [pick] : prefer);
       if (!res.server) {
         rows.push({
@@ -169,10 +180,15 @@ export async function planImport(
     });
   }
 
+  if (only && !rows.length)
+    throw new HubError(
+      'No importable definition found in the selected client. Generated Hub launchers are not source definitions.',
+    );
   const revision = createHash('sha256')
     .update(
       JSON.stringify({
         raws,
+        source: opts.source,
         reg,
         env: [...envTaken],
         importedBefore,
@@ -186,6 +202,9 @@ export async function planImport(
 
   return {
     root,
+    item: item ?? 'mcp',
+    options: { source: opts.source, prefer: prefer.join(','), overwrite: !!opts.overwrite },
+    blocked: rows.some((row) => row.action === 'conflict' || row.action === 'error'),
     inputs,
     sources,
     sourceRevision,
@@ -198,7 +217,28 @@ export async function planImport(
   };
 }
 export function publicImportPlan(plan: ImportPlan) {
-  return { revision: plan.revision, servers: plan.rows, envVarsToAdd: plan.envVars };
+  const args = [
+    'import',
+    plan.item,
+    ...(plan.options.source ? ['--source', plan.options.source] : []),
+    ...(plan.options.prefer ? ['--prefer', plan.options.prefer] : []),
+    ...(plan.options.overwrite ? ['--overwrite'] : []),
+  ];
+  const context = {
+    root: plan.root,
+    node: process.execPath,
+    cli: fileURLToPath(new URL('../../dist/cli.js', import.meta.url)),
+  };
+  return {
+    revision: plan.revision,
+    blocked: plan.blocked,
+    servers: plan.rows,
+    envVarsToAdd: plan.envVars,
+    commands: {
+      dryRun: hubCommand(context, [...args, '--dry-run']),
+      apply: hubCommand(context, [...args, '--apply', '--expect', plan.revision]),
+    },
+  };
 }
 async function readSources(sources: ClientAdapter[]) {
   return Promise.all(
@@ -210,7 +250,11 @@ async function readSources(sources: ClientAdapter[]) {
 }
 const digest = (value: unknown) => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 
-export async function applyImport(plan: ImportPlan) {
+export async function applyImport(plan: ImportPlan, expect = plan.revision) {
+  if (expect !== plan.revision)
+    throw new HubError('Import inputs changed since preview. Review a new plan.');
+  if (plan.blocked)
+    throw new HubError('Import is blocked by conflicts. Choose a source and review again.');
   const changed = plan.rows.filter((row) => row.action === 'add' || row.action === 'update');
   if (!changed.length) return { imported: 0, commit: undefined };
   return withHubLock(plan.root, async (origin) => {

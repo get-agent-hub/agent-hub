@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { withWorkflowRecovery } from './workflow-recovery.js';
 import { fileURLToPath } from 'node:url';
 import { adapters } from '../adapters/index.js';
 import { inspectArtifact, assertArtifact } from './artifacts.js';
@@ -329,7 +330,7 @@ async function planSetup(input: SetupOptions) {
     steps,
     warnings: discovery?.warnings ?? [],
     recovery:
-      'Each writing stage keeps its existing recovery guarantees. This workflow is not one transaction. Reset returns to the first Hub baseline, which may predate this run.',
+      'Each writing stage keeps its existing recovery guarantees. The workflow records a guarded undo snapshot before writing. Undo returns to before this run; reset returns to the first Hub baseline.',
     commands: {
       dryRun: command([...args, '--dry-run']),
       apply: command([...args, '--apply', '--expect', revision]),
@@ -352,6 +353,21 @@ export function applyProjectConnect(plan: SetupPlan, expect: string) {
 }
 
 async function applySetup(plan: SetupPlan, expect: string) {
+  return withWorkflowRecovery(
+    plan.publicPlan.root,
+    plan.publicPlan.scope,
+    async () => {
+      if (
+        expect !== plan.publicPlan.revision ||
+        (await planSetup(plan.options)).publicPlan.revision !== expect
+      )
+        throw new HubError('Quick inputs changed since preview. Review a new plan.');
+    },
+    () => applyStages(plan, expect),
+  );
+}
+
+async function applyStages(plan: SetupPlan, expect: string) {
   if (expect !== plan.publicPlan.revision)
     throw new HubError('Review a current quick preview before applying.');
   const fresh = await planSetup(plan.options);
@@ -408,7 +424,7 @@ async function applySetup(plan: SetupPlan, expect: string) {
       if (imported.sourceRevision !== fresh.mcp!.sourceRevision)
         throw new HubError('Client MCP sources changed during quick setup. Retry a new preview.');
       const reviews = reviewRows(imported.rows);
-      const written = await applyImport(imported);
+      const written = imported.blocked ? { imported: 0 } : await applyImport(imported);
       steps.push({
         id: 'mcpImport',
         title: titles.mcpImport,

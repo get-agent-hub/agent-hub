@@ -660,3 +660,39 @@ test('client configs resolving to the same physical file are blocked during prev
   for (const target of f.context.targets)
     assert.equal(await fs.readFile(target.file, 'utf8'), original[target.id]);
 });
+
+test('item delivery preserves unrelated definitions and their ownership, including later removals', async (t) => {
+  const f = await fixture(t);
+  const registryFile = path.join(f.root, 'mcp/servers.yaml');
+  const registry = parse(await fs.readFile(registryFile, 'utf8'));
+  registry.servers.extra = { command: 'new-server' };
+  await fs.writeFile(registryFile, stringify(registry));
+  await applySync(await planSync({}, f.context));
+  const stateBefore = JSON.parse(await fs.readFile(path.join(f.root, 'state/sync.json'), 'utf8'));
+  delete registry.servers.extra;
+  registry.servers.demo.args = ['changed'];
+  await fs.writeFile(registryFile, stringify(registry));
+  const fileBefore = readDefinitions('codex', await fs.readFile(f.file('codex'), 'utf8'));
+  const plan = await planSync({ client: 'codex', only: ['demo'] }, f.context);
+  assert.deepEqual(
+    plan.targets[0].rows.map((row) => row.name),
+    ['demo'],
+  );
+  assert.match(publicSyncPlan(plan).commands.apply, /--only=demo/);
+  await applySync(plan);
+  const stateAfter = JSON.parse(await fs.readFile(path.join(f.root, 'state/sync.json'), 'utf8'));
+  assert.equal(stateAfter.clients.codex.entries.extra, stateBefore.clients.codex.entries.extra);
+  const fileAfter = readDefinitions('codex', await fs.readFile(f.file('codex'), 'utf8'));
+  assert.deepEqual(fileAfter.get('extra'), fileBefore.get('extra'));
+  assert.deepEqual(fileAfter.get('unrelated'), fileBefore.get('unrelated'));
+  assert.equal(
+    (await planSync({ client: 'codex' }, f.context)).targets[0].rows.find(
+      (row) => row.name === 'extra',
+    ).action,
+    'remove',
+  );
+  await assert.rejects(
+    planSync({ client: 'codex', only: ['demo'], replace: ['extra'] }, f.context),
+    /inside --only/,
+  );
+});

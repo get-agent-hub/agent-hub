@@ -5,7 +5,7 @@ import { randomBytes } from 'node:crypto';
 import { HubError } from './errors.js';
 import { snapshot, writeAtomic } from './file-store.js';
 import { copyTree, inspectTree, type TreeSnapshot } from './recovery-tree.js';
-import { recoveryRoot } from './recovery-paths.js';
+import { recoveryStorage, mirrorRecovery } from './recovery-storage.js';
 import { hash } from './values.js';
 import type { HubOrigin } from './hub-lock.js';
 import type { FileChange } from './file-transaction.js';
@@ -64,7 +64,10 @@ async function captureFiles(
 ): Promise<OriginalFile[]> {
   const files = [...existing];
   const artifacts = await readArtifactBaseline(root);
-  const realRoot = await fs.realpath(root);
+  const realRoot = await fs.realpath(root).catch((error: NodeJS.ErrnoException) => {
+    if (error.code === 'ENOENT') return path.resolve(root);
+    throw error;
+  });
   for (const target of targets) {
     if (
       target.installed === false ||
@@ -111,6 +114,7 @@ export async function ensureBaseline(
   targets: BaselineTarget[],
   origin: HubOrigin,
 ): Promise<Baseline> {
+  await mirrorRecovery(root, () => ensureBaseline(root, targets, origin));
   root = path.resolve(root);
   if (root === path.parse(root).root || root === os.homedir())
     throw new HubError('The filesystem root or home directory cannot be used as the hub.');
@@ -139,7 +143,7 @@ export async function ensureBaseline(
     }
     return baseline;
   }
-  const staging = await fs.mkdtemp(path.join(recoveryRoot(root), '.baseline-'));
+  const staging = await fs.mkdtemp(path.join(recoveryStorage(root), '.baseline-'));
   try {
     const hub: TreeSnapshot = origin.rootExisted
       ? await inspectTree(root, !origin.stateExisted)
@@ -177,6 +181,7 @@ export async function ensureBaseline(
 
 /** Durable intent permits recovery from either side of a partially completed write. */
 export async function recordExpectedWrites(root: string, changes: FileChange[]): Promise<void> {
+  await mirrorRecovery(root, () => recordExpectedWrites(root, changes));
   await recordFileIntents(root, changes);
   await recordArtifactFileWrites(root, changes);
 }

@@ -32,6 +32,9 @@ interface AutoEvent {
   expires: number;
   baseRevision: string;
   authority?: string;
+  hookAt?: string;
+  checkpointAt?: string;
+  submittedFacts?: number;
 }
 
 async function scopeRevision(root: string, workspace: string) {
@@ -153,7 +156,12 @@ export async function automaticCheckpoint(
         event.expires < Date.now()
       )
         throw new HubError('Checkpoint token expired, was used, or does not match this session.');
-      const request = autoJson(file, { ...event, stage: 'done' });
+      const request = autoJson(file, {
+        ...event,
+        stage: 'done',
+        checkpointAt: at,
+        submittedFacts: facts.length,
+      });
       return planAutomaticFacts(
         root,
         workspace,
@@ -287,6 +295,10 @@ export async function memoryHook(root: string, clientValue: unknown, value: unkn
           expires: Date.now() + 24 * 60 * 60_000,
           baseRevision: await scopeRevision(root, workspace),
           authority,
+          hookAt: new Date().toISOString(),
+          ...(event?.checkpointAt
+            ? { checkpointAt: event.checkpointAt, submittedFacts: event.submittedFacts }
+            : {}),
         };
       }
       if (eventName === 'Stop') {

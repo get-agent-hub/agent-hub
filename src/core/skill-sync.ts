@@ -54,7 +54,7 @@ async function readOwnership(root: string): Promise<SkillOwnership> {
 }
 
 export async function planSkillSync(
-  options: { client?: ClientId; replace?: string[] } = {},
+  options: { client?: ClientId; replace?: string[]; only?: string[] } = {},
   supplied?: ContentContext,
 ) {
   if (options.client && !CLIENT_IDS.includes(options.client)) throw new HubError('Unknown client.');
@@ -65,6 +65,16 @@ export async function planSkillSync(
       options.replace.some((name) => !validSkillName(name)))
   )
     throw new HubError('Skills replacement requires exact names and one --client.');
+  if (
+    options.only !== undefined &&
+    (!Array.isArray(options.only) ||
+      !options.only.length ||
+      options.only.length > 100 ||
+      options.only.some((name) => typeof name !== 'string' || !validSkillName(name)))
+  )
+    throw new HubError('Choose valid exact skill names for --only.');
+  if (options.only && options.replace?.some((name) => !options.only!.includes(name)))
+    throw new HubError('Replacement names must be inside --only.');
   const context = supplied ?? (await defaultContentContext());
   const settings = await readSettings(context.root);
   const hubSkills = await listHubSkills(context.root);
@@ -117,6 +127,7 @@ export async function planSkillSync(
         .map((entry) => entry.name),
     ]);
     for (const name of names) {
+      if (options.only && !options.only.includes(name)) continue;
       assertSkillName(name);
       const file = path.join(group.file, name);
       if (group.clients.some((client) => reservedSkill(client.id, name))) {
@@ -297,6 +308,7 @@ export async function planSkillSync(
         '--area',
         'skills',
         ...(options.client ? ['--client', options.client] : []),
+        ...(options.only?.map((name) => `--only=${name}`) ?? []),
         ...(options.replace?.map((name) => `--replace=${name}`) ?? []),
       ],
     },

@@ -16,15 +16,16 @@ interface Options {
   client?: string;
   expect?: string;
   replace?: string[];
+  only?: string[];
   json?: boolean;
 }
 
 export async function syncCommand(opts: Options) {
   if (opts.area && opts.area !== 'mcp') {
     if (opts.area === 'context') {
-      if (opts.replace)
+      if (opts.replace || opts.only)
         throw new HubError(
-          '--replace is not supported for instruction blocks. Resolve edited blocks explicitly.',
+          '--replace and --only are not supported for instruction blocks. Resolve edited blocks explicitly.',
         );
       return runManaged(
         () => planContextSync({ client: opts.client as ClientId | undefined }),
@@ -34,14 +35,22 @@ export async function syncCommand(opts: Options) {
     if (opts.area !== 'skills')
       throw new HubError('Unknown sync area. Choose mcp, skills or context.');
     return runManaged(
-      () => planSkillSync({ client: opts.client as ClientId | undefined, replace: opts.replace }),
+      () =>
+        planSkillSync({
+          client: opts.client as ClientId | undefined,
+          replace: opts.replace,
+          only: opts.only,
+        }),
       opts,
     );
   }
   if (opts.apply && opts.dryRun) throw new HubError('Choose --dry-run or --apply, not both.');
+  if (opts.apply && !opts.expect)
+    throw new HubError('Preview sync first, then apply with its exact --expect revision.');
   const plan = await planSync({
     client: opts.client as ClientId | undefined,
     replace: opts.replace,
+    only: opts.only,
   });
   if (opts.expect && opts.expect !== plan.revision)
     throw new HubError('Configuration changed since that dry run. Review a new plan.');
@@ -89,6 +98,8 @@ export async function syncCommand(opts: Options) {
 export async function restoreCommand(id: string, opts: Options) {
   if (id.startsWith('content-')) return runManaged(() => planManagedRestore(id, hubRoot()), opts);
   if (opts.apply && opts.dryRun) throw new HubError('Choose --dry-run or --apply, not both.');
+  if (opts.apply && !opts.expect)
+    throw new HubError('Preview restore first, then apply with its exact --expect revision.');
   const plan = await planRestore(id);
   if (opts.expect && opts.expect !== plan.revision)
     throw new HubError('Configuration changed since that restore preview.');

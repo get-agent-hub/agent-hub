@@ -5,13 +5,14 @@ import { randomBytes } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { applyImport, planImport, publicImportPlan } from '../core/import-plan.js';
 import { skillDocument, uiState } from './data.js';
-import { applySync, planSync, publicSyncPlan } from '../core/sync.js';
+import { applySync, planSync, publicSyncPlan, type SyncOptions } from '../core/sync.js';
 import { runDoctor, validateDoctorOptions, type DoctorOptions } from '../core/doctor.js';
 import type { DoctorReport, DoctorResult } from '../core/doctor-types.js';
 import { planContent, type ContentOperation, type ContentOptions } from './content.js';
 import { publicManagedPlan, applyManagedPlan } from '../core/managed-plan.js';
 import type { ClientId } from '../core/types.js';
 import { createMemorySession, type MemorySession } from '../core/memory-session.js';
+import { registeredWorkspace, projectCatalog } from '../core/project-catalog.js';
 import { hubRoot } from '../core/paths.js';
 import { planQuick, applyQuick, planProjectConnect, applyProjectConnect } from '../core/quick.js';
 
@@ -66,7 +67,7 @@ export async function startUiServer(
       quickApply?: typeof applyQuick;
       projectPlan?: typeof planProjectConnect;
       projectApply?: typeof applyProjectConnect;
-      state?: () => Promise<unknown>;
+      state?: (cwd?: string) => Promise<unknown>;
       plan?: typeof planImport;
       apply?: typeof applyImport;
       skill?: typeof skillDocument;
@@ -78,27 +79,36 @@ export async function startUiServer(
     };
   } = {},
 ) {
+  const startupWorkspace = options.cwd ?? process.cwd();
+  let selectedWorkspace = startupWorkspace;
+  let selectedProject: string | null | undefined;
+  const memorySession = () =>
+    createMemorySession({
+      root: hubRoot(),
+      workspace: selectedWorkspace,
+      includeShared: true,
+      project: selectedProject !== null,
+      writable: true,
+      sharedWritable: true,
+    });
   const services = {
     quickPlan: planQuick,
     quickApply: applyQuick,
     projectPlan: planProjectConnect,
     projectApply: applyProjectConnect,
-    state: () => uiState(options.cwd ?? process.cwd()),
+    state: (cwd = selectedWorkspace) => uiState(cwd),
     plan: planImport,
     apply: applyImport,
     skill: skillDocument,
     syncPlan: planSync,
     syncApply: applySync,
     doctor: runDoctor,
-    contentPlan: (operation: ContentOperation, contentOptions: ContentOptions) =>
-      planContent(operation, contentOptions, options.cwd ?? process.cwd()),
-    memory: createMemorySession({
-      root: hubRoot(),
-      workspace: options.cwd ?? process.cwd(),
-      includeShared: true,
-      writable: true,
-      sharedWritable: true,
-    }),
+    contentPlan: (
+      operation: ContentOperation,
+      contentOptions: ContentOptions,
+      cwd = selectedWorkspace,
+    ) => planContent(operation, contentOptions, cwd),
+    memory: memorySession(),
     ...options.services,
   };
   const token = randomBytes(32).toString('hex');
@@ -114,11 +124,18 @@ export async function startUiServer(
   >();
   const previews = new Map<
     string,
-    { item: string; prefer: string; overwrite: boolean; revision: string; expires: number }
+    {
+      item: string;
+      source?: ClientId;
+      prefer: string;
+      overwrite: boolean;
+      revision: string;
+      expires: number;
+    }
   >();
   const syncPreviews = new Map<
     string,
-    { client?: 'dsh' | 'codex' | 'claude-code'; revision: string; expires: number }
+    { options: SyncOptions; revision: string; expires: number }
   >();
   type DoctorJob = {
     id: string;
@@ -169,7 +186,84 @@ export async function startUiServer(
         return;
       }
       if (req.method === 'GET' && url.pathname === '/api/state') {
-        json(200, { ...((await services.state()) as object), token });
+        const state = (await services.state(selectedWorkspace)) as {
+          readiness?: {
+            next?: string | null;
+            memory?: { projectId?: string | null; defaultScope?: string };
+          };
+        };
+        json(200, {
+          ...state,
+          ...(selectedProject === null
+            ? {
+                workspace: null,
+                readiness: state.readiness
+                  ? {
+                      ...state.readiness,
+                      next: state.readiness.next?.startsWith('ahub ') ? state.readiness.next : null,
+                      memory: {
+                        ...state.readiness.memory,
+                        projectId: null,
+                        projectDirectory: null,
+                        projectRecords: 0,
+                        defaultScope: 'shared',
+                        state: 'not-connected',
+                        hooks: 'not-connected',
+                        automation: false,
+                        activity: [],
+                      },
+                    }
+                  : undefined,
+              }
+            : {}),
+          projects: await projectCatalog(hubRoot()),
+          selection: {
+            mode:
+              selectedProject === undefined
+                ? 'current'
+                : selectedProject === null
+                  ? 'shared'
+                  : 'project',
+            projectId:
+              selectedProject === undefined
+                ? (state.readiness?.memory?.projectId ?? null)
+                : selectedProject,
+            memoryScope:
+              selectedProject === null
+                ? 'shared'
+                : (state.readiness?.memory?.defaultScope ?? 'shared'),
+          },
+          token,
+        });
+        return;
+      }
+      if (req.method === 'POST' && url.pathname === '/api/project/select') {
+        if (req.headers['x-agent-hub-token'] !== token)
+          throw new RequestError(403, 'Refresh the page before selecting a project.');
+        if (applying) throw new RequestError(409, 'Another operation is running.');
+        const body = await jsonBody(req);
+        if (
+          Object.keys(body).some((key) => key !== 'projectId') ||
+          !(body.projectId === null || typeof body.projectId === 'string')
+        )
+          throw new RequestError(
+            400,
+            'Choose a registered project ID, current folder or shared knowledge.',
+          );
+        const workspace =
+          body.projectId === null || body.projectId === '@current'
+            ? startupWorkspace
+            : await registeredWorkspace(hubRoot(), body.projectId as string);
+        if (applying) throw new RequestError(409, 'Another operation is running.');
+        selectedWorkspace = workspace;
+        selectedProject =
+          body.projectId === '@current' ? undefined : (body.projectId as string | null);
+        services.memory = memorySession();
+        quickPreviews.clear();
+        contentPreviews.clear();
+        previews.clear();
+        syncPreviews.clear();
+        json(200, { selected: selectedProject ?? null, previewsInvalidated: true });
         return;
       }
       if (
@@ -182,6 +276,11 @@ export async function startUiServer(
         ].includes(url.pathname)
       ) {
         const project = url.pathname.startsWith('/api/project/');
+        if (project && selectedProject === null)
+          throw new RequestError(
+            409,
+            'Select a registered project or the startup folder before connecting.',
+          );
         if (req.headers['x-agent-hub-token'] !== token)
           throw new RequestError(403, 'Refresh the page before running setup.');
         if (applying) throw new RequestError(409, 'Another operation is running.');
@@ -208,7 +307,7 @@ export async function startUiServer(
             throw new RequestError(400, 'Invalid setup options.');
           const plan = project
             ? await services.projectPlan({
-                workspace: options.cwd ?? process.cwd(),
+                workspace: selectedWorkspace,
                 clients: body.clients as ClientId[] | undefined,
                 automation: body.automation as boolean | undefined,
               })
@@ -428,12 +527,17 @@ export async function startUiServer(
           )
             throw new RequestError(400, 'Choose a known client.');
           const client = body.client as 'dsh' | 'codex' | 'claude-code' | undefined;
-          const plan = await services.syncPlan({ client });
+          const syncOptions: SyncOptions = {
+            client,
+            only: body.only as string[] | undefined,
+            replace: body.replace as string[] | undefined,
+          };
+          const plan = await services.syncPlan(syncOptions);
           const id = randomBytes(16).toString('hex');
           for (const [key, p] of syncPreviews) if (p.expires < Date.now()) syncPreviews.delete(key);
           if (syncPreviews.size >= 50) syncPreviews.delete(syncPreviews.keys().next().value!);
           syncPreviews.set(id, {
-            client,
+            options: syncOptions,
             revision: plan.revision,
             expires: Date.now() + 5 * 60_000,
           });
@@ -446,7 +550,7 @@ export async function startUiServer(
           throw new RequestError(409, 'Preview expired. Run a new dry run.');
         applying = true;
         try {
-          const plan = await services.syncPlan({ client: preview.client });
+          const plan = await services.syncPlan(preview.options);
           if (plan.revision !== preview.revision)
             throw new RequestError(
               409,
@@ -474,16 +578,20 @@ export async function startUiServer(
           const item = typeof body.item === 'string' ? body.item : 'mcp';
           if (item !== 'mcp' && !/^mcp:.{1,200}$/.test(item))
             throw new RequestError(400, 'Choose MCP servers to import.');
-          const prefer = typeof body.prefer === 'string' ? body.prefer : 'claude-code,codex,dsh';
-          if (!/^(claude-code|codex|dsh)(,(claude-code|codex|dsh))*$/.test(prefer))
+          const prefer = typeof body.prefer === 'string' ? body.prefer : '';
+          if (prefer && !/^(claude-code|codex|dsh)(,(claude-code|codex|dsh))*$/.test(prefer))
             throw new RequestError(400, 'Unknown source client.');
           const overwrite = body.overwrite === true;
-          const plan = await services.plan(item, { prefer, overwrite });
+          const source = body.source as ClientId | undefined;
+          if (source !== undefined && !['dsh', 'codex', 'claude-code'].includes(source))
+            throw new RequestError(400, 'Choose a known source client.');
+          const plan = await services.plan(item, { source, prefer, overwrite });
           const id = randomBytes(16).toString('hex');
           for (const [key, p] of previews) if (p.expires < Date.now()) previews.delete(key);
           if (previews.size >= 50) previews.delete(previews.keys().next().value!);
           previews.set(id, {
             item,
+            source,
             prefer,
             overwrite,
             revision: plan.revision,
@@ -504,6 +612,8 @@ export async function startUiServer(
               409,
               'Configuration changed since preview. Review the import again.',
             );
+          if (plan.blocked)
+            throw new RequestError(409, 'Resolve import conflicts before applying.');
           previews.delete(id);
           json(200, await services.apply(plan));
         } finally {
@@ -522,15 +632,20 @@ export async function startUiServer(
         if (applying) throw new RequestError(409, 'Another operation is running.');
         if (url.pathname.endsWith('/preview')) {
           const operation = body.operation as ContentOperation;
+          if (selectedProject === null && ['init-repo', 'project-disconnect'].includes(operation))
+            throw new RequestError(409, 'Select a project before changing repository setup.');
           const contentOptions: ContentOptions = {
             client: body.client as ClientId | undefined,
+            source: body.source as ClientId | undefined,
+            name: body.name as string | undefined,
+            only: body.only as string[] | undefined,
             prefer: body.prefer as string | undefined,
             overwrite: body.overwrite as boolean | undefined,
             replace: body.replace as string[] | undefined,
           };
           if (contentOptions.prefer !== undefined && typeof contentOptions.prefer !== 'string')
             throw new RequestError(400, 'Choose a known source preference.');
-          const plan = await services.contentPlan(operation, contentOptions);
+          const plan = await services.contentPlan(operation, contentOptions, selectedWorkspace);
           for (const [id, preview] of contentPreviews)
             if (preview.expires < Date.now()) contentPreviews.delete(id);
           if (contentPreviews.size >= 50)

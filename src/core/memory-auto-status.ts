@@ -45,6 +45,15 @@ export async function autoStatus(root: string, workspace: string) {
   // Older/restored tokens are no longer actionable, even if their local stage is requested.
   const authority = await automationAuthority(root).catch(() => null);
   let pending = 0;
+  const latest = new Map<
+    string,
+    {
+      client: string;
+      hookAt: string | null;
+      checkpointAt: string | null;
+      submittedFacts: number | null;
+    }
+  >();
   for (const folder of ['conflicts', 'sessions']) {
     const directory = path.join(autoDirectory(location), folder);
     await memoryPath(root, directory, true);
@@ -77,6 +86,35 @@ export async function autoStatus(root: string, workspace: string) {
         conflicts.push({ id: value.id, source: value.source, reason: value.reason });
       if (
         folder === 'sessions' &&
+        typeof value.client === 'string' &&
+        authority !== null &&
+        value.authority === authority
+      ) {
+        const time = (value: unknown) =>
+          typeof value === 'string' && Number.isFinite(Date.parse(value)) ? value : null;
+        const previous = latest.get(value.client);
+        const hookAt = time(value.hookAt);
+        const checkpointAt = time(value.checkpointAt);
+        latest.set(value.client, {
+          client: value.client,
+          hookAt:
+            hookAt && (!previous?.hookAt || hookAt > previous.hookAt)
+              ? hookAt
+              : (previous?.hookAt ?? null),
+          checkpointAt:
+            checkpointAt && (!previous?.checkpointAt || checkpointAt > previous.checkpointAt)
+              ? checkpointAt
+              : (previous?.checkpointAt ?? null),
+          submittedFacts:
+            checkpointAt &&
+            (!previous?.checkpointAt || checkpointAt > previous.checkpointAt) &&
+            typeof value.submittedFacts === 'number'
+              ? value.submittedFacts
+              : (previous?.submittedFacts ?? null),
+        });
+      }
+      if (
+        folder === 'sessions' &&
         value.stage === 'requested' &&
         authority !== null &&
         value.authority === authority &&
@@ -86,5 +124,12 @@ export async function autoStatus(root: string, workspace: string) {
         pending++;
     }
   }
-  return { scope: location.scope, policy, native, conflicts, pendingCheckpoints: pending };
+  return {
+    scope: location.scope,
+    policy,
+    native,
+    conflicts,
+    pendingCheckpoints: pending,
+    activity: [...latest.values()],
+  };
 }

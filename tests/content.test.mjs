@@ -661,3 +661,34 @@ test('corrupt artifact originals and foreign recovery links stop before changing
   await assert.rejects(planReset({}, context.root), /real directory/);
   assert.equal(await fs.readFile(path.join(foreign, 'keep.txt'), 'utf8'), 'Unrelated data.');
 });
+
+test('one-client skill import and item delivery preserve unrelated bundles and ownership', async (t) => {
+  const context = await fixture(t);
+  for (const client of context.clients.slice(0, 2))
+    await skill(path.join(client.skills, 'demo'), `# ${client.id}\n`);
+  await apply(() => planSkillImport('skills:demo', { source: 'codex', overwrite: true }, context));
+  assert.match(
+    await fs.readFile(path.join(context.root, 'skills/demo/SKILL.md'), 'utf8'),
+    /# codex/,
+  );
+  await skill(path.join(context.root, 'skills/extra'));
+  await apply(() => planSkillSync({ client: 'claude-code', replace: ['demo'] }, context));
+  const ownership = await fs.readFile(path.join(context.root, 'state/skills.json'), 'utf8');
+  const extra = await inspectArtifact(path.join(context.clients[0].skills, 'extra'));
+  await fs.rm(path.join(context.root, 'skills/extra'), { recursive: true });
+  const build = () => planSkillSync({ client: 'claude-code', only: ['demo'] }, context);
+  const plan = await build();
+  assert.equal(
+    plan.rows.some((row) => row.name === 'extra'),
+    false,
+  );
+  await apply(build);
+  assert.equal((await inspectArtifact(extra.path)).fingerprint, extra.fingerprint);
+  assert.equal(await fs.readFile(path.join(context.root, 'state/skills.json'), 'utf8'), ownership);
+  assert.equal(
+    (await planSkillSync({ client: 'claude-code' }, context)).rows.find(
+      (row) => row.name === 'extra',
+    ).action,
+    'remove',
+  );
+});

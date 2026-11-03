@@ -144,10 +144,18 @@ test('the first baseline survives multiple syncs and restoration of individual b
     'utf8',
   );
   await applySync(await planSync({ client: 'dsh' }, f.context));
-  assert.equal(
+  const firstBaseline = JSON.parse(baselineBefore);
+  const extended = JSON.parse(
     await fs.readFile(path.join(baselineDirectory(f.root), 'manifest.json'), 'utf8'),
-    baselineBefore,
   );
+  assert.equal(extended.capturedAt, firstBaseline.capturedAt);
+  assert.deepEqual(extended.hub, firstBaseline.hub);
+  for (const file of firstBaseline.files)
+    assert.deepEqual(
+      extended.files.find((entry) => entry.file === file.file),
+      file,
+    );
+  assert.ok(extended.files.some((entry) => entry.file === f.file('dsh')));
   await assert.rejects(applyRestore(await planRestore(first.backup, f.context)), /blocked/);
   const reset = await planReset({}, f.root);
   await applyReset(reset, reset.revision);
@@ -531,10 +539,20 @@ test('reset restores a pre-existing Git hub including its original HEAD and stag
   const head = git(['rev-parse', 'HEAD']);
   const tree = await inspectTree(f.root);
   execFileSync(process.execPath, [cli, 'init', '--yes'], { env: f.env, stdio: 'pipe' });
-  execFileSync(process.execPath, [cli, 'import', 'mcp', '--overwrite', '--json'], {
-    env: f.env,
-    stdio: 'pipe',
-  });
+  const importPreview = JSON.parse(
+    execFileSync(process.execPath, [cli, 'import', 'mcp', '--overwrite', '--json'], {
+      env: f.env,
+      encoding: 'utf8',
+    }),
+  );
+  execFileSync(
+    process.execPath,
+    [cli, 'import', 'mcp', '--overwrite', '--apply', '--expect', importPreview.revision, '--json'],
+    {
+      env: f.env,
+      stdio: 'pipe',
+    },
+  );
   const plan = await planReset({}, f.root);
   await applyReset(plan, plan.revision);
   assert.equal((await inspectTree(f.root)).fingerprint, tree.fingerprint);

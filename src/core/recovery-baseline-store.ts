@@ -1,7 +1,7 @@
 import path from 'node:path';
 import { readOptionalText, type FileSnapshot } from './file-store.js';
 import type { TreeSnapshot } from './recovery-tree.js';
-import { recoveryRoot } from './recovery-paths.js';
+import { recoveryStorage } from './recovery-storage.js';
 import { containsPath } from './artifacts.js';
 import { HubError } from './errors.js';
 
@@ -19,7 +19,7 @@ export interface Baseline {
   hub: TreeSnapshot;
   files: OriginalFile[];
 }
-export const baselineDirectory = (root: string) => path.join(recoveryRoot(root), 'baseline');
+export const baselineDirectory = (root: string) => path.join(recoveryStorage(root), 'baseline');
 
 export async function readBaseline(root: string): Promise<Baseline | null> {
   const text = await readOptionalText(path.join(baselineDirectory(root), 'manifest.json'));

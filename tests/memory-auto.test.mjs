@@ -343,12 +343,17 @@ test('Stop hooks request one semantic checkpoint; DSH false loop flags cannot cr
 test('automatic checkpoints batch facts and index together and support an empty no-learning acknowledgement', async (t) => {
   const f = await fixture(t);
   await enable(f, 'codex', null);
+  assert.deepEqual((await autoStatus(f.root, f.workspace)).activity, []);
   const stop = await memoryHook(f.root, 'codex', payload(f, 'Stop'));
+  assert.ok((await autoStatus(f.root, f.workspace)).activity[0].hookAt);
   const result = await automaticCheckpoint(f.root, f.workspace, 'codex', tokenOf(stop), {
     session: 'fixture-session',
     facts: [fact(), fact('pagination', 'Follow the next cursor until absent.')],
   });
   assert.equal(result.saved, 2);
+  const observed = (await autoStatus(f.root, f.workspace)).activity[0];
+  assert.ok(observed.checkpointAt);
+  assert.equal(observed.submittedFacts, 2);
   assert.equal((await records(f)).length, 2);
   const index = await fs.readFile(
     (await memoryLocation(f.root, { workspace: f.workspace })).index,
@@ -375,6 +380,7 @@ test('automatic checkpoints batch facts and index together and support an empty 
     facts: [],
   });
   assert.equal(empty.saved, 0);
+  assert.equal((await autoStatus(f.root, f.workspace)).activity[0].submittedFacts, 0);
   assert.equal(empty.changedPaths, 1);
 });
 

@@ -17,9 +17,16 @@ import {
 
 export async function planSkillImport(
   item = 'skills',
-  options: { prefer?: string; overwrite?: boolean; allowUninitialized?: boolean } = {},
+  options: {
+    source?: ClientId;
+    prefer?: string;
+    overwrite?: boolean;
+    allowUninitialized?: boolean;
+  } = {},
   supplied?: ContentContext,
 ) {
+  if (options.source && !CLIENT_IDS.includes(options.source))
+    throw new HubError('Unknown source client.');
   const context = supplied ?? (await defaultContentContext());
   const settings = await readSettings(context.root, options.allowUninitialized);
   const selected = item.includes(':') ? item.slice(item.indexOf(':') + 1) : undefined;
@@ -30,7 +37,10 @@ export async function planSkillImport(
   const candidates = new Map<string, { client: ClientId; source: ArtifactSnapshot }[]>();
   const rows: ManagedRow[] = [];
   for (const client of context.clients.filter(
-    (client) => client.installed && settings.clients?.[client.id]?.enabled !== false,
+    (client) =>
+      client.installed &&
+      settings.clients?.[client.id]?.enabled !== false &&
+      (!options.source || client.id === options.source),
   ))
     for (const directory of [...new Set([client.skills, ...client.additionalSkills])]) {
       for (const entry of await listSkills(directory)) {
@@ -134,6 +144,7 @@ export async function planSkillImport(
       command: [
         'import',
         item,
+        ...(options.source ? ['--source', options.source] : []),
         ...(options.prefer ? ['--prefer', options.prefer] : []),
         ...(options.overwrite ? ['--overwrite'] : []),
       ],

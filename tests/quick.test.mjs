@@ -383,3 +383,78 @@ test('quick protects a disabled client sharing a selected client skill root', as
   await assert.rejects(fs.access(path.join(f.shared, 'demo-skill')), { code: 'ENOENT' });
   assert.equal((await inspectArtifact(f.configs[2])).fingerprint, f.originals[2].fingerprint);
 });
+
+test('workflow undo restores fresh setup and project connection separately, retaining first-baseline recovery', async (t) => {
+  const f = await fixture(t);
+  const initialProject = await fs.readFile(path.join(f.workspace, 'AGENTS.md'), 'utf8');
+  const setup = f.apply(f.preview());
+  assert.match(setup.run, /^run-/);
+  assert.match(setup.undoCommand, /undo/);
+  const connected = f.apply(f.connect());
+  const projectUndo = f.run(['undo', connected.run]);
+  assert.equal(projectUndo.blocked, false);
+  const result = f.run(['undo', connected.run, '--apply', '--expect', projectUndo.revision]);
+  assert.ok(result.archive);
+  assert.equal(await fs.readFile(path.join(f.workspace, 'AGENTS.md'), 'utf8'), initialProject);
+  const setupUndo = f.run(['undo', 'latest']);
+  assert.equal(setupUndo.run, setup.run);
+  assert.equal(setupUndo.blocked, false);
+  f.run(['undo', setup.run, '--apply', '--expect', setupUndo.revision]);
+  await assert.rejects(fs.access(f.root));
+  for (const before of f.originals)
+    assert.equal((await inspectArtifact(before.path)).fingerprint, before.fingerprint);
+  assert.equal(f.run(['reset']).blocked, false);
+});
+
+test('workflow undo rejects later Hub/client edits and stale previews before overwriting data', async (t) => {
+  const f = await fixture(t);
+  const setup = f.apply(f.preview());
+  const preview = f.run(['undo', setup.run]);
+  await fs.mkdir(path.join(f.root, 'memory'), { recursive: true });
+  await fs.appendFile(path.join(f.root, 'memory/MEMORY.md'), '\n# Later user knowledge\n');
+  const blocked = f.run(['undo', setup.run], 1);
+  assert.equal(blocked.changedAfterRun, true);
+  const result = spawnSync(
+    process.execPath,
+    [cli, 'undo', setup.run, '--apply', '--expect', preview.revision],
+    { env: f.env, encoding: 'utf8' },
+  );
+  assert.equal(result.status, 1);
+  assert.match(
+    await fs.readFile(path.join(f.root, 'memory/MEMORY.md'), 'utf8'),
+    /Later user knowledge/,
+  );
+  await fs.rm(path.join(f.root, 'memory'), { recursive: true });
+  await fs.appendFile(f.configs[0], '\n');
+  assert.equal(f.run(['undo', setup.run], 1).changedAfterRun, true);
+});
+
+test('MCP import previews without writes, requires exact approval and allows an explicit single-client source', async (t) => {
+  const f = await fixture(t);
+  f.apply(f.preview());
+  const config = JSON.parse(await fs.readFile(f.configs[0], 'utf8'));
+  config.mcpServers.newItem = { command: 'private-server', env: { API_TOKEN: secret } };
+  await fs.writeFile(f.configs[0], JSON.stringify(config));
+  const before = await inspectArtifact(f.root);
+  const plan = f.run(['import', 'mcp:newItem', '--source', 'claude-code']);
+  assert.equal(plan.dryRun, true);
+  assert.equal((await inspectArtifact(f.root)).fingerprint, before.fingerprint);
+  const rejected = spawnSync(process.execPath, [cli, 'import', 'mcp:newItem', '--apply'], {
+    env: f.env,
+    encoding: 'utf8',
+  });
+  assert.equal(rejected.status, 1);
+  assert.match(rejected.stderr, /expect/);
+  const imported = f.run([
+    'import',
+    'mcp:newItem',
+    '--source',
+    'claude-code',
+    '--apply',
+    '--expect',
+    plan.revision,
+  ]);
+  assert.equal(imported.result.imported, 1);
+  const help = execFileSync(process.execPath, [cli, 'mcp', '--help'], { encoding: 'utf8' });
+  assert.doesNotMatch(help, /add\s|rm\s/);
+});

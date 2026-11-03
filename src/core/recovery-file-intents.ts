@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { readOptionalText, writeAtomic } from './file-store.js';
-import { recoveryRoot } from './recovery-paths.js';
+import { recoveryStorage } from './recovery-storage.js';
 import type { FileChange } from './file-transaction.js';
 import { HubError } from './errors.js';
 import { hash } from './values.js';
@@ -14,7 +14,7 @@ export interface ExpectedWrites {
   files: Record<string, { hashes: string[]; modes: number[] }>;
 }
 export async function readExpectedWrites(root: string): Promise<ExpectedWrites> {
-  const text = await readOptionalText(path.join(recoveryRoot(root), 'expected.json'));
+  const text = await readOptionalText(path.join(recoveryStorage(root), 'expected.json'));
   if (text === null) return { version: 1, files: {} };
   try {
     const doc = JSON.parse(text) as ExpectedWrites;
@@ -55,7 +55,7 @@ export async function recordFileIntents(root: string, changes: FileIntent[]): Pr
       writable: true,
     });
   await writeAtomic(
-    path.join(recoveryRoot(root), 'expected.json'),
+    path.join(recoveryStorage(root), 'expected.json'),
     JSON.stringify(expected, null, 2) + '\n',
     0o600,
   );

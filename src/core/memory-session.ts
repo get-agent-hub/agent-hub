@@ -20,6 +20,7 @@ export interface MemorySessionOptions {
   root: string;
   workspace: string;
   includeShared?: boolean;
+  project?: boolean;
   writable?: boolean;
   sharedWritable?: boolean;
   automatic?: boolean;
@@ -34,6 +35,8 @@ export function createMemorySession(options: MemorySessionOptions) {
   const context = (scope: unknown = 'project', writing = false): MemoryContext => {
     if (scope !== 'project' && scope !== 'shared')
       throw new HubError('Choose project or shared memory.');
+    if (scope === 'project' && options.project === false)
+      throw new HubError('Select a connected project before accessing project memory.');
     if (scope === 'shared' && !options.includeShared)
       throw new HubError('Shared memory is not enabled for this session.');
     if (writing && (!options.writable || (scope === 'shared' && !options.sharedWritable)))
@@ -54,6 +57,7 @@ export function createMemorySession(options: MemorySessionOptions) {
   };
   return {
     async discover() {
+      context('project');
       return discoverMemory(options.root, options.workspace);
     },
     async previewOnboarding(sources: string[], follow: boolean) {
@@ -64,6 +68,7 @@ export function createMemorySession(options: MemorySessionOptions) {
       return remember(await build(), build);
     },
     async automation() {
+      context('project');
       return autoStatus(options.root, options.workspace);
     },
     async conflict(id: string) {

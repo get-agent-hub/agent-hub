@@ -1,4 +1,5 @@
 import fs from 'node:fs/promises';
+import { AsyncLocalStorage } from 'node:async_hooks';
 import path from 'node:path';
 import { HubError } from './errors.js';
 import { snapshot, writeChecked, readOptionalText, type FileSnapshot } from './file-store.js';
@@ -106,12 +107,32 @@ async function release(file: string, handle: fs.FileHandle): Promise<void> {
   }
 }
 
+interface HeldLock {
+  origin: HubOrigin;
+  current: HubOrigin;
+  inner?: fs.FileHandle;
+  innerAcquisition?: Promise<fs.FileHandle>;
+}
+const heldLocks = new AsyncLocalStorage<Map<string, HeldLock>>();
+
 /** The external lock survives a hub-directory reset; the inner lock coordinates older clients. */
 export async function withHubLock<T>(
   root: string,
-  action: (origin: HubOrigin) => Promise<T>,
+  action: (origin: HubOrigin, current: HubOrigin) => Promise<T>,
   options: { createHub?: boolean } = {},
 ): Promise<T> {
+  root = path.resolve(root);
+  const held = heldLocks.getStore()?.get(root);
+  if (held) {
+    if (options.createHub !== false) {
+      await fs.mkdir(path.join(root, 'state'), { recursive: true, mode: 0o700 });
+      if (!held.inner) {
+        held.innerAcquisition ??= acquire(lockPaths(root)[1]);
+        held.inner = await held.innerAcquisition;
+      }
+    }
+    return action(held.origin, held.current);
+  }
   const recovery = recoveryRoot(root);
   await fs.mkdir(recovery, { recursive: true, mode: 0o700 });
   const recoveryStat = await fs.lstat(recovery);
@@ -169,10 +190,13 @@ export async function withHubLock<T>(
     if (options.createHub !== false)
       await fs.mkdir(path.dirname(innerFile), { recursive: true, mode: 0o700 });
     const inner = (await present(path.dirname(innerFile))) ? await acquire(innerFile) : undefined;
+    const scope: HeldLock = { origin, current: first, inner };
     try {
-      return await action(origin);
+      const locks = new Map(heldLocks.getStore());
+      locks.set(root, scope);
+      return await heldLocks.run(locks, () => action(origin, first));
     } finally {
-      if (inner) await release(innerFile, inner);
+      if (scope.inner) await release(innerFile, scope.inner);
     }
   } finally {
     await release(outerFile, outer);

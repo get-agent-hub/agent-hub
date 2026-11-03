@@ -42,6 +42,8 @@ const icons = {
 };
 
 let state;
+let importSource;
+let syncSelection;
 let query = '';
 let skillCache = new Map();
 let importPlan;
@@ -107,7 +109,6 @@ function sidebar(page) {
 
 function overview() {
   const r = state.status;
-  const count = r.drift.length;
   const unique = new Set(r.drift.map((d) => `${d.area}:${d.name}`)).size;
   const rows = new Map();
   for (const d of r.drift) {
@@ -127,10 +128,10 @@ function overview() {
       'Collect existing MCP tools and skills, then connect your clients to one shared Hub. Project memory is an optional next step.',
       `<button class="btn primary" data-quick-open>Set up shared Hub</button><button class="btn" data-action="import">Import MCP only</button><button class="btn" data-action="sync">Sync MCP only</button>`,
     ) +
-    (!r.hub.exists
-      ? `<div class="banner"><div><b>Start with what you already have</b><p>Quick setup creates the Hub, collects client configuration, and connects detected clients. Preview first; no terminal setup is required.</p></div></div>`
-      : `<div class="banner ${count ? '' : 'ok'}">${pill(count ? 'Needs review' : 'Up to date', count ? 'warn' : 'ok')}<div><b>${count ? `${unique} item${unique === 1 ? ' has' : 's have'} configuration differences.` : 'Hub and detected clients match.'}</b><p>${count ? `${count} comparisons across clients. Review definitions before synchronizing.` : 'Refresh after making changes in a client.'}</p></div><a class="btn sm" href="${link('mcp')}">Review MCP →</a></div>`) +
-    `<div class="grid g-4 metrics"><a class="card stat" href="${link('skills')}"><div class="k">Skills</div><div class="v">${r.skills.filter((s) => s.cells.hub === 'ok').length}</div><div class="s">${r.skills.length} found across all clients</div></a><a class="card stat" href="${link('mcp')}"><div class="k">MCP servers</div><div class="v">${state.servers.length}</div><div class="s">${r.mcp.length} found across all clients</div></a><a class="card stat" href="${link('memory')}"><div class="k">Memory documents</div><div class="v">${state.memory.length}</div><div class="s">stored in your hub</div></a><a class="card stat" href="${link('overview', { section: 'clients' })}"><div class="k">Clients detected</div><div class="v">${r.clients.filter((client) => client.installed).length}</div><div class="s">review configuration below</div></a></div>` +
+    (state.readiness
+      ? `<div class="banner ${state.readiness.configuration === 'matched' ? 'ok' : ''}"><div><b>${escape(state.readiness.label)}</b><p>Configuration: ${escape(state.readiness.configuration.replaceAll('-', ' '))} · MCP checks: ${escape(state.readiness.connections.replaceAll('-', ' '))} · Project memory: ${escape(state.readiness.memory.state.replaceAll('-', ' '))} · Hooks: ${escape(state.readiness.memory.hooks.replaceAll('-', ' '))}</p>${state.readiness.memory.activity?.length ? `<p>${state.readiness.memory.activity.map((item) => `${escape(labels[item.client] || item.client)}: last hook ${escape(item.hookAt || 'not observed')}; checkpoint ${escape(item.checkpointAt || 'not observed')}${item.submittedFacts !== null ? `; ${item.submittedFacts} submitted fact(s)` : ''}`).join(' · ')}</p>` : ''}${state.readiness.issues?.length ? `<ul>${state.readiness.issues.map((issue) => `<li>${escape(issue)}</li>`).join('')}</ul>` : ''}${state.readiness.next ? `<p>Next: <code>${escape(state.readiness.next)}</code></p>` : ''}</div></div>`
+      : '') +
+    `<div class="grid g-4 metrics"><a class="card stat" href="${link('skills')}"><div class="k">Skills</div><div class="v">${r.skills.filter((s) => s.cells.hub === 'ok').length}</div><div class="s">${r.skills.length} found across all clients</div></a><a class="card stat" href="${link('mcp')}"><div class="k">MCP servers</div><div class="v">${state.servers.length}</div><div class="s">${r.mcp.length} found across all clients</div></a><a class="card stat" href="${link('memory')}"><div class="k">Knowledge records</div><div class="v">${(state.readiness?.memory.sharedRecords || 0) + (state.selection?.memoryScope === 'project' ? state.readiness?.memory.projectRecords || 0 : 0)}</div><div class="s">shared + selected project records</div></a><a class="card stat" href="${link('overview', { section: 'clients' })}"><div class="k">Clients detected</div><div class="v">${r.clients.filter((client) => client.installed).length}</div><div class="s">review configuration below</div></a></div>` +
     `<div class="grid g-3 section-gap"><div class="card card-b"><b>1 · Collect</b><p>Bring MCP definitions and full skill bundles into your Hub. Existing Hub items stay authoritative.</p></div><div class="card card-b"><b>2 · Connect</b><p>Deliver tools, skills and shared instructions to enabled clients. Conflicts get a separate review.</p></div><div class="card card-b"><b>3 · Connect projects when needed</b><p>Optionally connect one Git project for memory and handoff. Shared Hub setup works without a project.</p></div></div>` +
     renderDoctorSummary(state.doctor) +
     `<div class="section-title" id="clients">Clients ${pill('Configuration only')}</div><div class="grid g-3">${r.clients
@@ -149,8 +150,12 @@ function overview() {
             )
             .join('')}</ul>`
         : empty('Nothing to review', 'Your detected client configurations match the hub.')
-    }</div><div class="card"><div class="card-h"><h2>Optional project</h2><a class="card-link" href="${link('repos')}">Context →</a></div>${state.workspace ? `<div class="card-b"><b>${escape(state.workspace.name)}</b><p class="mono muted">${escape(state.workspace.branch)}</p><p class="small-note">${state.workspace.files.filter((f) => f.content !== null).length} of 3 context files present.</p><button class="btn sm" data-project-connect ${r.hub.exists ? '' : 'disabled'}>Connect project memory</button>${r.hub.exists ? '' : '<p class="small-note">Set up the shared Hub first.</p>'}</div>` : empty('No project selected — that is fine', 'Shared Hub setup works from any folder. For optional project memory, run ahub project connect /path/to/project.')}</div></div><p class="small-note">Configuration comparison and MCP connection checks are separate. Shared memory delivery is not checked here.</p>`
+    }</div><div class="card"><div class="card-h"><h2>Optional project</h2><a class="card-link" href="${link('repos')}">Context →</a></div>${state.readiness?.memory.projectId ? '<div class="card-b"><button class="btn sm" data-content-operation="project-disconnect">Disconnect selected project</button><p class="small-note">Knowledge and repository notes are retained.</p></div>' : ''}${state.workspace ? `<div class="card-b"><b>${escape(state.workspace.name)}</b><p class="mono muted">${escape(state.workspace.branch)}</p><p class="small-note">${state.workspace.files.filter((f) => f.content !== null).length} of 3 context files present.</p><button class="btn sm" data-project-connect ${r.hub.exists ? '' : 'disabled'}>Connect project memory</button>${r.hub.exists ? '' : '<p class="small-note">Set up the shared Hub first.</p>'}</div>` : empty('No project selected — that is fine', 'Shared Hub setup works from any folder. For optional project memory, run ahub project connect /path/to/project.')}</div></div><p class="small-note">Configuration comparison and MCP connection checks are separate. Shared instruction delivery is included in configuration readiness. Checkpoint activity does not prove that useful facts were learned.</p>`
   );
+}
+
+function directionActions(area, name, clients, inHub) {
+  return `<div class="card-b"><h3>Resolve this item</h3><p class="small-note">Choose a direction, review the exact item and apply. Other entries are preserved. Clients sharing a skills directory see the same link.</p>${clients.map((client) => `<div class="tags"><span>${escape(labels[client])}</span><button class="btn sm" data-direction="import" data-area="${area}" data-name="${escape(name)}" data-client="${client}">Use this client in Hub</button>${inHub ? `<button class="btn sm" data-direction="deliver" data-area="${area}" data-name="${escape(name)}" data-client="${client}">Use Hub in this client</button>` : ''}</div>`).join('')}</div>`;
 }
 
 function skillsPage(params) {
@@ -177,11 +182,18 @@ function skillsPage(params) {
     const doc = skillCache.get(key);
     detail = `<div class="card-h"><h2>${escape(selected.name)}</h2>${pill('SKILL.md')}</div><div class="card-b"><label>Read from<select class="input" id="skill-source" data-name="${escape(selected.name)}">${sources.map((s) => `<option value="${s}" ${s === source ? 'selected' : ''}>${labels[s]}</option>`).join('')}</select></label></div>${doc.loading ? empty('Reading skill…', '') : doc.error ? empty('Unable to read skill', doc.error, '<button class="btn" data-action="refresh">Retry</button>') : `<div class="card-b"><dl><dt>Path</dt><dd class="mono">${escape(doc.path)}</dd><dt>Resolves to</dt><dd class="mono">${escape(doc.realPath || 'Broken link')}</dd></dl></div>${doc.document.content !== null ? `<pre class="document-view">${escape(doc.document.content)}</pre>` : empty('No SKILL.md', doc.document.reason)}`}`;
   }
+  if (selected)
+    detail += directionActions(
+      'skills',
+      selected.name,
+      cols.filter((id) => id !== 'hub' && selected.cells[id] && selected.cells[id] !== 'missing'),
+      !!selected.cells.hub && selected.cells.hub !== 'missing',
+    );
   return (
     intro(
       'Skills',
       'Inspect shared instructions and see which clients use the same files.',
-      `<button class="btn" data-content-operation="skills-import">Import MCP only</button><button class="btn primary" data-content-operation="skills-sync">Sync skills → clients</button>`,
+      `<button class="btn" data-content-operation="skills-import">Import skills into Hub</button><button class="btn primary" data-content-operation="skills-sync">Sync skills → clients</button>`,
     ) +
     `<div class="split"><div><div class="card table-wrap">${items.length ? `<table class="table"><thead><tr><th>Skill</th>${cols.map((c) => `<th class="c">${labels[c]}</th>`).join('')}</tr></thead><tbody>${items.map((s) => `<tr class="${s === selected ? 'selected' : ''}"><td class="name"><a class="row-link" href="${link('skills', { name: s.name })}">${escape(s.name)}</a></td>${cols.map((c) => `<td class="c">${mark(s.cells[c])}</td>`).join('')}</tr>`).join('')}</tbody></table>` : empty(query ? 'No matching skills' : 'No skills found', query ? 'Try another search.' : 'Add skills to your hub or a client to see them here.')}</div><div class="legend"><span>${mark('ok')} linked</span><span>${mark('other-copy')} different location</span><span>${mark('broken')} broken</span><span>${mark('missing')} missing</span></div></div><div class="card detail">${detail}</div></div>`
   );
@@ -198,6 +210,13 @@ function mcpPage(params) {
     const server = state.servers.find((s) => s.name === selected.name);
     detail = `<div class="card-h"><h2>${escape(selected.name)}</h2>${server ? pill(server.config.transport, 'accent') : pill('Client only', 'warn')}</div>${server ? `<pre class="code">${escape(JSON.stringify(server.config, null, 2))}</pre><div class="card-b"><h3>Secret references</h3>${server.references.length ? `<div class="tags">${server.references.map((r) => pill(r)).join('')}</div><p class="small-note">Values are resolved from .env when the server starts.</p>` : '<span class="muted">No secret references.</span>'}</div><div class="card-b"><h3>Client scope</h3><div class="tags">${(server.config.only || ['claude-code', 'codex', 'dsh']).map((id) => pill(labels[id] || id)).join('')}</div><p class="small-note">This is the intended scope. Use Sync to review and apply the client configuration.</p></div>` : empty('Not in your hub', 'Import this definition from a client to manage it centrally.')}${server ? renderHealthDetails(selected.name, state.doctor) : ''}<div class="card-b"><button class="btn" data-action="import" data-name="${escape(selected.name)}">${server ? 'Review re-import' : 'Import this server'}</button></div>`;
   }
+  if (selected)
+    detail += directionActions(
+      'mcp',
+      selected.name,
+      cols.filter((id) => id !== 'hub' && selected.cells[id]),
+      state.servers.some((server) => server.name === selected.name),
+    );
   return (
     intro(
       'MCP servers',
@@ -226,7 +245,7 @@ function memoryPage(params) {
   return (
     intro(
       'Memory',
-      'Scoped knowledge shared between agents, with reviewed writes and recovery. Existing documents remain readable below.',
+      'Manage actual shared or selected-project records. The files below are shared index documents, not the record count.',
       `<button class="btn primary" data-memory-open>Manage records</button><button class="btn" data-content-operation="context-sync">Deliver shared rules & index</button>`,
     ) +
     (items.length
@@ -311,6 +330,17 @@ async function load() {
   try {
     state = await api('/api/state');
     skillCache = new Map();
+    const picker = $('#project-picker');
+    picker.innerHTML =
+      '<option value="">Shared knowledge</option><option value="@current">Folder where UI started</option>' +
+      (state.projects || [])
+        .map(
+          (project) =>
+            `<option value="${escape(project.id)}">${escape(project.id)}${project.connected === false ? ' (disconnected)' : ''}</option>`,
+        )
+        .join('');
+    picker.value =
+      state.selection?.projectId || (state.selection?.mode === 'current' ? '@current' : '');
     render();
   } catch (error) {
     if (!state)
@@ -322,6 +352,22 @@ async function load() {
   }
 }
 
+$('#project-picker').addEventListener('change', async (event) => {
+  const picker = event.target;
+  picker.disabled = true;
+  try {
+    await api('/api/project/select', { projectId: picker.value || null });
+    await load();
+    notice(
+      'Knowledge scope changed. Previous previews expired; review a new plan before applying.',
+    );
+  } catch (error) {
+    notice(error.message, true);
+  } finally {
+    picker.disabled = false;
+  }
+});
+
 async function previewImport() {
   const version = ++previewVersion;
   importPlan = undefined;
@@ -331,6 +377,7 @@ async function previewImport() {
   try {
     const plan = await api('/api/import/preview', {
       item: $('#import-item').value,
+      source: importSource,
       prefer: $('#import-prefer').value,
       overwrite: $('#import-overwrite').checked,
     });
@@ -339,10 +386,12 @@ async function previewImport() {
     const changed = plan.servers.filter((r) => ['add', 'update'].includes(r.action)).length;
     $('#import-preview').innerHTML =
       `<div class="card table-wrap">${plan.servers.length ? `<table class="table"><thead><tr><th>Server</th><th>Action</th><th>Found in</th><th>Details</th></tr></thead><tbody>${plan.servers.map((r) => `<tr><td><b>${escape(r.name)}</b></td><td>${pill(r.action, ['add', 'update'].includes(r.action) ? 'ok' : r.action === 'skip-exists' ? '' : 'warn')}</td><td>${escape(r.from.map((c) => labels[c]).join(', ') || '—')}</td><td class="muted">${escape(r.action === 'skip-exists' ? 'Already in hub' : r.note || (r.secrets.length ? `${r.secrets.length} secret fields → .env` : 'Ready'))}</td></tr>`).join('')}</tbody></table>` : empty('No client definitions found', 'Add an MCP server in a client first.')}</div><div class="import-terms">${changed} server(s) will be written to <code>mcp/servers.yaml</code>. ${plan.envVarsToAdd.length} new secret(s) go to <code>.env</code>. Client configurations stay as they are.${plan.envVarsToAdd.length ? `<p>New variable names: ${plan.envVarsToAdd.map((v) => `<code>${escape(v)}</code>`).join(', ')}</p>` : ''}</div>`;
-    $('#import-summary').textContent = changed
-      ? `${changed} server(s) ready to import`
-      : 'Nothing to import';
-    $('#import-apply').disabled = !changed;
+    $('#import-summary').textContent = plan.blocked
+      ? 'Choose a source for conflicting definitions'
+      : changed
+        ? `${changed} server(s) ready to import`
+        : 'Nothing to import';
+    $('#import-apply').disabled = plan.blocked || !changed;
   } catch (error) {
     if (version !== previewVersion) return;
     $('#import-preview').innerHTML =
@@ -351,12 +400,16 @@ async function previewImport() {
   }
 }
 
-function openImport(name) {
+function openImport(name, source) {
+  importSource = source;
   if (!state) return;
   $('#import-item').innerHTML =
     `<option value="mcp">All MCP servers</option>${state.status.mcp.map((s) => `<option value="${escape(`mcp:${s.name}`)}">${escape(s.name)}</option>`).join('')}`;
   $('#import-item').value = name ? `mcp:${name}` : 'mcp';
-  $('#import-overwrite').checked = false;
+  $('#import-overwrite').checked = !!source;
+  $('#import-prefer').value = source || '';
+  $('#import-item').disabled = !!source;
+  $('#import-prefer').disabled = !!source;
   $('#import-dialog').showModal();
   previewImport();
 }
@@ -384,7 +437,10 @@ async function previewSync() {
   $('#sync-preview').innerHTML = '<div class="empty">Building a dry run…</div>';
   $('#sync-summary').textContent = 'Reading client configurations…';
   try {
-    const plan = await api('/api/sync/preview', { client: $('#sync-client').value || undefined });
+    const plan = await api('/api/sync/preview', {
+      ...syncSelection,
+      client: $('#sync-client').value || undefined,
+    });
     if (version !== syncVersion || !$('#sync-dialog').open) return;
     syncPlan = plan;
     const changed = plan.files.filter((f) => f.changed).length;
@@ -417,7 +473,10 @@ async function previewSync() {
   }
 }
 
-function openSync() {
+function openSync(selection) {
+  syncSelection = selection;
+  $('#sync-client').value = selection?.client || '';
+  $('#sync-client').disabled = !!selection;
   if (!state) return;
   $('#sync-dialog').showModal();
   previewSync();
@@ -567,6 +626,13 @@ $('#sync-apply').addEventListener('click', async () => {
 });
 
 document.addEventListener('click', (event) => {
+  const direction = event.target.closest('[data-direction]');
+  if (direction?.dataset.area === 'mcp') {
+    const { name, client } = direction.dataset;
+    if (direction.dataset.direction === 'import') openImport(name, client);
+    else openSync({ client, only: [name], replace: [name] });
+    return;
+  }
   const button = event.target.closest('[data-action]');
   if (!button) return;
   const action = button.dataset.action;
@@ -681,5 +747,5 @@ $('#theme').addEventListener('click', () => {
   }
 });
 setupContentUi({ api, load, notice });
-setupMemoryUi({ api, load, notice });
+setupMemoryUi({ api, load, notice, getState: () => state });
 load();

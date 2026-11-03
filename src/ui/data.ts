@@ -1,6 +1,8 @@
 import fs from 'node:fs/promises';
 import { packageVersion } from '../core/package.js';
 import path from 'node:path';
+import { readiness } from '../core/readiness.js';
+import { projectCatalog } from '../core/project-catalog.js';
 import { readSettings } from '../core/settings.js';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -149,6 +151,13 @@ export async function uiState(cwd: string, sources: ClientAdapter[] = adapters) 
     }));
   // Expose paths and comparison cells only, never args/headers from client snapshots.
   return {
+    readiness: await readiness({
+      status,
+      doctor,
+      workspace: cwd,
+      inspectContext: sources === adapters,
+    }),
+    projects: await projectCatalog(hubRoot()),
     quickClients: status.clients
       .filter((client) => client.installed && settings.clients?.[client.id]?.enabled !== false)
       .map((client) => client.id),

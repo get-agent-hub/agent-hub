@@ -3,4 +3,6 @@ node_modules/
 coverage/
 .tmp/
 .firecrawl/
-package-lock.json
+npm-shrinkwrap.json
+
+docs/research/

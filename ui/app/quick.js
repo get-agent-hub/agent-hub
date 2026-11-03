@@ -45,7 +45,7 @@ export function setupQuickUi({ api, load, notice, getState }) {
         .join('')}</ul>
       ${(result.warnings || []).map((warning) => `<p class="small-note">${escape(warning)}</p>`).join('')}
       ${(result.next || []).map((next) => `<p class="route-note">${escape(next)}</p>`).join('')}
-      <p class="small-note">${escape(result.recovery)}</p><details><summary>Preview original-state recovery</summary><pre>${escape(result.resetCommand || result.commands.reset)}</pre></details>`;
+      <p class="small-note">${escape(result.recovery)}</p>${result.undoCommand ? `<details><summary>Undo this workflow</summary><pre>${escape(result.undoCommand)}</pre></details>` : ''}<details><summary>Preview original-state recovery</summary><pre>${escape(result.resetCommand || result.commands.reset)}</pre></details>`;
   }
   async function build() {
     if (busy) return;

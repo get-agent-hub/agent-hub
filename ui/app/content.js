@@ -1,6 +1,7 @@
 import { escape, pill } from './html.js';
 
 const titles = {
+  'project-disconnect': 'Disconnect selected project · retain knowledge and notes',
   'skills-import': 'Import skills into Hub',
   'skills-sync': 'Deliver skills to clients',
   'context-sync': 'Deliver shared instructions and memory',
@@ -17,6 +18,7 @@ export function setupContentUi({ api, load, notice }) {
   const summary = dialog.querySelector('#content-summary');
   const apply = dialog.querySelector('#content-apply');
   let operation;
+  let selection;
   let plan;
   let busy = false;
   let version = 0;
@@ -29,7 +31,7 @@ export function setupContentUi({ api, load, notice }) {
     output.textContent = 'Building a dry run…';
     summary.textContent = 'No files changed.';
     try {
-      const options = { operation };
+      const options = { operation, ...selection };
       if (['skills-sync', 'context-sync'].includes(operation))
         options.client = client.value || undefined;
       if (operation === 'skills-sync' && replacements.value.trim())
@@ -57,19 +59,34 @@ export function setupContentUi({ api, load, notice }) {
   }
 
   document.addEventListener('click', (event) => {
-    const trigger = event.target.closest('[data-content-operation]');
+    const trigger = event.target.closest(
+      '[data-content-operation], [data-direction][data-area="skills"]',
+    );
     if (!trigger || busy) return;
-    operation = trigger.dataset.contentOperation;
+    const { direction, name, client: selectedClient } = trigger.dataset;
+    operation = direction
+      ? direction === 'import'
+        ? 'skills-import'
+        : 'skills-sync'
+      : trigger.dataset.contentOperation;
+    selection =
+      direction === 'import'
+        ? { name, source: selectedClient }
+        : direction
+          ? { only: [name] }
+          : undefined;
     if (!titles[operation]) return;
     dialog.querySelector('#content-title').textContent = titles[operation];
     client.closest('label').hidden = !['skills-sync', 'context-sync'].includes(operation);
     preference.closest('label').hidden = operation !== 'skills-import';
     overwrite.closest('label').hidden = operation !== 'skills-import';
     replacements.closest('label').hidden = operation !== 'skills-sync';
-    client.value = '';
-    preference.value = '';
-    overwrite.checked = false;
-    replacements.value = '';
+    client.value = selectedClient || '';
+    preference.value = direction === 'import' ? selectedClient : '';
+    overwrite.checked = direction === 'import';
+    replacements.value = direction === 'deliver' ? name : '';
+    for (const control of [client, preference, overwrite, replacements])
+      control.disabled = !!direction;
     dialog.showModal();
     preview();
   });
