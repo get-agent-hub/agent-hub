@@ -181,18 +181,36 @@ export async function startUiServer(
         json(200, await services.memory.conflict(url.searchParams.get('id') ?? ''));
         return;
       }
+      if (req.method === 'GET' && url.pathname === '/api/memory/discovery') {
+        json(200, await services.memory.discover());
+        return;
+      }
       if (
         req.method === 'POST' &&
-        ['/api/memory/preview', '/api/memory/conflict/preview', '/api/memory/apply'].includes(
-          url.pathname,
-        )
+        [
+          '/api/memory/preview',
+          '/api/memory/conflict/preview',
+          '/api/memory/onboarding/preview',
+          '/api/memory/apply',
+        ].includes(url.pathname)
       ) {
         if (req.headers['x-agent-hub-token'] !== token)
           throw new RequestError(403, 'Refresh the page before making changes.');
         if (applying) throw new RequestError(409, 'Another operation is running.');
         const body = await jsonBody(req, 160 * 1024);
         if (applying) throw new RequestError(409, 'Another operation is running.');
-        if (url.pathname === '/api/memory/conflict/preview') {
+        if (url.pathname === '/api/memory/onboarding/preview') {
+          if (
+            Object.keys(body).some((key) => !['sources', 'follow'].includes(key)) ||
+            !Array.isArray(body.sources) ||
+            !body.sources.length ||
+            body.sources.length > 20 ||
+            !body.sources.every((id) => typeof id === 'string') ||
+            typeof body.follow !== 'boolean'
+          )
+            throw new RequestError(400, 'Choose source IDs and whether to follow later changes.');
+          json(200, await services.memory.previewOnboarding(body.sources as string[], body.follow));
+        } else if (url.pathname === '/api/memory/conflict/preview') {
           if (
             Object.keys(body).some((key) => !['id', 'take'].includes(key)) ||
             typeof body.id !== 'string' ||

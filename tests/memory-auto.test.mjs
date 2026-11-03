@@ -141,10 +141,7 @@ test('DSH setup writes a valid insert patch and keeps unrelated plugins and comm
 
 test('native sync imports atomic notes, skips indexes, deduplicates content and never changes sources', async (t) => {
   const f = await fixture(t);
-  await fs.writeFile(
-    path.join(f.native, 'MEMORY.md'),
-    '# Index\nThis index must not become a fact.',
-  );
+  await fs.writeFile(path.join(f.native, 'MEMORY.md'), '# Index\n- [Retry rule](retry.md)\n');
   const note = '---\nname: Retry rule\ntype: feedback\n---\nUse idempotency keys for retries.\n';
   await fs.writeFile(path.join(f.native, 'retry.md'), note);
   await fs.writeFile(path.join(f.native, 'duplicate.md'), note);

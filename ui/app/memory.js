@@ -10,6 +10,7 @@ export function setupMemoryUi({ api, load, notice }) {
   const apply = dialog.querySelector('#memory-apply');
   const automation = dialog.querySelector('#memory-automation');
   const conflicts = dialog.querySelector('#memory-conflicts');
+  const sources = dialog.querySelector('#memory-sources');
   const field = (name) => form.elements.namedItem(name);
   let selected;
   let plan;
@@ -32,12 +33,15 @@ export function setupMemoryUi({ api, load, notice }) {
   function lock(value) {
     busy = value;
     for (const control of dialog.querySelectorAll('input,select,textarea,button'))
-      control.disabled = value;
-    apply.disabled = value || !plan;
+      control.disabled = value || control.hasAttribute('data-unavailable');
+    dialog.querySelector('[data-memory-discover]').disabled = value || scope.value !== 'project';
+    apply.disabled = value || !plan || plan.blocked;
     dialog.querySelector('[data-memory-delete]').disabled = value || !selected;
   }
   async function list() {
     invalidate();
+    sources.textContent = '';
+    dialog.querySelector('[data-memory-discover]').disabled = scope.value !== 'project';
     conflicts.textContent = '';
     const request = version;
     records.textContent = 'Loading scoped records…';
@@ -99,6 +103,7 @@ export function setupMemoryUi({ api, load, notice }) {
   });
   form.addEventListener('submit', (event) => event.preventDefault());
   form.addEventListener('input', invalidate);
+  sources.addEventListener('change', invalidate);
   scope.addEventListener('change', () => {
     reset();
     list();
@@ -123,6 +128,44 @@ export function setupMemoryUi({ api, load, notice }) {
     if (button.hasAttribute('data-memory-search')) {
       reset();
       await list();
+      return;
+    }
+    if (button.hasAttribute('data-memory-discover')) {
+      invalidate();
+      lock(true);
+      try {
+        const report = await api('/api/memory/discovery');
+        sources.innerHTML = `<p class="small-note">Choose existing notes for ${escape(report.workspace)}. Unresolved sources need your explicit project choice. No files changed.</p>${report.sources.map((source) => `<label class="small-note"><input type="checkbox" data-native-source value="${escape(source.id)}" ${source.format !== 'markdown' || (source.project && source.project !== report.workspace && source.projectId !== report.project) ? 'data-unavailable disabled' : ''} ${source.format === 'markdown' && report.project && source.projectId === report.project ? 'checked' : ''}> ${escape(source.client)} · ${escape(source.path)} · ${escape(source.format)}<br>${escape(source.evidence)}</label>`).join('')}<p class="small-note">${report.warnings.map(escape).join(' ')}</p><label class="small-note"><input type="checkbox" id="memory-follow"> Follow later changes from these sources. Enables this project's native-sync policy; lifecycle hook installation is separate.</label><button class="btn" data-memory-onboard>Preview importing selected notes</button>`;
+        status.textContent = report.project
+          ? 'Review source scope and preview the selected import.'
+          : 'Register this checkout with memory project register before importing.';
+      } catch (error) {
+        status.textContent = error.message;
+      } finally {
+        lock(false);
+      }
+      return;
+    }
+    if (button.hasAttribute('data-memory-onboard')) {
+      const chosen = [...sources.querySelectorAll('[data-native-source]:checked')].map(
+        (input) => input.value,
+      );
+      if (!chosen.length) {
+        status.textContent = 'Choose at least one Markdown source.';
+        return;
+      }
+      const follow = sources.querySelector('#memory-follow').checked;
+      invalidate();
+      lock(true);
+      try {
+        plan = await api('/api/memory/onboarding/preview', { sources: chosen, follow });
+        output.innerHTML = `<p>Import selected native knowledge into this project. ${follow ? 'Follow-up source imports will be enabled.' : 'This is a one-time import.'} Original notes stay intact.</p><ul>${plan.rows.map((row) => `<li>${escape(row.action)}: ${escape(row.name)} ${escape(row.note ?? '')}</li>`).join('')}</ul>`;
+        status.textContent = `${plan.changes} managed path(s) would change. Review and apply this revision.`;
+      } catch (error) {
+        status.textContent = error.message;
+      } finally {
+        lock(false);
+      }
       return;
     }
     if (button.dataset.memoryConflict) {

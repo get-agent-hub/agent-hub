@@ -12,6 +12,9 @@ const files = new Set(archive.files.map((file) => file.path));
 for (const required of [
   'dist/cli.js',
   'dist/integrations/dsh-memory.js',
+  'dist/core/memory-discovery.js',
+  'dist/core/memory-onboarding.js',
+  'dist/commands/memory-onboarding.js',
   'ui/app/index.html',
   'ui/app/app.js',
   'ui/app/html.js',

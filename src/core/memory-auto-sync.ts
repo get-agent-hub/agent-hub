@@ -51,7 +51,10 @@ export async function planAutomaticFacts(
   const mutations: MemoryMutation[] = [];
   const requests: ArtifactRequest[] = [...(options.requests ?? [])];
   const rows: ManagedRow[] = [...(options.rows ?? [])];
-  const sources = [...(options.sources ?? []), policyFile.snapshot];
+  const sources = [...(options.sources ?? [])];
+  // An onboarding policy replacement is guarded by its request, not also as an immutable source.
+  if (!requests.some((request) => request.before.path === policyFile.snapshot.path))
+    sources.push(policyFile.snapshot);
   const bindings: { file: Awaited<ReturnType<typeof memoryFile>>; value: SourceBinding }[] = [];
   const seen = new Set<string>();
   for (const fact of [...incoming].sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0))) {
@@ -254,15 +257,22 @@ export async function planNativeSync(
         at,
         ...resolve.flatMap((id) => ['--resolve', id]),
       ],
-      rows: scans.flatMap((scan) =>
-        scan.skipped.map((item) => ({
+      rows: scans.flatMap((scan) => [
+        ...scan.skipped.map((item) => ({
           path: item.path,
           client: 'memory',
           name: path.basename(item.path),
           action: 'skip' as const,
           note: item.reason,
         })),
-      ),
+        ...scan.notices.map((item) => ({
+          path: item.path,
+          client: 'memory',
+          name: path.basename(item.path),
+          action: 'keep' as const,
+          note: item.reason,
+        })),
+      ]),
     },
   );
 }

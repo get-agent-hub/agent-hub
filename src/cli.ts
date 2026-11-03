@@ -19,6 +19,7 @@ import {
 } from './commands/memory.js';
 import { serveMemory } from './mcp/memory.js';
 import { hubRoot } from './core/paths.js';
+import { memoryDiscoverCommand, memoryOnboardCommand } from './commands/memory-onboarding.js';
 import {
   autoEnableCommand,
   autoDisableCommand,
@@ -232,6 +233,30 @@ memoryProject
 const automatic = memory
   .command('auto')
   .description('project-scoped native memory sync and automatic session checkpoints');
+memory
+  .command('discover')
+  .description('find existing client memory sources and explain their project association')
+  .option('--workspace <directory>', 'checkout to inspect (default: cwd)')
+  .option('--client <id>', 'filter claude-code, codex or dsh')
+  .option('--json', 'machine-readable metadata without note bodies')
+  .action(memoryDiscoverCommand);
+memory
+  .command('onboard')
+  .description('preview importing existing native memory; project-matched sources by default')
+  .option('--workspace <directory>', 'registered checkout (default: cwd)')
+  .option('--client <id>', 'filter claude-code, codex or dsh')
+  .option(
+    '--source <id>',
+    'explicit source ID from discovery; repeat to select several',
+    (value: string, previous: string[] = []) => [...previous, value],
+  )
+  .option('--follow', 'also enable the project native-sync policy; hook installation is separate')
+  .option('--at <timestamp>', 'timestamp captured in the reviewed command')
+  .option('--dry-run', 'preview without writing (default)')
+  .option('--apply', 'apply the exact reviewed import and optional follow-up policy')
+  .option('--expect <revision>', 'required reviewed revision')
+  .option('--json', 'machine-readable output')
+  .action(memoryOnboardCommand);
 function automaticOptions(command: Command) {
   return command
     .option('--workspace <directory>', 'registered checkout (default: cwd)')

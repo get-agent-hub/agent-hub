@@ -21,6 +21,7 @@ export async function autoStatus(root: string, workspace: string) {
         return {
           ...source,
           importableFacts: scan.facts.length - rejected.length,
+          notices: scan.notices,
           skipped: [
             ...scan.skipped,
             ...rejected.map((fact) => ({

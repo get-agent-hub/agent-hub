@@ -71,6 +71,17 @@ Apply, then:
 
 Expected: distinct projects and initially empty trial collections. Registration does not create repository instructions. Another folder with the same basename must not become registered automatically.
 
+### Import existing memory before creating new facts
+
+Run discovery for the registered project:
+
+    ahub memory discover --workspace "$AHUB_PROJECT"
+    ahub memory onboard --workspace "$AHUB_PROJECT" --follow --dry-run
+
+A new disposable checkout can have no matched sources; that is expected. For an existing project, inspect source IDs, checkout evidence, formats and notices, then apply the emitted plan. Unresolved sources need an explicit --source ID; known foreign-project sources are rejected. SQLite/graph stores are not flattened into notes. Without --follow this is a one-time import; with it, native sources join the project policy. Hook installation is separate, and existing installed handlers can activate for that policy.
+
+Verify inline MEMORY.md facts, pure navigation omission, unchanged originals, repeat-import idempotence and a guarded restore. The UI offers Find existing client memory with the same source selection and preview. Use the controlled sources in section 10 when the trial checkout has no existing native notes.
+
 ## 3. Project memory CRUD and selected-text import
 
     cat > "$AHUB_RUN/fact.md" <<'NOTE'

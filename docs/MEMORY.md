@@ -57,6 +57,34 @@ Updates preserve omitted metadata. `--clear-tags` and `--clear-source` remove th
 
 `memory import <id> --title ... --file ...` copies explicitly selected local knowledge as the body of one new record, records the source path by default and preserves the original. Existing IDs conflict, so repeat imports never silently duplicate or overwrite a record under the same ID. This command imports selected text; [project automation](AUTOMATION.md) separately handles configured native Markdown directories and active-conversation checkpoints. Split unrelated facts deliberately. Structured graph JSONL interchange, native memory relocation and bulk archived-conversation extraction remain unimplemented.
 
+## Discover and import existing client memory
+
+After registering the checkout, inspect existing sources before starting a new conversation:
+
+```sh
+node dist/cli.js memory discover --workspace /path/to/project
+node dist/cli.js memory onboard --workspace /path/to/project --follow --dry-run
+```
+
+Discovery does not import records or change client settings. It reports stable source IDs, format, physical path, checkout evidence and any known Hub project ID. It checks existing policy sources, workspace-local memory directories, client memory directories and Claude project collections/custom autoMemoryDirectory settings. Claude project association uses bounded session cwd metadata, not a lossy decoding of folder names; conversation text is neither returned nor archived. Ambiguous, missing or over-budget evidence stays unresolved. Explicitly registered checkouts of the same Hub project may share its sources.
+
+Onboarding selects supported sources belonging to that registered project by default. To choose an unresolved source, use its ID from discovery:
+
+```sh
+node dist/cli.js memory onboard --workspace /path/to/project \
+  --source source-<id> --follow --dry-run
+```
+
+Repeat --source for several collections, up to 20 per plan. An explicitly selected unresolved source is assigned to the displayed project in the reviewed plan; known foreign-project sources are rejected. Do not assign a global multi-project collection wholesale to one project. Unsupported sources, including native SQLite databases, are reported and rejected rather than silently flattened; export deliberately selected knowledge to Markdown first. External graph import and archived-conversation extraction remain separate work.
+
+Apply the exact emitted command, retaining --expect and --at. Facts, source bindings, index and the optional follow-up policy are one recoverable transaction. Source changes invalidate the preview; rerunning an unchanged import does not duplicate records. Original client notes are never rewritten.
+
+Without --follow, this is a one-time import. With --follow, sources and clients are added to the enabled project policy for later native scans. This does not install hooks: an existing client handler can now activate for this project; otherwise use the reviewed memory auto enable command or a foreground watcher. Semantic checkpoints still need lifecycle activation and native client permissions. Disabling the policy preserves imported knowledge.
+
+MEMORY.md is inspected too. Inline facts and fenced examples are retained. Only pure navigation links to existing, visible local Markdown notes within the scan scope are omitted; the topic files are scanned independently. External/missing/hidden references and mixed link-plus-prose lines are retained. Navigation omissions are informational, not repeated synchronization warnings.
+
+The UI provides **Memory → Manage records → Find existing client memory**, source selection, an optional follow-up checkbox and the same guarded preview/apply. Project registration is required before applying an import.
+
 ## MCP workflow
 
 ```sh

@@ -14,7 +14,7 @@ export interface NativeFact extends Omit<AutoFact, 'key'> {
   source: string;
 }
 
-function splitNote(
+export function splitNativeNote(
   text: string,
   filename: string,
 ): (Omit<NativeFact, 'key' | 'client' | 'source'> & { identity: string })[] {
@@ -101,6 +101,59 @@ function trimBlankLines(text: string) {
     .replace(/(?:\n[ \t]*)+$/, '');
 }
 
+/** Only omit pure navigation to existing local notes. Prose, external links and examples survive. */
+async function removeIndexNavigation(text: string, folder: string, root: string) {
+  let fence: { character: string; length: number } | undefined;
+  let omitted = 0;
+  const sources: ArtifactSnapshot[] = [];
+  const lines: string[] = [];
+  for (const line of text.replace(/\r\n/g, '\n').split('\n')) {
+    const delimiter = /^ {0,3}(`{3,}|~{3,})(.*)$/.exec(line);
+    if (delimiter) {
+      const marker = delimiter[1]!;
+      if (!fence && !(marker[0] === '`' && delimiter[2]!.includes('`')))
+        fence = { character: marker[0]!, length: marker.length };
+      else if (
+        fence &&
+        marker[0] === fence.character &&
+        marker.length >= fence.length &&
+        !delimiter[2]!.trim()
+      )
+        fence = undefined;
+      lines.push(line);
+      continue;
+    }
+    const link =
+      !fence && /^\s*(?:[-*+]\s+|\d+\.\s+)?\[[^\]]+\]\(([^\s)]+\.md)(?:#[^)]*)?\)\s*$/i.exec(line);
+    if (link && !/^[a-z][a-z0-9+.-]*:|^[\\/]/i.test(link[1]!)) {
+      const target = path.resolve(folder, link[1]!);
+      const parts = path.relative(root, target).split(path.sep);
+      if (
+        containsPath(root, target) &&
+        parts.length <= 5 &&
+        !parts.some((part) => part.startsWith('.'))
+      ) {
+        const snapshot = await inspectArtifact(target);
+        if (snapshot.kind === 'file' && snapshot.physicalPath === target) {
+          sources.push(snapshot);
+          omitted++;
+          continue;
+        }
+      }
+    }
+    lines.push(line);
+  }
+  const remaining = lines.join('\n');
+  return {
+    text:
+      omitted && lines.every((line) => !line.trim() || /^ {0,3}#{1,6}\s/.test(line))
+        ? ''
+        : remaining,
+    sources,
+    omitted,
+  };
+}
+
 export async function scanNativeMemory(
   root: string,
   source: { client: ClientId; directory: string },
@@ -109,6 +162,7 @@ export async function scanNativeMemory(
   const facts: NativeFact[] = [];
   const sources: ArtifactSnapshot[] = [];
   const skipped: { path: string; reason: string }[] = [];
+  const notices: { path: string; reason: string }[] = [];
   let total = 0;
   let files = 0;
   const inspect = async (folder: string, depth: number) => {
@@ -142,11 +196,7 @@ export async function scanNativeMemory(
       if (item.isDirectory()) {
         if (depth >= 4) throw new HubError('Native memory exceeds the supported directory depth.');
         await inspect(file, depth + 1);
-      } else if (
-        item.isFile() &&
-        item.name.toLowerCase().endsWith('.md') &&
-        item.name.toLowerCase() !== 'memory.md'
-      ) {
+      } else if (item.isFile() && item.name.toLowerCase().endsWith('.md')) {
         const snapshot = await inspectArtifact(file);
         const size = (await fs.stat(file)).size;
         if (++files > 100 || size > 128 * 1024 || (total += size) > 2 * 1024 * 1024)
@@ -159,7 +209,18 @@ export async function scanNativeMemory(
         sources.push(snapshot);
         let notes;
         try {
-          notes = splitNote(new TextDecoder('utf-8', { fatal: true }).decode(bytes), file);
+          let text = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+          if (item.name.toLowerCase() === 'memory.md') {
+            const index = await removeIndexNavigation(text, folder, directory);
+            text = index.text;
+            sources.push(...index.sources);
+            if (index.omitted)
+              notices.push({
+                path: file,
+                reason: `${index.omitted} local index link(s) omitted; topic notes are scanned separately.`,
+              });
+          }
+          notes = splitNativeNote(text, file);
         } catch {
           skipped.push({
             path: file,
@@ -186,5 +247,5 @@ export async function scanNativeMemory(
   await inspect(directory, 0);
   if (facts.length > 200)
     throw new HubError('Native memory contains too many sections for one scan.');
-  return { facts, sources, skipped };
+  return { facts, sources, skipped, notices };
 }

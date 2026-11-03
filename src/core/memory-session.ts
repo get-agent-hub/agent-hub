@@ -13,6 +13,8 @@ import { isRecord } from './values.js';
 import { autoStatus } from './memory-auto-status.js';
 import { getAutomaticConflict, planAutomaticResolution } from './memory-auto-conflicts.js';
 import type { ManagedPlan } from './managed-plan.js';
+import { discoverMemory } from './memory-discovery.js';
+import { planMemoryOnboarding } from './memory-onboarding.js';
 
 export interface MemorySessionOptions {
   root: string;
@@ -51,6 +53,16 @@ export function createMemorySession(options: MemorySessionOptions) {
     return { id, ...view };
   };
   return {
+    async discover() {
+      return discoverMemory(options.root, options.workspace);
+    },
+    async previewOnboarding(sources: string[], follow: boolean) {
+      context('project', true);
+      const at = new Date().toISOString();
+      const build = () =>
+        planMemoryOnboarding(options.root, options.workspace, at, { sources, follow });
+      return remember(await build(), build);
+    },
     async automation() {
       return autoStatus(options.root, options.workspace);
     },

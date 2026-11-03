@@ -88,6 +88,29 @@ try {
     (await createMemorySession({ root: env.AGENT_HUB_HOME, workspace }).list()).total,
     1,
   );
+  const native = path.join(workspace, '.dsh', 'memory');
+  await fs.mkdir(native, { recursive: true });
+  await fs.writeFile(
+    path.join(native, 'MEMORY.md'),
+    '# Existing decision\nKeep this inline native fact.\n',
+  );
+  const discovery = JSON.parse(
+    await run(['memory', 'discover', '--workspace', workspace, '--json']),
+  );
+  assert.equal(discovery.sources.find((item) => item.path === native).projectId, 'example');
+  await replay([
+    'memory',
+    'onboard',
+    '--workspace',
+    workspace,
+    '--follow',
+    '--at',
+    '2026-01-01T00:00:00.000Z',
+  ]);
+  assert.equal(
+    (await createMemorySession({ root: env.AGENT_HUB_HOME, workspace }).list()).total,
+    2,
+  );
   await replay(['memory', 'auto', 'enable', '--workspace', workspace, '--client', 'dsh']);
   const patch = await fs.readFile(
     path.join(env.DSH_HOME, 'profiles', env.AGENT_HUB_DSH_PROFILE, 'cordis.patch.yml'),
