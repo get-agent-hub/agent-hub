@@ -15,15 +15,31 @@ The UI opens at **http://127.0.0.1:3082**. Stop the server with Ctrl+C. Use `--p
 The UI keeps the visual style of the [original HTML mockups](ui/mockups/README.md), with live data:
 
 - **Overview:** detected clients, configuration differences and actual hub counts.
-- **Skills:** filter the client matrix, select a skill, switch source clients and read its `SKILL.md`.
+- **Skills:** inspect the client matrix and SKILL.md, preview imports, choose source preference and deliver complete skill bundles through individual client links with backups.
 - **MCP servers:** compare definitions, inspect a credential-safe hub configuration, preview imports and dry-run synchronization. Choose a source preference for conflicts; existing definitions are skipped unless replacement is explicitly selected. Apply uses one hub lock and guarded writes for credentials, registry and import provenance, rolling back earlier writes if a later write fails. It never stages or commits unrelated hub files. It does not write client configurations. A plan expires after five minutes and must be reviewed again if its inputs change.
-- **Instructions and memory:** view existing hub Markdown documents. Empty directories have empty states. Editing and client delivery are not implemented yet.
-- **Repos & tasks:** view `AGENTS.md` and `.agents/state/{PROJECT,NOW}.md` in the repository where the server was started. No repository scanning or agent launching yet.
+- **Instructions and memory:** inspect Hub Markdown and deliver shared rules plus the memory index through owned client instruction blocks. Personal text and native auto-memory are preserved; editing remains file-based.
+- **Repos & tasks:** inspect the current repository and preview guarded init-repo setup of AGENTS.md, PROJECT.md, NOW.md and the Claude import. Existing notes are preserved. Repository scanning and agent launching remain future work.
 - **Sessions:** shows the planned work; no session index is created.
 
 Search filters skills, MCP servers and memory; ⌘K / Ctrl+K focuses it. The theme follows your system until you choose a theme in the UI. Refresh rereads files from disk.
 
-## Sync: dry run and an exact command
+## Skills, shared context and repository handoff
+
+```sh
+node dist/cli.js import skills --dry-run
+node dist/cli.js skill add /path/to/local-skill --dry-run
+node dist/cli.js sync --area skills --dry-run
+node dist/cli.js sync --area context --dry-run
+node dist/cli.js init-repo --dry-run
+```
+
+These new commands default to preview and require the exact `--apply --expect` command printed by that plan. MCP import retains its existing behavior: without `--dry-run`, it writes. Plain `sync` still means MCP; select skills or context explicitly. UI pages expose the corresponding review/apply actions.
+
+Skills are copied with scripts/assets and then linked into selected client roots. Context delivery preserves personal text and delivers common rules plus the shared memory index; it does not relocate native automatic memory. Init-repo prepares normal project files and never stages or commits Git work. Content backups work with `restore`, and `reset` includes first-touch originals of managed files, directories and links.
+
+See [CONTENT.md](docs/CONTENT.md) for contracts and limitations, and [WORKING_GUIDE.md](docs/WORKING_GUIDE.md) for a first personal run. `mcp add/rm` and session indexing remain unimplemented.
+
+## MCP sync: dry run and an exact command
 
 ```sh
 node dist/cli.js sync --dry-run
@@ -61,7 +77,7 @@ node dist/cli.js reset --dry-run
 
 Before managed writes, originals are captured privately outside the hub in `<AGENT_HUB_HOME>.recovery`. Reset archives current data and restores recorded originals; `--apply` requires the reviewed `--expect` revision. Later client edits block by default. Existing installations without historical originals get an explicitly labeled checkpoint on their next managed write; no command can invent their pre-install state. See [RECOVERY.md](docs/RECOVERY.md) for scope, external edits, dead-lock recovery and filesystem limits.
 
-Configuration comparisons describe effective launch definitions, not server health. Different launchers and secret references may start equivalent tools. Status resolves hub secret references and recognizes the current hub launcher, so direct equivalent definitions and generated launchers compare consistently. Shared instruction delivery and repository initialization remain later steps.
+Configuration comparisons describe effective launch definitions, not server health. Different launchers and secret references may start equivalent tools. Status resolves hub secret references and recognizes the current hub launcher, so direct equivalent definitions and generated launchers compare consistently. Shared context delivery uses `sync --area context`; repository setup uses `init-repo`. Both have separate guarded plans.
 
 ## MCP connection checks
 
@@ -112,7 +128,7 @@ The frontend uses plain HTML/CSS/JavaScript and the existing mockup styles; no f
 
 The local server binds to `127.0.0.1` only. It validates the request host and origin, requires a session token for writes and serves a fixed allowlist of assets. Config values and `.env` are never served as files; MCP previews contain references and redacted values. Known Markdown files are shown as escaped text. The UI shares import planning and application with the CLI, rather than shelling out to commands.
 
-Tests use isolated temporary hubs and fixture clients. They cover imports, sync and restore, secret-safe previews, stale plans, permissions and scope preservation, idempotence, atomic rollback, symlinks, CLI defaults and HTTP operations. Doctor tests use independent fixture MCP processes to verify handshake order, pagination, errors, deadlines, process cleanup, cancellation and report redaction. Real client files are not modified by the tests.
+Tests use isolated temporary hubs, client directories and project repositories. Content checks cover complete bundles, metadata, shared roots, shadow copies, instruction block ownership, repository templates, copied CLI commands, HTTP preview protection and artifact recovery. They cover imports, sync and restore, secret-safe previews, stale plans, permissions and scope preservation, idempotence, atomic rollback, symlinks, CLI defaults and HTTP operations. Doctor tests use independent fixture MCP processes to verify handshake order, pagination, errors, deadlines, process cleanup, cancellation and report redaction. Real client files are not modified by the tests.
 
 For hands-on UI testing without changing your client configurations:
 

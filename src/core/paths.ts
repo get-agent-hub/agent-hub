@@ -31,4 +31,11 @@ export const clientPaths = {
       expandHome(process.env.AGENT_HUB_SHARED_SKILLS ?? path.join(HOME, '.agents', 'skills')),
     ),
   dshHome: () => expandHome(process.env.DSH_HOME ?? '~/.dsh'),
+  dshSkills: () =>
+    path.resolve(
+      expandHome(
+        process.env.AGENT_HUB_SHARED_SKILLS ??
+          path.join(expandHome(process.env.DSH_AGENTS_HOME ?? '~/.agents'), 'skills'),
+      ),
+    ),
 };

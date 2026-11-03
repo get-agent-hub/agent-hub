@@ -3,7 +3,7 @@ import { readHub } from './hub.js';
 import { readEnvFile } from './env.js';
 import { envPath, readRegistry } from './registry.js';
 import { normalize } from './importer.js';
-import { appManaged } from '../adapters/policies.js';
+import { appManaged, reservedSkill } from '../adapters/policies.js';
 import { hash } from './values.js';
 import { isCurrentProjection, semantic } from './sync.js';
 import type { ClientAdapter, ClientId, ClientSnapshot, McpEntry, SkillEntry } from './types.js';
@@ -83,7 +83,7 @@ export async function collectStatus(sources: ClientAdapter[] = adapters): Promis
         drift.push({ kind: 'differs', area: 'skill', name, client });
       else if (cells[col] === 'ok' && !hubSkill && hub.exists)
         drift.push({ kind: 'only-in-client', area: 'skill', name, client });
-      else if (cells[col] === 'missing' && hubSkill)
+      else if (cells[col] === 'missing' && hubSkill && !reservedSkill(client, name))
         drift.push({ kind: 'only-in-hub', area: 'skill', name, client });
     }
     return { name, cells };

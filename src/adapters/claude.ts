@@ -4,6 +4,7 @@ import { clientPaths } from '../core/paths.js';
 import { exists, listSkills, readText } from '../core/fs.js';
 import { toMcpEntry } from '../core/mcp.js';
 import type { ClientAdapter, ClientSnapshot, DetectResult, RawMcp } from '../core/types.js';
+import { reservedSkill } from './policies.js';
 
 export const claudeAdapter: ClientAdapter = {
   id: 'claude-code',
@@ -27,7 +28,9 @@ export const claudeAdapter: ClientAdapter = {
 
   async read(): Promise<ClientSnapshot> {
     const mcp = (await this.readMcpRaw()).map((r) => toMcpEntry(r.name, r.raw, r.source));
-    const skills = await listSkills(path.join(clientPaths.claudeHome(), 'skills'));
+    const skills = (await listSkills(path.join(clientPaths.claudeHome(), 'skills'))).filter(
+      (skill) => !reservedSkill('claude-code', skill.name),
+    );
     return { client: 'claude-code', skills, mcp };
   },
 };

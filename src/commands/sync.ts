@@ -3,8 +3,14 @@ import { applySync, planSync, publicSyncPlan } from '../core/sync.js';
 import { applyRestore, planRestore, publicRestorePlan } from '../core/restore.js';
 import { printJson, table } from '../core/output.js';
 import type { ClientId } from '../core/types.js';
+import { runManaged } from './content.js';
+import { planSkillSync } from '../core/skills.js';
+import { hubRoot } from '../core/paths.js';
+import { planManagedRestore } from '../core/managed-plan.js';
+import { planContextSync } from '../core/context-sync.js';
 
 interface Options {
+  area?: string;
   apply?: boolean;
   dryRun?: boolean;
   client?: string;
@@ -14,6 +20,24 @@ interface Options {
 }
 
 export async function syncCommand(opts: Options) {
+  if (opts.area && opts.area !== 'mcp') {
+    if (opts.area === 'context') {
+      if (opts.replace)
+        throw new HubError(
+          '--replace is not supported for instruction blocks. Resolve edited blocks explicitly.',
+        );
+      return runManaged(
+        () => planContextSync({ client: opts.client as ClientId | undefined }),
+        opts,
+      );
+    }
+    if (opts.area !== 'skills')
+      throw new HubError('Unknown sync area. Choose mcp, skills or context.');
+    return runManaged(
+      () => planSkillSync({ client: opts.client as ClientId | undefined, replace: opts.replace }),
+      opts,
+    );
+  }
   if (opts.apply && opts.dryRun) throw new HubError('Choose --dry-run or --apply, not both.');
   const plan = await planSync({
     client: opts.client as ClientId | undefined,
@@ -63,6 +87,7 @@ export async function syncCommand(opts: Options) {
 }
 
 export async function restoreCommand(id: string, opts: Options) {
+  if (id.startsWith('content-')) return runManaged(() => planManagedRestore(id, hubRoot()), opts);
   if (opts.apply && opts.dryRun) throw new HubError('Choose --dry-run or --apply, not both.');
   const plan = await planRestore(id);
   if (opts.expect && opts.expect !== plan.revision)

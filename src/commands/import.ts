@@ -3,8 +3,13 @@ import { c, printJson, table } from '../core/output.js';
 import { tildify } from '../core/paths.js';
 import { choose, interactive } from '../core/prompt.js';
 import { envPath } from '../core/registry.js';
+import { runManaged } from './content.js';
+import { planSkillImport } from '../core/skills.js';
+import { HubError } from '../core/errors.js';
 
 interface Opts {
+  apply?: boolean;
+  expect?: string;
   dryRun?: boolean;
   prefer?: string;
   overwrite?: boolean;
@@ -12,6 +17,12 @@ interface Opts {
 }
 
 export async function importCommand(item: string | undefined, opts: Opts): Promise<void> {
+  if (/^skills?(?::|$)/.test(item ?? ''))
+    return runManaged(() => planSkillImport(item, opts), opts);
+  if (opts.apply || opts.expect)
+    throw new HubError(
+      'MCP import applies without --dry-run; --apply/--expect are used by skills import.',
+    );
   const plan = await planImport(item, {
     ...opts,
     chooseClient:

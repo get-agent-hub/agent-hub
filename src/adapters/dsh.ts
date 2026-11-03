@@ -40,7 +40,7 @@ export const dshAdapter: ClientAdapter = {
     const paths = {
       home,
       profilePatch: await patchPath(),
-      skills: clientPaths.agentsSkills(),
+      skills: clientPaths.dshSkills(),
       ownSkills: path.join(home, 'skills'),
     };
     return {
@@ -55,9 +55,9 @@ export const dshAdapter: ClientAdapter = {
   async read(): Promise<ClientSnapshot> {
     const mcp = (await readRaw()).map((r) => toMcpEntry(r.name, r.raw, r.source));
     const byName = new Map<string, SkillEntry>();
+    for (const s of await listSkills(clientPaths.dshSkills())) byName.set(s.name, s);
     for (const s of await listSkills(path.join(clientPaths.dshHome(), 'skills')))
       byName.set(s.name, s);
-    for (const s of await listSkills(clientPaths.agentsSkills())) byName.set(s.name, s);
     const skills = [...byName.values()].sort((a, b) => a.name.localeCompare(b.name));
     return { client: 'dsh', skills, mcp };
   },

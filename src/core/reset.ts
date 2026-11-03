@@ -19,6 +19,9 @@ import { writeTransaction } from './file-transaction.js';
 import { hash, stableStringify } from './values.js';
 import { hubCommand } from './shell.js';
 import { fileURLToPath } from 'node:url';
+import { planArtifactReset, recordArtifactWrites } from './artifact-recovery.js';
+import { inspectArtifact, writeArtifactTransaction, type ArtifactChange } from './artifacts.js';
+import { prepareArtifacts } from './managed-plan.js';
 
 export interface ResetOptions {
   archiveChanges?: boolean;
@@ -35,6 +38,7 @@ export async function planReset(options: ResetOptions = {}, root = hubRoot(), ow
   await verifyBaseline(root, baseline);
   const expected = await readExpectedWrites(root);
   const hub = await inspectTree(root);
+  const artifacts = await planArtifactReset(root, options.archiveChanges === true);
   const locks = await inspectLocks(root);
   const files = await Promise.all(
     baseline.files.map(async (file) => {
@@ -59,13 +63,19 @@ export async function planReset(options: ResetOptions = {}, root = hubRoot(), ow
       };
     }),
   );
-  const removed = new Set(
-    files.filter((file) => file.changed && file.original === null).map((file) => file.realFile),
-  );
+  const removed = new Set([
+    ...files.filter((file) => file.changed && file.original === null).map((file) => file.realFile),
+    ...artifacts
+      .filter((entry) => entry.changed && entry.original === null)
+      .map((entry) => entry.current.physicalPath),
+  ]);
   const directories = [];
-  const candidates = [...new Set(baseline.files.flatMap((file) => file.missingParents ?? []))].sort(
-    (left, right) => right.length - left.length,
-  );
+  const candidates = [
+    ...new Set([
+      ...baseline.files.flatMap((file) => file.missingParents ?? []),
+      ...artifacts.flatMap((entry) => entry.missingParents),
+    ]),
+  ].sort((left, right) => right.length - left.length);
   for (const directory of candidates) {
     try {
       const stat = await fs.lstat(directory);
@@ -87,7 +97,9 @@ export async function planReset(options: ResetOptions = {}, root = hubRoot(), ow
         (lock.status === 'stale' && !options.recoverLock)),
   );
   const hubChanged = hub.fingerprint !== baseline.hub.fingerprint;
-  const revision = hash(stableStringify({ baseline, expected, hub, files, directories, options }));
+  const revision = hash(
+    stableStringify({ baseline, expected, hub, files, artifacts, directories, options }),
+  );
   return {
     root,
     options,
@@ -95,13 +107,18 @@ export async function planReset(options: ResetOptions = {}, root = hubRoot(), ow
     hub,
     hubChanged,
     files,
+    artifacts,
     directories,
     locks,
     revision,
-    blocked: lockBlocked || files.some((file) => file.conflict),
+    blocked:
+      lockBlocked ||
+      files.some((file) => file.conflict) ||
+      artifacts.some((entry) => entry.conflict),
     changed:
       hubChanged ||
       files.some((file) => file.changed) ||
+      artifacts.some((entry) => entry.changed) ||
       directories.some((directory) => directory.remove),
   };
 }
@@ -134,18 +151,32 @@ export function publicResetPlan(plan: Awaited<ReturnType<typeof planReset>>) {
           : 'archive-created-hub',
       currentFiles: plan.hub.entries.length,
     },
-    files: plan.files.map((file) => ({
-      path: file.file,
-      client: file.client,
-      action: !file.changed
-        ? 'keep'
-        : file.original === null
-          ? 'archive-created-file'
-          : 'restore-original',
-      conflict: file.conflict,
-      outsideChanges: file.outsideChanges,
-      bindingChanged: file.bindingChanged,
-    })),
+    files: [
+      ...plan.files.map((file) => ({
+        path: file.file,
+        client: file.client,
+        action: !file.changed
+          ? 'keep'
+          : file.original === null
+            ? 'archive-created-file'
+            : 'restore-original',
+        conflict: file.conflict,
+        outsideChanges: file.outsideChanges,
+        bindingChanged: file.bindingChanged,
+      })),
+      ...plan.artifacts.map((entry) => ({
+        path: entry.before.path,
+        client: entry.client,
+        action: !entry.changed
+          ? 'keep'
+          : entry.original === null
+            ? 'archive-created-artifact'
+            : 'restore-original-artifact',
+        conflict: entry.conflict,
+        outsideChanges: entry.outsideChanges,
+        bindingChanged: entry.bindingChanged,
+      })),
+    ],
     directories: plan.directories.map((directory) => ({
       path: directory.path,
       action: directory.remove ? 'remove-created-empty-directory' : 'keep-user-data',
@@ -193,6 +224,20 @@ export async function applyReset(
       if (fresh.hubChanged && fresh.baseline.hub.exists)
         await copyTree(path.join(baselineDirectory(plan.root), 'hub'), staging);
       const changed = fresh.files.filter((file) => file.changed);
+      const artifactChanges = await prepareArtifacts(
+        archive,
+        await Promise.all(
+          fresh.artifacts
+            .filter((entry) => entry.changed)
+            .map(async (entry) => ({
+              before: entry.current,
+              client: entry.client,
+              value: entry.original
+                ? { kind: 'copy' as const, source: await inspectArtifact(entry.original) }
+                : { kind: 'missing' as const },
+            })),
+        ),
+      );
       const changes = changed.map((file) => ({
         before: { ...file.current, mode: file.mode },
         after: file.original,
@@ -216,19 +261,30 @@ export async function applyReset(
       await writeAtomic(
         path.join(archive, 'manifest.json'),
         JSON.stringify(
-          { version: 1, state: 'started', root: plan.root, files: archiveFiles },
+          {
+            version: 1,
+            state: 'started',
+            root: plan.root,
+            files: archiveFiles,
+            artifacts: artifactChanges,
+          },
           null,
           2,
         ),
         0o600,
       );
       await recordExpectedWrites(plan.root, changes);
+      await recordArtifactWrites(plan.root, artifactChanges);
       let filesWritten = false;
+      let artifactsWritten = false;
       let hubMoved = false;
       let originalInstalled = false;
       try {
+        await writeArtifactTransaction(artifactChanges);
+        artifactsWritten = true;
         await writeTransaction(changes);
         filesWritten = true;
+        await recordArtifactWrites(plan.root, artifactChanges, false);
         if ((await inspectTree(plan.root)).fingerprint !== fresh.hub.fingerprint)
           throw new HubError('Hub changed during reset.');
         if (fresh.hubChanged) {
@@ -244,7 +300,13 @@ export async function applyReset(
         await writeAtomic(
           path.join(archive, 'manifest.json'),
           JSON.stringify(
-            { version: 1, state: 'complete', root: plan.root, files: archiveFiles },
+            {
+              version: 1,
+              state: 'complete',
+              root: plan.root,
+              files: archiveFiles,
+              artifacts: artifactChanges,
+            },
             null,
             2,
           ),
@@ -270,7 +332,7 @@ export async function applyReset(
           }
         }
         return {
-          restoredFiles: changed.length,
+          restoredFiles: changed.length + artifactChanges.length,
           archive,
           hubRestored: fresh.hubChanged,
           retainedDirectories,
@@ -287,6 +349,24 @@ export async function applyReset(
                 after: file.current.content,
               })),
             );
+          if (artifactsWritten) {
+            const reverse: ArtifactChange[] = [];
+            for (const change of [...artifactChanges].reverse()) {
+              const before = await inspectArtifact(change.before.path);
+              if (
+                before.fingerprint !== change.afterFingerprint ||
+                before.physicalPath !== change.before.physicalPath
+              )
+                throw new HubError('An artifact changed during reset rollback.');
+              reverse.push({
+                before,
+                source: change.rollbackSource,
+                rollbackSource: change.source,
+                afterFingerprint: change.before.fingerprint,
+              });
+            }
+            await writeArtifactTransaction(reverse);
+          }
         } catch {
           throw new HubError(
             `Reset stopped; recovery needs manual review. Current data and originals remain in ${archive}.`,

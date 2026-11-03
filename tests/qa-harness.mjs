@@ -14,6 +14,7 @@ import { toMcpEntry } from '../dist/core/mcp.js';
 import { planImport } from '../dist/core/import-plan.js';
 import { planSync } from '../dist/core/sync.js';
 import { runDoctor } from '../dist/core/doctor.js';
+import { planContent } from '../dist/ui/content.js';
 
 const project = fileURLToPath(new URL('../', import.meta.url));
 const root = await fs.mkdtemp(path.join(os.tmpdir(), 'agent-hub-qa-'));
@@ -178,6 +179,21 @@ const ui = await startUiServer({
     plan: (item, opts) => planImport(item, opts, sources),
     syncPlan: (opts) => planSync(opts, context),
     doctor: (opts, _, control) => runDoctor(opts, doctorContext, control),
+    contentPlan: (operation, opts) =>
+      planContent(operation, opts, repo, {
+        root: hub,
+        clients: targets.map((target) => ({
+          id: target.id,
+          label: target.label,
+          installed: true,
+          skills: path.join(path.dirname(target.file), 'skills'),
+          additionalSkills: [],
+          instructions: path.join(
+            path.dirname(target.file),
+            target.id === 'claude-code' ? 'CLAUDE.md' : 'AGENTS.md',
+          ),
+        })),
+      }),
   },
 });
 console.log(

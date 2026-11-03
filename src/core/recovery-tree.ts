@@ -22,13 +22,17 @@ const skipped = (relative: string, excludeState: boolean) =>
   relative === path.join('state', 'sync.lock') ||
   (excludeState && (relative === 'state' || relative.startsWith('state' + path.sep)));
 
-async function fileHash(file: string): Promise<string> {
+export async function fileHash(file: string): Promise<string> {
   const digest = createHash('sha256');
   for await (const chunk of createReadStream(file)) digest.update(chunk);
   return digest.digest('hex');
 }
 
-export async function inspectTree(root: string, excludeState = false): Promise<TreeSnapshot> {
+export async function inspectTree(
+  root: string,
+  excludeState = false,
+  excludeLock = true,
+): Promise<TreeSnapshot> {
   let rootStat;
   try {
     rootStat = await fs.lstat(root);
@@ -43,7 +47,7 @@ export async function inspectTree(root: string, excludeState = false): Promise<T
     for (const name of (await fs.readdir(directory)).sort()) {
       const file = path.join(directory, name);
       const relative = path.relative(root, file);
-      if (skipped(relative, excludeState)) continue;
+      if (excludeLock && skipped(relative, excludeState)) continue;
       const stat = await fs.lstat(file);
       const mode = stat.mode & 0o777;
       if (stat.isSymbolicLink())
@@ -70,8 +74,9 @@ export async function copyTree(
   source: string,
   destination: string,
   excludeState = false,
+  excludeLock = true,
 ): Promise<void> {
-  const tree = await inspectTree(source, excludeState);
+  const tree = await inspectTree(source, excludeState, excludeLock);
   if (!tree.exists) throw new HubError('The original directory is missing.');
   await fs.mkdir(destination, { mode: 0o700 });
   const directories = tree.entries.filter((entry) => entry.kind === 'directory');

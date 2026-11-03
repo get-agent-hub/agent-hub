@@ -22,11 +22,11 @@ POST requests require JSON and `X-Agent-Hub-Token`, obtained from `/api/state`. 
 
 Preview IDs expire after five minutes, are single-use and are bounded in memory. Import and sync writes share a lock within a UI server process. Import, sync, restore and initialization share one filesystem lock across CLI/UI processes. Doctor report merging uses that lock too. The input revision includes client definitions, registry, environment values and import options. Imports detect changes between preview and apply. Import records private hashes of reviewed client variants and the selected hub definition; sync may replace those exact variants after a source choice, while later edits remain conflicts. No credential values are stored in this provenance. Sync additionally checks each file immediately before atomic replacement. External clients do not honor the hub lock; a client write in the narrow interval between the final check and rename is still a limitation.
 
-The UI supports import, dry-run sync, guarded client MCP writes, filtering and document inspection. Connection checks use background jobs with progress, cancellation and a shared, credential-safe cached report. Document editing, instruction delivery, repository initialization, agent launch and session indexing are not implemented. Unavailable features have explanatory states instead of working-looking controls with sample results.
+The UI supports import, dry-run sync, guarded client MCP writes, filtering and document inspection. Connection checks use background jobs with progress, cancellation and a shared, credential-safe cached report. Skills import/delivery, shared instruction/index delivery and repository setup use guarded content previews. Document editing, agent launch and session indexing are not implemented. Unavailable features have explanatory states instead of working-looking controls with sample results.
 
 ## Next
 
-Add shared instruction/memory delivery and repository handoff templates. Sync and restore are implemented in `src/core/sync.ts`, `config-edit.ts` and `restore.ts`; CLI and UI share the sync planner. Codex STDIO fields and local tool policies follow the [official OpenAI documentation](https://learn.chatgpt.com/docs/extend/mcp?surface=cli).
+Run the personal workflow in [WORKING_GUIDE.md](WORKING_GUIDE.md), then complete release validation. Shared context delivery and repository templates are implemented; [CONTENT.md](CONTENT.md) defines their exact scope. Sync and restore are implemented in `src/core/sync.ts`, `config-edit.ts` and `restore.ts`; CLI and UI share the sync planner. Codex STDIO fields and local tool policies follow the [official OpenAI documentation](https://learn.chatgpt.com/docs/extend/mcp?surface=cli).
 
 ## Doctor jobs
 
@@ -39,3 +39,9 @@ HTTP jobs return immediately and can be polled; only one doctor job runs at a ti
 A server `health: {name, url}` enables a generic bounded readiness probe. An isolated integration preserves the n8n preset for existing configurations with `N8N_API_URL`. `DoctorResult.service` reports `ready`, `unavailable` or `unknown`, a fixed explanation and an optional HTTP status. URLs, response bodies and credentials are excluded. MCP status remains independent: an available MCP with an unavailable n8n backend has a warning badge, service details and a warning count. Rechecking updates the same cache and clears recovered warnings. No configuration is disabled or removed because of an outage.
 
 The probe is an unauthenticated GET to the base URL plus `/healthz/readiness`, without URL userinfo, query, fragment, API headers or redirect following. A 401/403/404 or redirect is unknown, since the ingress may hide the endpoint. API permissions and workflow execution remain untested.
+
+## Managed content operations
+
+`POST /api/content/preview` accepts `skills-import`, `skills-sync`, `context-sync` or `init-repo`. It returns only actions, paths, a revision and copyable commands. Source rules and memory text are excluded. `POST /api/content/apply` consumes the opaque preview ID, rebuilds the plan and applies it under the shared Hub lock. The same Host/Origin/token protections and five-minute, single-use preview lifetime apply. All content writes serialize with imports and MCP sync.
+
+The local UI has Skills import/delivery controls, context delivery on Instructions/Memory and Prepare repository on Repos & tasks. Init-repo is bound to the server's startup workspace. The isolated QA harness injects fixture-only content targets as well as MCP targets, so these controls never default to the developer's real client directories there.

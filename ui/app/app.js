@@ -1,4 +1,5 @@
 import { escape, link, pill, mark, empty, intro } from './html.js';
+import { setupContentUi } from './content.js';
 import {
   doctorResultText,
   serviceDetails,
@@ -177,7 +178,7 @@ function skillsPage(params) {
     intro(
       'Skills',
       'Inspect shared instructions and see which clients use the same files.',
-      pill(`${items.length} skills`),
+      `<button class="btn" data-content-operation="skills-import">Import from clients</button><button class="btn primary" data-content-operation="skills-sync">Sync skills → clients</button>`,
     ) +
     `<div class="split"><div><div class="card table-wrap">${items.length ? `<table class="table"><thead><tr><th>Skill</th>${cols.map((c) => `<th class="c">${labels[c]}</th>`).join('')}</tr></thead><tbody>${items.map((s) => `<tr class="${s === selected ? 'selected' : ''}"><td class="name"><a class="row-link" href="${link('skills', { name: s.name })}">${escape(s.name)}</a></td>${cols.map((c) => `<td class="c">${mark(s.cells[c])}</td>`).join('')}</tr>`).join('')}</tbody></table>` : empty(query ? 'No matching skills' : 'No skills found', query ? 'Try another search.' : 'Add skills to your hub or a client to see them here.')}</div><div class="legend"><span>${mark('ok')} linked</span><span>${mark('other-copy')} different location</span><span>${mark('broken')} broken</span><span>${mark('missing')} missing</span></div></div><div class="card detail">${detail}</div></div>`
   );
@@ -207,8 +208,12 @@ function mcpPage(params) {
 function instructionsPage() {
   const doc = state.instructions;
   return (
-    intro('Instructions', 'The global rules stored in your hub.', pill('Preview')) +
-    `<div class="grid g-2-1"><div class="card"><div class="card-h"><h2 class="mono">instructions/AGENTS.md</h2></div>${doc.content !== null ? `<pre class="document-view">${escape(doc.content)}</pre>` : empty('No shared instructions yet', 'Your hub has no instructions/AGENTS.md. Add your common rules there and refresh.', '<button class="btn" data-action="refresh">Refresh</button>')}</div><div class="card"><div class="card-h"><h2>Shared rules</h2></div><div class="card-b doc"><p>The hub stores your common rules in one place. Instruction delivery is a separate step from MCP synchronization.</p><p class="muted">Client instructions have not been modified by this UI.</p><pre class="code">${escape(doc.path)}</pre></div></div></div>`
+    intro(
+      'Instructions',
+      'The global rules stored in your hub.',
+      '<button class="btn primary" data-content-operation="context-sync">Deliver rules & memory index</button>',
+    ) +
+    `<div class="grid g-2-1"><div class="card"><div class="card-h"><h2 class="mono">instructions/AGENTS.md</h2></div>${doc.content !== null ? `<pre class="document-view">${escape(doc.content)}</pre>` : empty('No shared instructions yet', 'Your hub has no instructions/AGENTS.md. Add your common rules there and refresh.', '<button class="btn" data-action="refresh">Refresh</button>')}</div><div class="card"><div class="card-h"><h2>Shared rules</h2></div><div class="card-b doc"><p>The hub stores your common rules in one place. Instruction delivery is a separate step from MCP synchronization.</p><p class="muted">Review delivery to add an owned block while preserving your personal rules.</p><pre class="code">${escape(doc.path)}</pre></div></div></div>`
   );
 }
 
@@ -219,11 +224,11 @@ function memoryPage(params) {
     intro(
       'Memory',
       'Documents in your hub memory directory. Read and search what is actually there.',
-      pill(`${state.memory.length} documents`),
+      `<button class="btn primary" data-content-operation="context-sync">Deliver rules & memory index</button>`,
     ) +
     (items.length
       ? `<div class="split"><div class="card">${items.map((m) => `<a class="document-list ${m === selected ? 'active' : ''}" href="${link('memory', { name: m.name })}"><b>${escape(m.name)}</b><span>${m.content !== null ? `${m.content.length.toLocaleString()} characters` : escape(m.reason)}</span></a>`).join('')}</div><div class="card detail"><div class="card-h"><h2 class="mono">${escape(selected.name)}</h2>${pill('Read only')}</div>${selected.content !== null ? `<pre class="document-view">${escape(selected.content)}</pre>` : empty('Preview unavailable', selected.reason)}</div></div>`
-      : `<div class="card">${empty(query ? 'No matching memory' : 'Your shared memory starts here', query ? 'Try another search term.' : 'There are no Markdown documents in hub/memory yet. Existing client memories stay in their own directories until memory migration is implemented.')}</div>`)
+      : `<div class="card">${empty(query ? 'No matching memory' : 'Your shared memory starts here', query ? 'Try another search term.' : 'Create hub/memory/MEMORY.md as your shared index, then deliver it with the common rules. Existing client-native memories stay separate.')}</div>`)
   );
 }
 
@@ -241,7 +246,7 @@ function reposPage(params) {
     intro(
       'Repos & tasks',
       'Context for the repository where you started Agent Hub.',
-      pill('Current workspace'),
+      '<button class="btn primary" data-content-operation="init-repo">Prepare repository</button>',
     ) +
     `<div class="card table-wrap"><table class="table"><thead><tr><th>Repository</th><th>Branch</th><th>AGENTS.md</th><th>PROJECT.md</th><th>NOW.md</th></tr></thead><tbody><tr><td><b>${escape(repo.name)}</b><div class="minor mono">${escape(repo.path)}</div></td><td class="mono">${escape(repo.branch)}</td>${repo.files.map((f) => `<td>${pill(f.content === null ? 'Missing' : 'Present', f.content === null ? 'warn' : 'ok')}</td>`).join('')}</tr></tbody></table></div><div class="grid g-2-1 section-gap"><div class="card"><div class="document-tabs">${repo.files.map((f) => `<a class="btn sm ${f === selected ? 'active' : ''}" href="${link('repos', { file: f.name })}">${escape(f.name.split('/').pop())}</a>`).join('')}</div>${selected.content !== null ? `<pre class="document-view">${escape(selected.content)}</pre>` : empty('Project context not created', `${selected.name} is missing. The init-repo command will add the handoff templates in a later stage.`)}</div><div class="card"><div class="card-h"><h2>Continue across agents</h2></div><div class="card-b doc"><p>Project decisions and the current task belong in this repository, alongside the code.</p><dl class="definition-list"><dt>AGENTS.md</dt><dd>Shared working rules</dd><dt>PROJECT.md</dt><dd>Architecture and decisions</dd><dt>NOW.md</dt><dd>Progress and next action</dd></dl><p class="small-note">Repository initialization and agent launch actions are coming in the project handoff stage.</p></div></div></div>`
   );
@@ -670,4 +675,5 @@ $('#theme').addEventListener('click', () => {
     /* storage optional */
   }
 });
+setupContentUi({ api, load, notice });
 load();

@@ -11,7 +11,7 @@ import { buildLaunch } from './launch.js';
 import { readEnvFile } from './env.js';
 import { listSkills } from './fs.js';
 import { clientPaths, hubRoot } from './paths.js';
-import { appManaged } from '../adapters/policies.js';
+import { appManaged, reservedSkill } from '../adapters/policies.js';
 import { hash, stableStringify as stable } from './values.js';
 import { HubError } from './errors.js';
 import { hubCommand } from './shell.js';
@@ -70,6 +70,9 @@ export const defaultDoctorContext = (): DoctorContext => ({
     { client: 'hub', path: path.join(hubRoot(), 'skills') },
     { client: 'claude-code', path: path.join(clientPaths.claudeHome(), 'skills') },
     { client: 'codex/dsh', path: clientPaths.agentsSkills() },
+    ...(clientPaths.dshSkills() !== clientPaths.agentsSkills()
+      ? [{ client: 'dsh-shared', path: clientPaths.dshSkills() }]
+      : []),
     { client: 'codex', path: path.join(clientPaths.codexHome(), 'skills') },
     { client: 'dsh', path: path.join(clientPaths.dshHome(), 'skills') },
   ],
@@ -150,6 +153,7 @@ async function localChecks(context: DoctorContext): Promise<DoctorCheck[]> {
   }
   for (const root of context.skillRoots) {
     for (const skill of await listSkills(root.path)) {
+      if (reservedSkill(root.client, skill.name)) continue;
       if (!skill.realPath || !skill.hasSkillMd)
         checks.push({
           name: `skill:${root.client}:${skill.name}`,

@@ -56,3 +56,9 @@ Client writes use guarded replacements with compensating rollback. Directory ins
 The tests cover SIGKILL during sync and reset plus injected ENOSPC/rename failures, not power loss or every filesystem failure. Directory operations and several file writes are not a database transaction. An abrupt reset-process failure, disk loss, a failed rollback or a race with another application can still require manual recovery from the retained baseline/archive. File modes and symlink bindings are recorded; inode identities, hardlink relationships, ACLs and extended attributes are not guaranteed. Hub-root directory symlinks, special files and externally stored Git metadata cannot provide the same complete-directory recovery contract. `init --no-git` avoids mutating an existing Git worktree's external metadata.
 
 Before resetting a production hub, stop its UI and affected clients, keep an independent backup, review the dry run and retain the recovery directory.
+
+## Skills, context and project artifacts
+
+Content operations retain `content-…` backups, supported by the same `restore <id>` CLI. First-touch originals of external skill directories, individual symlinks and repository/context files are recorded in the private recovery `artifacts/` store. Reset validates these payloads and includes them in its plan, archives and compensating rollback. Full-file restoration can replace later project notes; external edits require explicit archiving. Repointed links remain blocked.
+
+Directory replacement has a brief rename gap. Artifact intent permits recorded before/after states during interrupted writes; it does not establish power-loss durability. Symlink permission bits are normalized for comparison across platforms, while target bindings, regular file modes and directory contents are checked. See [CONTENT.md](CONTENT.md) for the content contract.

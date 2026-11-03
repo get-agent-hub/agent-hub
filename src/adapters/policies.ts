@@ -19,3 +19,10 @@ export function applicationOwner(server: { command?: unknown }): ClientId | unde
 }
 export const appManaged = (server: { command?: unknown }): boolean =>
   applicationOwner(server) !== undefined;
+
+/** Claude reserves these local skill names for account-synchronized content. */
+export function reservedSkill(client: string, name: string): boolean {
+  return (
+    client === 'claude-code' && (/^synced$/i.test(name) || /^anthropic-skills(?::|$)/i.test(name))
+  );
+}

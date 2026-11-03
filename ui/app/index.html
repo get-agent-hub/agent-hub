@@ -100,6 +100,51 @@
         ><button class="btn primary" id="sync-apply" disabled>Apply with backup</button>
       </div>
     </dialog>
+    <dialog id="content-dialog" aria-labelledby="content-title">
+      <div class="dialog-head">
+        <div>
+          <h2 id="content-title">Review content changes</h2>
+          <p class="muted">Preview first. Originals and private backups are retained.</p>
+        </div>
+        <button class="btn ghost" data-content-close aria-label="Close content preview">✕</button>
+      </div>
+      <div class="dialog-body">
+        <div class="sync-options">
+          <label
+            >Client<select class="input" id="content-client">
+              <option value="">All enabled clients</option>
+              <option value="claude-code">Claude Code</option>
+              <option value="codex">Codex CLI</option>
+              <option value="dsh">DeepSeek Harness</option>
+            </select></label
+          >
+          <label
+            >Preferred source<select class="input" id="content-preference">
+              <option value="">Ask me to resolve differing copies</option>
+              <option value="claude-code">Claude Code</option>
+              <option value="codex">Codex CLI</option>
+              <option value="dsh">DeepSeek Harness</option>
+            </select></label
+          >
+          <label
+            ><input type="checkbox" id="content-overwrite" /> Replace existing Hub skills</label
+          >
+          <label
+            >Explicit replacements for one client<input
+              class="input"
+              id="content-replacements"
+              placeholder="skill-name, another-skill"
+          /></label>
+          <button class="btn" data-content-preview>Run dry run</button>
+        </div>
+        <div id="content-preview" aria-live="polite"></div>
+      </div>
+      <div class="dialog-foot">
+        <span id="content-summary" class="muted">No files changed.</span><span class="spacer"></span
+        ><button class="btn" data-content-close>Close</button
+        ><button class="btn primary" id="content-apply" disabled>Apply with backup</button>
+      </div>
+    </dialog>
     <dialog id="doctor-dialog" aria-labelledby="doctor-title">
       <div class="dialog-head">
         <div>

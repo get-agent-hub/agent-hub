@@ -10,6 +10,12 @@ import { uiCommand } from './commands/ui.js';
 import { syncCommand, restoreCommand } from './commands/sync.js';
 import { doctorCommand } from './commands/doctor.js';
 import { notImplemented } from './commands/stub.js';
+import {
+  skillListCommand,
+  skillAddCommand,
+  skillRemoveCommand,
+  repoInitCommand,
+} from './commands/content.js';
 
 const program = new Command();
 
@@ -39,6 +45,7 @@ program
   .option('--apply', 'write changes (with backup)')
   .option('--dry-run', 'show changes and exact commands, write nothing (default)')
   .option('--client <id>', 'only this client')
+  .option('--area <area>', 'sync mcp, skills or context (default: mcp)', 'mcp')
   .option(
     '--replace <name...>',
     'explicitly replace selected existing servers; requires --client and reviewed --expect on apply',
@@ -48,9 +55,14 @@ program
   .action(syncCommand);
 program
   .command('import [item]')
-  .description('pull client definitions into the hub (item: mcp | mcp:<name>); secrets → .env')
+  .description('import mcp or skills from clients; skills use guarded preview/apply')
   .option('--dry-run', 'show the plan, write nothing')
-  .option('--prefer <clients>', 'on conflict take config from (comma list)', 'claude-code,codex')
+  .option('--apply', 'apply a reviewed skills import')
+  .option('--expect <revision>', 'required for applying a skills import')
+  .option(
+    '--prefer <clients>',
+    'source preference (MCP default: claude-code,codex; skills require an explicit choice for differences)',
+  )
   .option('--overwrite', 'replace servers that already exist in the hub')
   .option('--json', 'machine-readable output')
   .action(importCommand);
@@ -62,9 +74,13 @@ program
   .option('--json', 'machine-readable report without raw server logs')
   .action(doctorCommand);
 program
-  .command('init-repo')
+  .command('init-repo [directory]')
   .description('add AGENTS.md + .agents/state/{PROJECT,NOW}.md to current repo')
-  .action(notImplemented('init-repo', '7'));
+  .option('--dry-run', 'preview without writing (default)')
+  .option('--apply', 'apply the reviewed repository setup')
+  .option('--expect <revision>', 'required reviewed revision')
+  .option('--json', 'machine-readable output')
+  .action(repoInitCommand);
 program
   .command('restore <backup>')
   .description('preview rollback of client configs from a sync backup')
@@ -94,17 +110,37 @@ mcp
   .description('list servers in the hub registry')
   .option('--json')
   .action(mcpLsCommand);
-mcp.command('add <name>').action(notImplemented('mcp add', '4'));
-mcp.command('rm <name>').action(notImplemented('mcp rm', '4'));
+mcp.command('add <name>').action(notImplemented('mcp add'));
+mcp.command('rm <name>').action(notImplemented('mcp rm'));
 mcp
   .command('run <name>')
   .description('launcher: start MCP over stdio with secrets from .env')
   .action(mcpRunCommand);
 
 const skill = program.command('skill').description('manage skills');
-skill.command('ls').action(notImplemented('skill ls', '3'));
-skill.command('add <source>').action(notImplemented('skill add', '3'));
-skill.command('rm <name>').action(notImplemented('skill rm', '3'));
+skill
+  .command('ls')
+  .description('list hub skills')
+  .option('--json', 'machine-readable output')
+  .action(skillListCommand);
+skill
+  .command('add <source>')
+  .description('preview copying a local skill into the hub')
+  .option('--name <name>', 'hub skill name')
+  .option('--overwrite', 'explicitly replace an existing hub skill')
+  .option('--dry-run', 'preview without writing (default)')
+  .option('--apply', 'apply the reviewed plan')
+  .option('--expect <revision>', 'required reviewed revision')
+  .option('--json', 'machine-readable output')
+  .action(skillAddCommand);
+skill
+  .command('rm <name>')
+  .description('preview removing a hub skill with backup')
+  .option('--dry-run', 'preview without writing (default)')
+  .option('--apply', 'apply the reviewed plan')
+  .option('--expect <revision>', 'required reviewed revision')
+  .option('--json', 'machine-readable output')
+  .action(skillRemoveCommand);
 
 program
   .command('ui')

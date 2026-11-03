@@ -15,14 +15,21 @@ for (const required of [
   'ui/app/app.js',
   'ui/app/html.js',
   'ui/app/health.js',
+  'ui/app/content.js',
   'ui/app/base.css',
+  'docs/CONTENT.md',
+  'docs/WORKING_GUIDE.md',
+  'docs/RECOVERY.md',
+  'docs/DESIGN.md',
   'LICENSE',
 ]) {
   assert.ok(files.has(required), `Package is missing ${required}`);
 }
 for (const file of files)
   assert.ok(
-    /^(dist\/|ui\/app\/|README\.md$|LICENSE$|package\.json$)/.test(file),
+    /^(dist\/|ui\/app\/|docs\/(CONTENT|WORKING_GUIDE|RECOVERY|DESIGN)\.md$|README\.md$|LICENSE$|package\.json$)/.test(
+      file,
+    ),
     `Unexpected package file: ${file}`,
   );
 console.log(

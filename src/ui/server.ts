@@ -8,6 +8,9 @@ import { skillDocument, uiState } from './data.js';
 import { applySync, planSync, publicSyncPlan } from '../core/sync.js';
 import { runDoctor, validateDoctorOptions, type DoctorOptions } from '../core/doctor.js';
 import type { DoctorReport, DoctorResult } from '../core/doctor-types.js';
+import { planContent, type ContentOperation, type ContentOptions } from './content.js';
+import { publicManagedPlan, applyManagedPlan } from '../core/managed-plan.js';
+import type { ClientId } from '../core/types.js';
 
 const assets = new URL('../../ui/app/', import.meta.url);
 const staticFiles: Record<string, [string, string]> = {
@@ -15,6 +18,7 @@ const staticFiles: Record<string, [string, string]> = {
   '/app.js': ['app.js', 'text/javascript; charset=utf-8'],
   '/html.js': ['html.js', 'text/javascript; charset=utf-8'],
   '/health.js': ['health.js', 'text/javascript; charset=utf-8'],
+  '/content.js': ['content.js', 'text/javascript; charset=utf-8'],
   '/app.css': ['app.css', 'text/css; charset=utf-8'],
   '/base.css': ['base.css', 'text/css; charset=utf-8'],
 };
@@ -57,6 +61,7 @@ export async function startUiServer(
       syncPlan?: typeof planSync;
       syncApply?: typeof applySync;
       doctor?: typeof runDoctor;
+      contentPlan?: typeof planContent;
     };
   } = {},
 ) {
@@ -68,11 +73,17 @@ export async function startUiServer(
     syncPlan: planSync,
     syncApply: applySync,
     doctor: runDoctor,
+    contentPlan: (operation: ContentOperation, contentOptions: ContentOptions) =>
+      planContent(operation, contentOptions, options.cwd ?? process.cwd()),
     ...options.services,
   };
   const token = randomBytes(32).toString('hex');
   let origin = '';
   let applying = false;
+  const contentPreviews = new Map<
+    string,
+    { operation: ContentOperation; options: ContentOptions; revision: string; expires: number }
+  >();
   const previews = new Map<
     string,
     { item: string; prefer: string; overwrite: boolean; revision: string; expires: number }
@@ -310,6 +321,60 @@ export async function startUiServer(
             );
           previews.delete(id);
           json(200, await services.apply(plan));
+        } finally {
+          applying = false;
+        }
+        return;
+      }
+      if (
+        req.method === 'POST' &&
+        ['/api/content/preview', '/api/content/apply'].includes(url.pathname)
+      ) {
+        if (req.headers['x-agent-hub-token'] !== token)
+          throw new RequestError(403, 'Refresh the page before making changes.');
+        if (applying) throw new RequestError(409, 'Another operation is running.');
+        const body = await jsonBody(req);
+        if (applying) throw new RequestError(409, 'Another operation is running.');
+        if (url.pathname.endsWith('/preview')) {
+          const operation = body.operation as ContentOperation;
+          const contentOptions: ContentOptions = {
+            client: body.client as ClientId | undefined,
+            prefer: body.prefer as string | undefined,
+            overwrite: body.overwrite as boolean | undefined,
+            replace: body.replace as string[] | undefined,
+          };
+          if (contentOptions.prefer !== undefined && typeof contentOptions.prefer !== 'string')
+            throw new RequestError(400, 'Choose a known source preference.');
+          const plan = await services.contentPlan(operation, contentOptions);
+          for (const [id, preview] of contentPreviews)
+            if (preview.expires < Date.now()) contentPreviews.delete(id);
+          if (contentPreviews.size >= 50)
+            contentPreviews.delete(contentPreviews.keys().next().value!);
+          const id = randomBytes(16).toString('hex');
+          contentPreviews.set(id, {
+            operation,
+            options: contentOptions,
+            revision: plan.revision,
+            expires: Date.now() + 5 * 60_000,
+          });
+          json(200, { id, ...publicManagedPlan(plan) });
+          return;
+        }
+        const id = typeof body.id === 'string' ? body.id : '';
+        const preview = contentPreviews.get(id);
+        if (!preview || preview.expires < Date.now())
+          throw new RequestError(409, 'Preview expired. Review a new plan.');
+        applying = true;
+        try {
+          const rebuild = () => services.contentPlan(preview.operation, preview.options);
+          const plan = await rebuild();
+          if (plan.revision !== preview.revision || plan.blocked)
+            throw new RequestError(
+              409,
+              'Inputs changed or the plan is blocked. Review a new plan.',
+            );
+          contentPreviews.delete(id);
+          json(200, await applyManagedPlan(plan, rebuild, preview.revision));
         } finally {
           applying = false;
         }
