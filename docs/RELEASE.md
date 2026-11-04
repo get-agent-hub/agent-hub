@@ -50,6 +50,21 @@ The full audit includes development tooling; investigate findings separately fro
 - A real-client task in at least two supported clients: restart/activation, memory retrieval and capture, external-change conflict handling and recovery. Useful knowledge must be inspected, not inferred from a checkpoint counter.
 - Public repository visibility and private vulnerability reporting configured by the maintainer; SECURITY.md must have a working private reporting route.
 - CHANGELOG.md reviewed, version and shrinkwrap aligned, artifacts/checksums attached to the intended prerelease, and known beta limits stated.
-- The separate site references this exact core commit, refreshed documentation and source archive. Domain/hosting and deployment remain maintainer-managed.
+- The separate site references this exact core commit, refreshed documentation and GitHub source/release links. Domain/hosting and deployment remain maintainer-managed.
 
-These gates remain open until evidence is recorded. Preparation is not approval to publish. After approval, a maintainer can create the matching `v0.1.0-beta.1` tag and GitHub prerelease and attach the prepared artifacts. If files change, cut a new commit, repeat the affected checks and regenerate every artifact and site reference before publishing.
+These gates remain open until evidence is recorded. Preparation is not approval to publish. If files change, cut a new commit, repeat the affected checks and regenerate every artifact and site reference before publishing.
+
+## GitHub release workflow
+
+The release workflow runs on version-tag pushes or a manual dispatch with an existing tag. It verifies that the tag matches the package version and exact checkout, scans full history, and runs the complete checks, coverage, production audit and actual installer on macOS/Linux with Node 22.13 and 24. Only after every job passes does it create a **draft** GitHub Release with changelog notes, package/source archives, checksums and the exact-commit manifest. Beta versions are marked prerelease. It never publishes to npm or deploys the website.
+
+Run the following only from the reviewed, sanitized publication repository when ready to create a GitHub draft. The remote must point at the intended GitHub repository, and the tagged commit must already be available there:
+
+```sh
+git tag -a v0.1.0-beta.1 -m "Agent Hub 0.1.0-beta.1"
+git push origin v0.1.0-beta.1
+```
+
+To retry, open Actions → Prepare GitHub release → Run workflow and enter the existing version tag. A rerun may refresh assets and notes on the draft; it refuses to modify an already published release. Downloaded artifacts are checksum-verified and their manifest commit is compared to the tag again before upload. No tag or release is created by local preparation.
+
+After the real-client and browser gates pass, review the draft and publish it manually in GitHub. The website links to the GitHub repository and Releases page; it does not host its own source ZIP. GitHub visibility, private vulnerability reporting and the first source push remain explicit maintainer steps.

@@ -1,0 +1,122 @@
+name: Prepare GitHub release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing version tag to build, for example v0.1.0-beta.1
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+
+jobs:
+  secrets:
+    uses: ./.github/workflows/secrets.yml
+    with:
+      ref: ${{ inputs.tag || github.ref }}
+
+  verify:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        node: ['22.13.0', '24']
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: node scripts/check-release-tag.mjs
+      - run: npm ci
+      - run: npm run check
+      - run: npm run test:coverage
+      - run: npm audit --omit=dev --audit-level=moderate
+      - run: npm run package:check
+      - run: npm run install:check
+      - run: npm run release:prepare
+        if: matrix.os == 'ubuntu-latest' && matrix.node == '22.13.0'
+      - uses: actions/upload-artifact@v4
+        if: matrix.os == 'ubuntu-latest' && matrix.node == '22.13.0'
+        with:
+          name: release-candidate
+          path: .tmp/release/
+          include-hidden-files: true
+          if-no-files-found: error
+
+  draft:
+    needs: [secrets, verify]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.13.0'
+      - run: node scripts/check-release-tag.mjs
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-candidate
+          path: .tmp/release/
+      - name: Prepare release notes
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          import path from 'node:path';
+          import assert from 'node:assert/strict';
+          const { version } = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          const section = fs.readFileSync('CHANGELOG.md', 'utf8').split('\n## ').find((text) => text.startsWith(`${version} `));
+          assert.ok(section, 'Missing changelog entry for this version.');
+          fs.writeFileSync(path.join(process.env.RUNNER_TEMP, 'release-notes.md'), section.slice(section.indexOf('\n') + 1).trim() + '\n');
+          JS
+      - name: Create or refresh draft only
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          candidate_version="${RELEASE_TAG#v}"
+          artifact_dir=".tmp/release/$candidate_version"
+          (cd "$artifact_dir" && sha256sum --check SHA256SUMS)
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          import assert from 'node:assert/strict';
+          import { execFileSync } from 'node:child_process';
+          const version = process.env.RELEASE_TAG.slice(1);
+          const manifest = JSON.parse(fs.readFileSync(`.tmp/release/${version}/release.json`, 'utf8'));
+          assert.equal(manifest.version, version);
+          assert.equal(manifest.revision, execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim());
+          JS
+          assets=("$artifact_dir/agent-hub-$candidate_version.tgz" "$artifact_dir/agent-hub-source-$candidate_version.zip" "$artifact_dir/SHA256SUMS" "$artifact_dir/release.json")
+          release_flags=(--draft --prerelease=false --title "Agent Hub $candidate_version" --notes-file "$RUNNER_TEMP/release-notes.md")
+          if [[ "$candidate_version" == *-* ]]; then
+            release_flags=(--draft --prerelease --title "Agent Hub $candidate_version" --notes-file "$RUNNER_TEMP/release-notes.md")
+          fi
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft > "$RUNNER_TEMP/existing-release"; then
+            if [[ "$(cat "$RUNNER_TEMP/existing-release")" != true ]]; then
+              echo "Refusing to modify an already published release."
+              exit 1
+            fi
+            gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" "${release_flags[@]}" --verify-tag
+            gh release upload "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" "${assets[@]}" --clobber
+          else
+            gh release create "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" "${assets[@]}" "${release_flags[@]}" --verify-tag
+          fi
+          gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json url --jq .url >> "$GITHUB_STEP_SUMMARY"

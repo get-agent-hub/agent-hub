@@ -165,4 +165,6 @@ The simplified CLI surface passes **199/199 tests** on the normal runtime and No
 
 Candidate 0.1.0-beta.1 adds four installer regressions: array/object npm pack metadata, cleanup after installation failure and fallback from another package manager's generic CLI. The standalone installation check now runs the actual end-user installer with a disposable global prefix and isolated cache/client paths, and verifies the installed executable version. Release preparation requires clean Git state and creates source/package archives with hashes and an exact-commit manifest. The guide adds a seventeenth documentation page for beta installation and publication gates.
 
+Two additional release regressions reject mismatched tags/checkouts and implicit releases without a tag. The GitHub workflow prepares drafts only after the full platform/runtime matrix and secret scan pass; it refuses to update published releases. The website uses GitHub source and Releases links instead of bundling archives.
+
 The earlier results above are historical snapshots. Candidate verification must run against the exact publication commit from a clean checkout; [RELEASE.md](RELEASE.md) lists the commands and open manual gates. Local checks do not establish remote CI success, browser layout quality or useful model-selected memory in real sessions.
