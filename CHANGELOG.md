@@ -1,8 +1,8 @@
 # Changelog
 
-## 0.1.0-beta.1 — Unreleased
+## 0.1.0-beta.1 — 2026-11-04
 
-First public beta candidate. Distribution is a source ZIP and a standalone npm tarball; no public npm registry package is published by this preparation.
+First public beta. Distributed on GitHub as a source ZIP and a standalone npm tarball; no public npm registry package is published.
 
 - Set up one shared Hub for Claude Code, Codex CLI and DeepSeek Harness with `ahub quick`, or use the local UI. Connect a Git project's memory and handoff separately.
 - Collect and deliver MCP definitions, complete skill bundles and shared instructions with reviewed plans, conflict detection and preservation of unrelated client settings.
