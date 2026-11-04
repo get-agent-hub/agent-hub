@@ -17,6 +17,7 @@ for (const required of [
   'dist/core/quick.js',
   'dist/commands/quick.js',
   'ui/app/quick.js',
+  'docs/README.md',
   'docs/QUICKSTART.md',
   'docs/CLI.md',
   'docs/RELEASE.md',
@@ -45,7 +46,7 @@ for (const required of [
 }
 for (const file of files)
   assert.ok(
-    /^(dist\/|ui\/app\/|docs\/(CLI|RELEASE|QUICKSTART|CONTENT|MEMORY|AUTOMATION|WORKING_GUIDE|RECOVERY|DESIGN)\.md$|README\.md$|CHANGELOG\.md$|SECURITY\.md$|LICENSE$|package\.json$|npm-shrinkwrap\.json$)/.test(
+    /^(dist\/|ui\/app\/|docs\/(README|CLI|RELEASE|QUICKSTART|CONTENT|MEMORY|AUTOMATION|WORKING_GUIDE|RECOVERY|DESIGN)\.md$|README\.md$|CHANGELOG\.md$|SECURITY\.md$|LICENSE$|package\.json$|npm-shrinkwrap\.json$)/.test(
       file,
     ),
     `Unexpected package file: ${file}`,
