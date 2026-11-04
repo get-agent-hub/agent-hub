@@ -475,7 +475,7 @@ References: [MEMORY.md](MEMORY.md), [AUTOMATION.md](AUTOMATION.md), [CONTENT.md]
 
 ## Usability and workflow recovery regression
 
-1. Run `ahub quick --interactive` in a terminal. Decline once and verify no setup changes; preview again and confirm. Plain `import mcp` must only preview. An apply without `--expect` must fail.
+1. Run `ahub quick` in a terminal. Decline once and verify no setup changes; preview again and confirm. Plain `import mcp` must only preview. An apply without `--expect` must fail.
 2. On status/Overview, distinguish matched configuration from not-checked/stale MCP results. Hooks installed without a real client event must stay configured, not observed. A zero-fact checkpoint is observed activity, not a saved knowledge claim.
 3. Open UI from an unconnected folder: record management defaults to shared, and the knowledge metric counts records. Switch between two registered projects and verify record isolation and expiration of old previews.
 4. Create conflicting copies of one MCP/skill in fixture clients. Preview each direction in its detail panel. Only the named item may change; later full delivery must still recognize ownership of other managed entries.

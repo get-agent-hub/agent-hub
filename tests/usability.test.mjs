@@ -4,7 +4,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { confirmReviewed } from '../dist/commands/review.js';
+import { confirmReviewed, reviewMode } from '../dist/commands/review.js';
 import { readiness } from '../dist/core/readiness.js';
 import {
   memoryOverview,
@@ -42,6 +42,37 @@ test('interactive confirmation is explicit, terminal-only and accepts only a rev
     confirmReviewed({ interactive: true }, false, { ...io, available: () => false }),
     /terminal/,
   );
+});
+
+test('public terminal workflows confirm by default, while JSON, dry-run and pipes stay read-only', async () => {
+  const terminal = () => true;
+  const pipe = () => false;
+  assert.equal(reviewMode({ terminalDefault: true }, terminal), 'prompt');
+  for (const options of [
+    { terminalDefault: true, json: true },
+    { terminalDefault: true, dryRun: true },
+    {},
+  ])
+    assert.equal(reviewMode(options, terminal), 'preview');
+  assert.equal(reviewMode({ terminalDefault: true }, pipe), 'preview');
+  assert.equal(reviewMode({ apply: true }, pipe), 'apply');
+  assert.throws(
+    () => reviewMode({ interactive: true, apply: true }, terminal),
+    /cannot be combined/,
+  );
+  assert.throws(() => reviewMode({ apply: true, dryRun: true }, terminal), /not both/);
+  let confirmations = 0;
+  const io = {
+    available: terminal,
+    confirm: async () => {
+      confirmations++;
+      return false;
+    },
+  };
+  assert.equal(await confirmReviewed({ terminalDefault: true }, true, io), false);
+  assert.equal(confirmations, 0);
+  assert.equal(await confirmReviewed({ terminalDefault: true }, false, io), false);
+  assert.equal(confirmations, 1);
 });
 
 async function fixture(t) {

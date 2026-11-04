@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { configureCliHelp } from './commands/catalog.js';
 import { quickCommand, projectConnectCommand } from './commands/quick.js';
 import { planProjectDisconnect } from './core/project-disconnect.js';
 import { runManaged } from './commands/content.js';
@@ -47,15 +48,13 @@ const program = new Command();
 program
   .name('ahub')
   .description(
-    'Single source of truth for your AI coding agents: skills, MCP, instructions, memory, task state.',
+    'Manage shared tools, skills and instructions across your AI coding clients, with optional project memory.',
   )
-  .version(packageVersion);
+  .version(packageVersion)
+  .option('--advanced', 'show all supported command groups and technical options');
 
 program
   .command('quick')
-  .description(
-    'set up and sync the shared Hub: global MCP, skills and shared instructions; no project required',
-  )
   .addOption(new Option('--workspace <directory>').hideHelp())
   .option(
     '--client <ids>',
@@ -66,20 +65,15 @@ program
   .addOption(new Option('--no-automation').hideHelp())
   .option('--at <timestamp>', 'timestamp captured in the reviewed quick command')
   .option('--interactive', 'preview, then confirm this same plan in the terminal')
-  .option('--dry-run', 'preview workflow, write nothing (default)')
+  .option('--dry-run', 'show the plan without prompting or writing')
   .option('--apply', 'run the reviewed staged workflow with existing recovery protections')
   .option('--expect <revision>', 'required reviewed workflow revision')
   .option('--json', 'machine-readable preview or per-stage result')
-  .action(quickCommand);
+  .action((options) => quickCommand({ ...options, advanced: program.opts().advanced }));
 
-const project = program
-  .command('project')
-  .description('optional project memory and repository handoff; separate from the shared Hub');
+const project = program.command('project');
 project
   .command('connect [directory]')
-  .description(
-    'connect one Git project to an existing Hub; preview memory, handoff files and hooks',
-  )
   .option(
     '--client <ids>',
     'comma-separated detected clients for project memory (default: all enabled detected clients)',
@@ -87,51 +81,43 @@ project
   .option('--no-automation', 'import project memory and prepare handoff without enabling hooks')
   .option('--at <timestamp>', 'timestamp captured in the reviewed connection command')
   .option('--interactive', 'preview, then confirm this same project connection')
-  .option('--dry-run', 'preview without writing (default)')
+  .option('--dry-run', 'show the plan without writing')
   .option('--apply', 'apply the reviewed project connection')
   .option('--expect <revision>', 'required reviewed connection revision')
   .option('--json', 'machine-readable preview or per-stage result')
-  .action(projectConnectCommand);
+  .action((directory, options) =>
+    projectConnectCommand(directory, { ...options, advanced: program.opts().advanced }),
+  );
 
 project
   .command('disconnect <id>')
-  .description('disconnect all checkouts of a project; retain knowledge, notes and shared hooks')
-  .option('--dry-run', 'preview without writing (default)')
+  .option('--dry-run', 'show the plan without writing')
   .option('--apply', 'apply the exact reviewed disconnection')
   .option('--expect <revision>', 'required reviewed revision')
   .option('--json', 'machine-readable output')
-  .action((id, options) => runManaged(() => planProjectDisconnect(hubRoot(), id), options));
+  .action((id, options) =>
+    runManaged(() => planProjectDisconnect(hubRoot(), id), { ...options, terminalDefault: true }),
+  );
 
 program
   .command('undo')
-  .description(
-    'preview undo of quick or project connect; refuses later changes; distinct from first-baseline reset',
-  )
   .argument('[run]', 'recorded workflow ID or latest', 'latest')
-  .option('--dry-run', 'preview without writing (default)')
+  .option('--dry-run', 'show the plan without writing')
   .option('--apply', 'restore this workflow snapshot and archive current data')
   .option('--expect <revision>', 'required exact reviewed undo revision')
   .option('--json', 'machine-readable output')
   .action(undoCommand);
 
-program
-  .command('status')
-  .description('show hub vs clients: skills, MCP servers, drift')
-  .option('--json', 'machine-readable output')
-  .action(statusCommand);
+program.command('status').option('--json', 'machine-readable output').action(statusCommand);
 
 program
   .command('init')
-  .description('create (or adopt) ~/.agent-hub: layout, .env, .gitignore, git')
   .option('-y, --yes', 'accept defaults, no questions')
   .option('--remote <url>', 'git remote to add')
   .option('--no-git', 'do not track the hub in git')
   .action(initCommand);
 program
   .command('sync')
-  .description(
-    'sync MCP settings only by default; select --area skills or context, or use quick for all shared areas',
-  )
   .option('--apply', 'write changes (with backup)')
   .option('--dry-run', 'show changes and exact commands, write nothing (default)')
   .option('--client <id>', 'only this client')
@@ -149,7 +135,6 @@ program
   .action(syncCommand);
 program
   .command('import [item]')
-  .description('collect MCP or skills: preview by default; apply only the exact reviewed revision')
   .option('--interactive', 'preview MCP import, then confirm this same plan in the terminal')
   .option('--dry-run', 'show the plan, write nothing')
   .option('--apply', 'apply a reviewed MCP or skills import')
@@ -164,22 +149,19 @@ program
   .action(importCommand);
 program
   .command('doctor [name]')
-  .description('check MCP startup, tool discovery, skills and .env permissions')
   .option('--timeout <seconds>', 'total time limit per server (0.1–120)', '20')
   .option('--client <id>', 'check only the servers enabled for this client')
   .option('--json', 'machine-readable report without raw server logs')
   .action(doctorCommand);
 program
   .command('init-repo [directory]')
-  .description('add AGENTS.md + .agents/state/{PROJECT,NOW}.md to current repo')
-  .option('--dry-run', 'preview without writing (default)')
+  .option('--dry-run', 'show the plan without writing')
   .option('--apply', 'apply the reviewed repository setup')
   .option('--expect <revision>', 'required reviewed revision')
   .option('--json', 'machine-readable output')
   .action(repoInitCommand);
 program
   .command('restore <backup>')
-  .description('preview restoration of one sync or content backup; later edits can block restore')
   .option('--apply', 'restore original files')
   .option('--dry-run', 'show rollback without writing (default)')
   .option('--expect <revision>', 'apply only if this reviewed revision still matches')
@@ -188,7 +170,6 @@ program
 
 program
   .command('reset')
-  .description('preview return to the first recorded baseline; archive current data')
   .option('--dry-run', 'show the original-state recovery plan without writing (default)')
   .option('--apply', 'restore recorded originals and archive current data')
   .option('--expect <revision>', 'required on apply: exact reviewed reset revision')
@@ -200,49 +181,32 @@ program
   .option('--json', 'machine-readable output without file contents')
   .action(resetCommand);
 
-const mcp = program
-  .command('mcp')
-  .description('list or launch MCP entries; use import to collect existing definitions');
-mcp
-  .command('ls')
-  .description('list servers in the hub registry')
-  .option('--json')
-  .action(mcpLsCommand);
+const mcp = program.command('mcp');
+mcp.command('ls').option('--json').action(mcpLsCommand);
 mcp.command('add <name>', { hidden: true }).action(notImplemented('mcp add'));
 mcp.command('rm <name>', { hidden: true }).action(notImplemented('mcp rm'));
-mcp
-  .command('run <name>')
-  .description('launcher: start MCP over stdio with secrets from .env')
-  .action(mcpRunCommand);
+mcp.command('run <name>').action(mcpRunCommand);
 
-const skill = program.command('skill').description('manage skills');
-skill
-  .command('ls')
-  .description('list hub skills')
-  .option('--json', 'machine-readable output')
-  .action(skillListCommand);
+const skill = program.command('skill');
+skill.command('ls').option('--json', 'machine-readable output').action(skillListCommand);
 skill
   .command('add <source>')
-  .description('preview copying a local skill into the hub')
   .option('--name <name>', 'hub skill name')
   .option('--overwrite', 'explicitly replace an existing hub skill')
-  .option('--dry-run', 'preview without writing (default)')
+  .option('--dry-run', 'show the plan without writing')
   .option('--apply', 'apply the reviewed plan')
   .option('--expect <revision>', 'required reviewed revision')
   .option('--json', 'machine-readable output')
   .action(skillAddCommand);
 skill
   .command('rm <name>')
-  .description('preview removing a hub skill with backup')
-  .option('--dry-run', 'preview without writing (default)')
+  .option('--dry-run', 'show the plan without writing')
   .option('--apply', 'apply the reviewed plan')
   .option('--expect <revision>', 'required reviewed revision')
   .option('--json', 'machine-readable output')
   .action(skillRemoveCommand);
 
-const memory = program
-  .command('memory')
-  .description('manage scoped knowledge shared between agents');
+const memory = program.command('memory');
 function memoryScope(command: Command) {
   return command
     .option('--shared', 'explicitly select shared memory instead of the current project')
@@ -264,21 +228,17 @@ function memoryWriteOptions(command: Command) {
     .option('--clear-source', 'remove source attribution on update')
     .option('--record-revision <revision>', 'required current record revision on update/delete')
     .option('--at <timestamp>', 'timestamp captured in the reviewed command')
-    .option('--dry-run', 'preview without writing (default)')
+    .option('--dry-run', 'show the plan without writing')
     .option('--apply', 'apply the reviewed operation with a backup')
     .option('--expect <revision>', 'required reviewed plan revision');
 }
-memoryScope(memory.command('ls').description('list records in the selected scope'))
+memoryScope(memory.command('ls'))
   .option('--limit <count>', 'maximum results, 1–100', '50')
   .action((options) => memoryListCommand('', options));
-memoryScope(
-  memory.command('search <query>').description('search titles, tags and bodies in one scope'),
-)
+memoryScope(memory.command('search <query>'))
   .option('--limit <count>', 'maximum results, 1–100', '50')
   .action(memoryListCommand);
-memoryScope(
-  memory.command('get <id>').description('read a record and its current revision'),
-).action(memoryGetCommand);
+memoryScope(memory.command('get <id>')).action(memoryGetCommand);
 for (const [name, operation] of [
   ['add', 'create'],
   ['update', 'update'],
@@ -287,18 +247,14 @@ for (const [name, operation] of [
   memoryWriteOptions(memory.command(`${name} <id>`)).action((id, options) =>
     memoryWriteCommand(operation, id, options),
   );
-memoryWriteOptions(
-  memory
-    .command('import <id>')
-    .description('copy explicitly selected local knowledge into a new record; preserve the source'),
-).action((id, options) => memoryWriteCommand('create', id, options, true));
-const memoryProject = memory
-  .command('project')
-  .description('explicit local project/checkout bindings');
+memoryWriteOptions(memory.command('import <id>')).action((id, options) =>
+  memoryWriteCommand('create', id, options, true),
+);
+const memoryProject = memory.command('project');
 memoryProject
   .command('register <id> [directory]')
   .option('--rebind', 'explicitly accept a changed repository identity for the same project')
-  .option('--dry-run', 'preview without writing (default)')
+  .option('--dry-run', 'show the plan without writing')
   .option('--apply', 'apply the reviewed binding')
   .option('--expect <revision>', 'required reviewed revision')
   .option('--json', 'machine-readable output')
@@ -307,19 +263,15 @@ memoryProject
   .command('ls')
   .option('--json', 'machine-readable output')
   .action(memoryProjectsCommand);
-const automatic = memory
-  .command('auto')
-  .description('project-scoped native memory sync and automatic session checkpoints');
+const automatic = memory.command('auto');
 memory
   .command('discover')
-  .description('find existing client memory sources and explain their project association')
   .option('--workspace <directory>', 'checkout to inspect (default: cwd)')
   .option('--client <id>', 'filter claude-code, codex or dsh')
   .option('--json', 'machine-readable metadata without note bodies')
   .action(memoryDiscoverCommand);
 memory
   .command('onboard')
-  .description('preview importing existing native memory; project-matched sources by default')
   .option('--workspace <directory>', 'registered checkout (default: cwd)')
   .option('--client <id>', 'filter claude-code, codex or dsh')
   .option(
@@ -329,7 +281,7 @@ memory
   )
   .option('--follow', 'also enable the project native-sync policy; hook installation is separate')
   .option('--at <timestamp>', 'timestamp captured in the reviewed command')
-  .option('--dry-run', 'preview without writing (default)')
+  .option('--dry-run', 'show the plan without writing')
   .option('--apply', 'apply the exact reviewed import and optional follow-up policy')
   .option('--expect <revision>', 'required reviewed revision')
   .option('--json', 'machine-readable output')
@@ -341,29 +293,19 @@ function automaticOptions(command: Command) {
 }
 function automaticWriteOptions(command: Command) {
   return automaticOptions(command)
-    .option('--dry-run', 'preview without writing (default)')
+    .option('--dry-run', 'show the plan without writing')
     .option('--apply', 'apply the reviewed automation setup or sync')
     .option('--expect <revision>', 'required reviewed revision');
 }
-automaticWriteOptions(
-  automatic
-    .command('enable')
-    .description('enable scoped autosave and install project-gated lifecycle hooks'),
-)
+automaticWriteOptions(automatic.command('enable'))
   .requiredOption('--client <id>', 'claude-code, codex or dsh')
   .option(
     '--native-dir <directory>',
     'explicit native Markdown source directory to import automatically',
   )
   .action(autoEnableCommand);
-automaticWriteOptions(
-  automatic
-    .command('disable')
-    .description('disable project automation; global hooks become no-ops for this project'),
-).action(autoDisableCommand);
-automaticWriteOptions(
-  automatic.command('sync').description('preview native notes, duplicates and conflicts'),
-)
+automaticWriteOptions(automatic.command('disable')).action(autoDisableCommand);
+automaticWriteOptions(automatic.command('sync'))
   .option('--at <timestamp>', 'timestamp captured in the reviewed command')
   .option(
     '--resolve <id>',
@@ -372,9 +314,7 @@ automaticWriteOptions(
   )
   .action(autoSyncCommand);
 automaticOptions(automatic.command('status')).action(autoStatusCommand);
-const conflicts = automatic
-  .command('conflict')
-  .description('inspect and resolve queued native or session knowledge');
+const conflicts = automatic.command('conflict');
 automaticOptions(conflicts.command('get <id>'))
   .option('--version <hash>', 'inspect an immutable incoming history version')
   .action(autoConflictGetCommand);
@@ -382,29 +322,16 @@ automaticWriteOptions(conflicts.command('resolve <id>'))
   .requiredOption('--take <side>', 'incoming or hub; the latter also acknowledges a Hub deletion')
   .option('--at <timestamp>', 'timestamp captured in the reviewed plan')
   .action(autoConflictResolveCommand);
-automaticOptions(
-  automatic
-    .command('watch')
-    .description('foreground native memory sync while the project policy is enabled'),
-)
+automaticOptions(automatic.command('watch'))
   .option('--interval <seconds>', 'scan interval, 5–300 seconds', '30')
   .action(autoWatchCommand);
-automatic
-  .command('hook')
-  .description('lifecycle callback; read client JSON on stdin')
-  .requiredOption('--client <id>', 'source client')
-  .action(autoHookCommand);
-automaticOptions(
-  automatic
-    .command('checkpoint')
-    .description('automatic capture authorized by a one-use Stop-hook token; JSON on stdin'),
-)
+automatic.command('hook').requiredOption('--client <id>', 'source client').action(autoHookCommand);
+automaticOptions(automatic.command('checkpoint'))
   .requiredOption('--client <id>', 'source client')
   .requiredOption('--token <token>', 'current Stop-hook token')
   .action(autoCheckpointCommand);
 memory
   .command('serve')
-  .description('serve memory over MCP stdio for one registered workspace')
   .requiredOption('--workspace <directory>', 'fixed checkout binding for this server')
   .option('--include-shared', 'also allow explicitly scoped shared reads')
   .option('--allow-write', 'expose reviewed project write tools')
@@ -423,10 +350,12 @@ memory
 
 program
   .command('ui')
-  .description('open local web UI')
   .option('--port <number>', 'local port (0 picks a free port)', '3082')
   .option('--no-open', 'do not open a browser automatically')
   .action(uiCommand);
+
+configureCliHelp(program);
+program.action(() => program.outputHelp());
 
 program.parseAsync().catch((err: unknown) => {
   console.error(err instanceof Error ? err.message : err);

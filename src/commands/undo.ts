@@ -1,24 +1,28 @@
 import { planUndo, publicUndoPlan, applyUndo } from '../core/workflow-recovery.js';
 import { printJson, table } from '../core/output.js';
+import { confirmReviewed, reviewMode } from './review.js';
 import { HubError } from '../core/errors.js';
 
 export async function undoCommand(
   id: string,
   options: { apply?: boolean; dryRun?: boolean; expect?: string; json?: boolean },
 ) {
-  if (options.apply && options.dryRun) throw new HubError('Choose --apply or --dry-run.');
+  const review = { ...options, terminalDefault: true };
+  const mode = reviewMode(review);
   if (options.apply && !options.expect)
     throw new HubError('Preview undo and use its exact --expect revision.');
   const plan = await planUndo(id);
   if (options.expect && options.expect !== plan.revision)
     throw new HubError('State changed since the undo preview. Review a new plan.');
   const preview = publicUndoPlan(plan);
-  if (options.apply) {
-    const result = await applyUndo(plan, options.expect!);
+  const execute = async (expect: string) => {
+    const result = await applyUndo(plan, expect);
     if (options.json) printJson(result);
     else
       console.log(`Undone ${result.run}. Current data archive: ${result.archive ?? 'no changes'}`);
-  } else {
+  };
+  if (options.apply) return execute(options.expect!);
+  {
     if (options.json) printJson(preview);
     else {
       console.log(`${preview.run} (${preview.scope}) — preview only.\n${preview.note}`);
@@ -39,9 +43,12 @@ export async function undoCommand(
       console.log(
         preview.blocked
           ? 'Blocked; no files changed.'
-          : `Apply this exact undo:\n${preview.commands.apply}`,
+          : mode === 'prompt'
+            ? 'Review the paths above before confirming.'
+            : `Apply this exact undo:\n${preview.commands.apply}`,
       );
     }
     if (plan.blocked) process.exitCode = 1;
+    if (await confirmReviewed(review, plan.blocked)) await execute(plan.revision);
   }
 }

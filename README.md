@@ -12,7 +12,7 @@ ahub quick
 
 Install from the unpacked source directory, then run `ahub` from any project. The `agent-hub` executable is also available as an alias. A public registry installation is not available yet. The installer packs a standalone copy with locked production dependencies; the source checkout can be removed afterwards. The npm global binary directory must be on your shell's PATH.
 
-`ahub quick` previews shared Hub setup: create/adopt Hub, collect MCP and skills, then deliver global MCP, skill links and existing shared instruction/index blocks to selected clients. It works from any folder and does not require a Git project. Copy its complete **Apply this workflow** command to apply. Existing Hub values stay authoritative, conflicts need review, and affected clients should be restarted.
+`ahub quick` previews shared Hub setup: create/adopt Hub, collect MCP and skills, then deliver global MCP, skill links and existing shared instruction/index blocks to selected clients. It works from any folder and does not require a Git project. In an interactive terminal, review the plan and confirm it. Noninteractive previews print a complete **Apply this workflow** command. Existing Hub values stay authoritative, conflicts need review, and affected clients should be restarted.
 
 Project memory is optional and separate. After the Hub is ready, use `ahub project connect /path/to/project` to preview one Git project's memory, handoff files and hooks. That path selects the project; Hub storage remains `~/.agent-hub` unless `AGENT_HUB_HOME` selects another location. Project connection does not synchronize global tools or skills.
 
@@ -165,9 +165,13 @@ Standalone global-install verification is available with `npm run install:check`
 
 ## Clear scope and recovery
 
-- `ahub quick --interactive` reviews shared setup and asks once in the terminal. `project connect --interactive` does the same for one project.
+- `ahub quick` reviews shared setup and asks once in an interactive terminal. `project connect` does the same for one project. Explicit dry runs, JSON and noninteractive calls preview without writing.
 - `ahub status` separates configuration drift, cached MCP connection evidence, hook installation and recent observed checkpoints. Configuration alone does not prove a client is running or learning useful facts.
 - Select a registered project in the UI header; counts show knowledge records, and unconnected folders default to shared memory.
 - Resolve one MCP or skill in its UI detail panel: **Use this client in Hub** or **Use Hub in this client**. Each opens an exact item preview. CLI equivalents use import `--source` and sync `--only`.
 - `ahub project disconnect <id>` previews disconnecting all checkouts of that project, disables its policy and removes pending session tokens. It retains knowledge, repository notes and hooks shared by other projects. Reconnect verifies repository identity and reuses that knowledge.
 - `ahub undo [run-id]` previews the state before one recorded setup run. Later Hub/client changes block it. `restore` targets one stage; `reset` targets the first baseline.
+
+## Choose an entry point
+
+`ahub` shows six everyday command groups: quick, ui, status, doctor, project and undo. Start with quick for a reviewed terminal workflow or ui for guided local management. The default help hides specialized operations and technical setup flags; `ahub --advanced --help` and `ahub --advanced quick --help` show them. Existing calls and JSON/script contracts remain supported. See [CLI.md](docs/CLI.md) for every supported command's caller and purpose.

@@ -103,7 +103,7 @@ Suggested agent workflow: search the selected project when starting relevant wor
 
 ## Local UI and index delivery
 
-Open Memory → Manage records. Choose the current project or shared scope, search, select an existing record or create a new one, then preview save/deletion and apply with backup. Editing form fields invalidates the preview. The project is fixed to the UI startup workspace; an unregistered workspace reports that a binding is needed. Shared scope must be selected explicitly. Existing top-level Markdown documents remain readable separately.
+Open Memory → Manage records. Choose the current project or shared scope, search, select an existing record or create a new one, then preview save/deletion and apply with backup. Editing form fields invalidates the preview. The project follows the verified registered selection or startup folder. An unregistered project reports that a binding is needed; record management defaults to shared scope when no project is connected. Existing top-level Markdown documents remain readable separately.
 
 Mutations update an owned index block and ownership metadata in the same recoverable transaction as the fact. Existing personal index text is preserved; edited, removed, duplicated or unowned blocks fail closed. Indexes list at most 60 records and have a 24 KiB total budget; use scoped search for additional records. Direct editor changes are immediately visible to reads, but refresh derived titles through the next reviewed mutation. Do not hand-edit generated blocks.
 

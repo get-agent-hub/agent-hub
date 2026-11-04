@@ -4,7 +4,7 @@ import { tildify } from '../core/paths.js';
 import { envPath } from '../core/registry.js';
 import { runManaged } from './content.js';
 import { planSkillImport } from '../core/skills.js';
-import { confirmReviewed } from './review.js';
+import { confirmReviewed, reviewMode } from './review.js';
 import type { ClientId } from '../core/types.js';
 import { HubError } from '../core/errors.js';
 
@@ -20,6 +20,7 @@ interface Opts {
 }
 
 export async function importCommand(item: string | undefined, opts: Opts): Promise<void> {
+  reviewMode(opts);
   if (/^skills?(?::|$)/.test(item ?? ''))
     return runManaged(() => planSkillImport(item, opts), opts);
   if (opts.apply && opts.dryRun) throw new HubError('Choose --apply or --dry-run, not both.');

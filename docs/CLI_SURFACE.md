@@ -1,8 +1,8 @@
-# Proposed CLI surface
+# CLI surface
 
-Status: design proposal, not implemented. Existing command names and runtime invocations remain unchanged.
+Implemented: six everyday groups in default help, a full --advanced view, caller/purpose text for every supported command and generated docs/CLI.md. Existing command names and runtime invocations remain supported.
 
-The current root help exposes 15 command groups. Most users need two entry points; specialized collection, delivery and memory machinery should remain available without competing with the first-run route.
+The previous root help exposed 15 command groups. Most users need two entry points; specialized collection, delivery and memory machinery should remain available without competing with the first-run route.
 
 ## Default help
 
@@ -45,7 +45,7 @@ Agents should normally use their configured tools and project policy. Users shou
 ## Interaction rules
 
 - Keep the distinction between shared Hub setup and optional project connection.
-- Consider making terminal quick show its preview and confirmation directly, without requiring users to learn `--interactive`. Explicit dry-run/JSON/noninteractive calls stay read-only; automation keeps exact revision approval.
+- Terminal quick and project connection show their preview and confirmation directly, without requiring users to learn `--interactive`. Explicit dry-run/JSON/noninteractive calls stay read-only; automation keeps exact revision approval.
 - Show what changed, what needs review and the next useful action at the end of setup. Do not introduce a separate readiness command.
 - Keep exact `--expect`, timestamps and runtime paths available in generated commands and advanced docs; GUI users apply the reviewed plan through a button.
 - Document advanced capability rather than deleting it. Do not introduce another top-level command for every core service.

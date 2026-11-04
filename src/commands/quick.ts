@@ -1,10 +1,11 @@
 import { planQuick, applyQuick, planProjectConnect, applyProjectConnect } from '../core/quick.js';
 import { printJson, table } from '../core/output.js';
-import { confirmReviewed } from './review.js';
+import { confirmReviewed, reviewMode } from './review.js';
 import { HubError } from '../core/errors.js';
 import type { ClientId } from '../core/types.js';
 
 interface Options {
+  advanced?: boolean;
   workspace?: string;
   client?: string;
   prefer?: ClientId;
@@ -31,7 +32,8 @@ export function projectConnectCommand(directory: string | undefined, options: Op
 }
 
 async function runSetup(options: Options, scope: 'hub' | 'project') {
-  if (options.apply && options.dryRun) throw new HubError('Choose either --apply or --dry-run.');
+  const review = { ...options, terminalDefault: true };
+  const mode = reviewMode(review);
   if (options.apply && (!options.expect || !options.at))
     throw new HubError(
       'Run a preview first, then use its complete apply command with --expect and --at.',
@@ -50,7 +52,7 @@ async function runSetup(options: Options, scope: 'hub' | 'project') {
     (scope === 'hub' ? applyQuick : applyProjectConnect)(plan, expect);
   if (options.apply) return report(await apply(options.expect!), true);
   report(plan.publicPlan, false);
-  if (await confirmReviewed(options, plan.publicPlan.blocked))
+  if (await confirmReviewed(review, plan.publicPlan.blocked))
     report(await apply(plan.publicPlan.revision), true);
 
   function report(
@@ -84,7 +86,8 @@ async function runSetup(options: Options, scope: 'hub' | 'project') {
         for (const row of step.rows ?? [])
           if (['conflict', 'error', 'preserve'].includes(row.action))
             console.log(`  Review ${row.name}: ${row.note ?? row.action}`);
-        if (step.restoreCommand) console.log(`  Restore ${step.title}: ${step.restoreCommand}`);
+        if (options.advanced && step.restoreCommand)
+          console.log(`  Restore ${step.title}: ${step.restoreCommand}`);
       }
       console.log(`\n${result.recovery}`);
       if ('commands' in result) {
@@ -93,12 +96,14 @@ async function runSetup(options: Options, scope: 'hub' | 'project') {
           console.log(
             'No enabled clients detected. Install a supported client or review hub.yaml.',
           );
-        else console.log(`\nApply this workflow:\n${result.commands.apply}`);
-        console.log(`\nPreview original-state recovery:\n${result.commands.reset}`);
+        else if (mode !== 'prompt') console.log(`\nApply this workflow:\n${result.commands.apply}`);
+        if (options.advanced)
+          console.log(`\nPreview original-state recovery:\n${result.commands.reset}`);
       } else {
         for (const next of result.next) console.log(`\n${next}`);
         if ('undoCommand' in result) console.log(`\nUndo this workflow:\n${result.undoCommand}`);
-        console.log(`\nPreview original-state recovery:\n${result.resetCommand}`);
+        if (options.advanced)
+          console.log(`\nPreview original-state recovery:\n${result.resetCommand}`);
       }
     }
     if (

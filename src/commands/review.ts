@@ -1,15 +1,33 @@
 import { confirm, interactive } from '../core/prompt.js';
 import { HubError } from '../core/errors.js';
 
+export interface ReviewOptions {
+  interactive?: boolean;
+  terminalDefault?: boolean;
+  apply?: boolean;
+  json?: boolean;
+  dryRun?: boolean;
+}
+
+export function reviewMode(
+  options: ReviewOptions,
+  available = interactive,
+): 'apply' | 'preview' | 'prompt' {
+  if (options.apply && options.dryRun) throw new HubError('Choose --apply or --dry-run, not both.');
+  if (options.interactive && (options.apply || options.json || options.dryRun || !available()))
+    throw new HubError(
+      '--interactive requires a terminal and cannot be combined with --apply, --json or --dry-run.',
+    );
+  if (options.apply) return 'apply';
+  if (options.json || options.dryRun) return 'preview';
+  return options.interactive || (options.terminalDefault && available()) ? 'prompt' : 'preview';
+}
+
 export async function confirmReviewed(
-  options: { interactive?: boolean; json?: boolean; dryRun?: boolean },
+  options: ReviewOptions,
   blocked: boolean,
   io = { available: interactive, confirm },
 ) {
-  if (!options.interactive || blocked) return false;
-  if (options.json || options.dryRun || !io.available())
-    throw new HubError(
-      '--interactive requires a terminal and cannot be combined with --json or --dry-run.',
-    );
+  if (reviewMode(options, io.available) !== 'prompt' || blocked) return false;
   return io.confirm('Apply this exact reviewed plan?', false);
 }

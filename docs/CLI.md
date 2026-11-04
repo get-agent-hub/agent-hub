@@ -1,0 +1,68 @@
+# Command reference
+
+Start with `ahub quick` for terminal setup or `ahub ui` for the local interface. `ahub` and `ahub --help` show six everyday command groups. Use `ahub --advanced --help` for all groups, or `ahub --advanced COMMAND --help` for technical options. Existing commands, JSON contracts and generated runtime calls remain supported.
+
+In a terminal, quick and project connection show their plan and ask before applying. Explicit `--dry-run`, `--json` and noninteractive calls preview without writing. Script applies require the exact reviewed revision and timestamp where applicable.
+
+## Everyday commands
+
+| Command                   | Who uses it                                                        | Purpose                                                                                                 |
+| ------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
+| `ahub quick`              | Developers setting up or updating shared client settings.          | Collect and deliver shared MCP, skills and instructions; no project is required.                        |
+| `ahub ui`                 | Users who prefer guided previews and visual conflict resolution.   | Open the local interface to manage Hub, projects, memory and conflicts.                                 |
+| `ahub status`             | Users inspecting their setup without starting MCP servers.         | Show configuration differences, cached connection evidence and observed memory activity.                |
+| `ahub doctor`             | Users troubleshooting tools and support engineers.                 | Start real MCP checks to verify connections and tool discovery; never invoke tools.                     |
+| `ahub project`            | Developers who want optional memory and handoff for a Git project. | Connect or disconnect project memory separately from shared Hub settings.                               |
+| `ahub project connect`    | Developers onboarding or reconnecting one Git checkout.            | Bind project memory, collect matched notes and prepare handoff files and optional hooks.                |
+| `ahub project disconnect` | Developers stopping memory automation for a registered project.    | Disconnect all project checkouts and pending checkpoints while retaining knowledge and notes.           |
+| `ahub undo`               | Users reversing a recorded quick or project-connect workflow.      | Preview rollback of one setup workflow; later changes block it. This is not universal last-action undo. |
+
+## Advanced operations
+
+| Command                             | Who uses it                                                                    | Purpose                                                                                               |
+| ----------------------------------- | ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
+| `ahub init`                         | Maintainers adopting a Hub layout or configuring its local Git history.        | Prepare Hub files and optional Git history without collecting or delivering client settings.          |
+| `ahub import`                       | Terminal users and scripts choosing exact client sources.                      | Preview collecting selected MCP definitions or complete skill bundles into Hub.                       |
+| `ahub sync`                         | Terminal users and scripts delivering a specific area or item.                 | Preview delivery from Hub to clients: MCP by default, or explicit skills/context areas.               |
+| `ahub init-repo`                    | Developers who need handoff files without project memory.                      | Prepare AGENTS.md and project/task notes in one existing Git repository.                              |
+| `ahub restore`                      | Users and support engineers reversing one recorded stage.                      | Preview restoring one sync/content backup; changed files or ownership can block it.                   |
+| `ahub reset`                        | Maintainers returning recorded paths to their first baseline.                  | Preview restoring the first Hub/client baseline and archiving current data; broader than undo.        |
+| `ahub skill`                        | Terminal users and scripts managing exact skill bundles.                       | List, copy or remove canonical Hub skills independently of client delivery.                           |
+| `ahub skill ls`                     | Terminal users and inventory scripts.                                          | List canonical Hub skill bundles and their local state.                                               |
+| `ahub skill add`                    | Users importing a deliberately chosen local bundle.                            | Preview copying a complete local skill into Hub without executing its scripts.                        |
+| `ahub skill rm`                     | Users retiring a canonical skill.                                              | Preview removing a Hub skill with a recoverable backup; delivery is separate.                         |
+| `ahub mcp`                          | Integration developers and focused inventory scripts.                          | Inspect the registry or access the launcher used by native clients.                                   |
+| `ahub mcp ls`                       | Terminal users and focused MCP inventory scripts.                              | List servers stored in the Hub registry without launching them.                                       |
+| `ahub memory`                       | Terminal users, scripts and integration developers managing scoped knowledge.  | Inspect or manage records, native-source import, project bindings and memory integrations.            |
+| `ahub memory ls`                    | Terminal users and record inventory scripts.                                   | List canonical records in one explicitly selected shared or project scope.                            |
+| `ahub memory search`                | Terminal users retrieving relevant durable knowledge.                          | Search record titles, tags and bodies in one scope; no embeddings or model call.                      |
+| `ahub memory get`                   | Terminal users reading a known record or preparing a revision-checked update.  | Read one record and its current revision.                                                             |
+| `ahub memory add`                   | Terminal users creating one deliberate durable fact.                           | Preview creating one scoped record and updating its owned index.                                      |
+| `ahub memory update`                | Terminal users editing an existing verified record.                            | Preview a revision-checked record update; omitted metadata is retained.                               |
+| `ahub memory rm`                    | Terminal users deliberately retiring a record.                                 | Preview a revision-checked record deletion with a recoverable backup.                                 |
+| `ahub memory import`                | Users selecting local text to retain as one record.                            | Preview copying one UTF-8 note into scoped memory while preserving its source.                        |
+| `ahub memory project`               | Maintainers handling explicit IDs, multiple checkouts or identity recovery.    | Inspect or deliberately register project/checkout bindings beyond normal project connect.             |
+| `ahub memory project register`      | Maintainers sharing a project ID or approving a changed Git identity.          | Preview binding a verified checkout to an explicit project ID; rebind requires an explicit choice.    |
+| `ahub memory project ls`            | Users inspecting local checkout bindings.                                      | List registered project IDs and checkout metadata.                                                    |
+| `ahub memory discover`              | Users reviewing unusual or unresolved native memory sources.                   | Find client memory sources and explain their format and project association without importing bodies. |
+| `ahub memory onboard`               | Users deliberately importing selected existing native Markdown.                | Preview initial native-memory import and optionally attach selected sources for future imports.       |
+| `ahub memory auto`                  | Users configuring project automation or troubleshooting its policy.            | Manage project-gated native imports, session checkpoints and queued knowledge conflicts.              |
+| `ahub memory auto enable`           | Users choosing automation for a particular project/client.                     | Preview enabling project autosave and installing reviewed native lifecycle hooks.                     |
+| `ahub memory auto disable`          | Users stopping project autosave while retaining knowledge.                     | Preview disabling the project policy; shared hook handlers remain installed.                          |
+| `ahub memory auto sync`             | Users reviewing configured native-note changes independently of client events. | Preview importing native Markdown updates, duplicates and conflicts.                                  |
+| `ahub memory auto status`           | Users and support inspecting automation evidence.                              | Inspect policy, source issues, conflicts, pending tokens and recent callback/checkpoint metadata.     |
+| `ahub memory auto watch`            | Users who explicitly want a foreground native-note watcher.                    | Watch configured native sources while project automation is enabled; no OS service is installed.      |
+| `ahub memory auto conflict`         | Users reviewing conflicting incoming knowledge.                                | Inspect queued incoming versions and choose an explicit resolution.                                   |
+| `ahub memory auto conflict get`     | Users comparing incoming knowledge with Hub records.                           | Read one pending conflict or an immutable incoming history version.                                   |
+| `ahub memory auto conflict resolve` | Users deciding whether incoming knowledge or Hub should win.                   | Preview accepting incoming knowledge or acknowledging the current Hub value/deletion.                 |
+
+## Client and runtime integration
+
+| Command                       | Who uses it                                                                             | Purpose                                                                                                     |
+| ----------------------------- | --------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `ahub mcp run`                | Native clients through generated launcher configurations; manual debugging when needed. | Launch one registry server over stdio with credentials resolved from Hub.                                   |
+| `ahub memory auto hook`       | Native lifecycle handlers installed in client configuration.                            | Read the native event from stdin and run its project-gated callback.                                        |
+| `ahub memory auto checkpoint` | The active client agent responding to a one-use Stop-hook capability.                   | Submit evidenced project facts or an empty acknowledgement under the enabled policy.                        |
+| `ahub memory serve`           | A native MCP connection configured for one fixed project.                               | Serve scoped memory over MCP stdio; read, reviewed-write and automatic capabilities are separately enabled. |
+
+Integration commands are normally invoked by configured clients or callbacks, not typed during ordinary setup. `undo` reverses a recorded setup workflow, `restore` reverses one stage, and `reset` returns to the first baseline. Repointed bindings and later changes can block recovery; use each current preview.

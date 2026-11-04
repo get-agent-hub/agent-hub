@@ -1,6 +1,6 @@
 # Original-state recovery
 
-`undo [run-id]` returns to immediately before one recorded setup workflow. `restore <backup-id>` undoes one sync or content stage. `reset` returns recorded client configurations and the complete hub directory to their first saved state, even after several syncs. Both default to dry run.
+`undo [run-id]` returns to immediately before one recorded setup workflow. `restore <backup-id>` undoes one sync or content stage. `reset` returns recorded client configurations and the complete hub directory to their first saved state, even after several syncs. Every operation starts with a plan. Undo asks for confirmation in a terminal; explicit dry runs and noninteractive calls remain read-only.
 
 ```sh
 ahub reset --dry-run
@@ -17,7 +17,7 @@ ahub undo
 ahub undo <run-id>
 ```
 
-These commands preview. Use the emitted `--apply --expect` command. Undo restores the pre-run state and archives current data through the recovery engine. It handles completed stages from partially failed workflows. Later changes to the Hub or touched client paths block undo, even if the changes were made by another Hub operation. Review an individual restore or first-baseline reset when later work must be retained. Undo never silently drops later knowledge. A workflow interrupted before its final metadata was recorded cannot be undone automatically; preserve its recovery data and inspect the normal reset preview.
+Review the plan and confirm in a terminal, or use the emitted `--apply --expect` command. Undo restores the pre-run state and archives current data through the recovery engine. It handles completed stages from partially failed workflows. Later changes to the Hub or touched client paths block undo, even if the changes were made by another Hub operation. Review an individual restore or first-baseline reset when later work must be retained. Undo never silently drops later knowledge. A workflow interrupted before its final metadata was recorded cannot be undone automatically; preserve its recovery data and inspect the normal reset preview.
 
 Completed undo invalidates pending checkpoint authority. First-baseline originals remain separate and available; their journals recognize the restored Hub-owned state. Snapshots include the complete Hub and affected personal files, are not encrypted, and are retained without automatic pruning. No-op applies also retain a workflow snapshot. Keep recovery storage private and account for its disk usage.
 

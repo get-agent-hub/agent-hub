@@ -26,7 +26,8 @@
     "prepack": "npm run build",
     "package:check": "npm run build && node scripts/check-package.mjs",
     "install:check": "npm run build && node scripts/check-global-install.mjs",
-    "install:global": "npm run build && node scripts/install-global.mjs"
+    "install:global": "npm run build && node scripts/install-global.mjs",
+    "docs:commands": "npm run build && node scripts/write-command-reference.mjs"
   },
   "license": "MIT",
   "dependencies": {
@@ -58,6 +59,7 @@
     "docs/RECOVERY.md",
     "docs/DESIGN.md",
     "LICENSE",
-    "npm-shrinkwrap.json"
+    "npm-shrinkwrap.json",
+    "docs/CLI.md"
   ]
 }

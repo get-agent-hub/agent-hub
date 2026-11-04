@@ -26,11 +26,11 @@ Run this from any folder:
 ahub quick
 ```
 
-This is a **preview** and writes nothing, including on the first run. It finds detected, enabled clients and shows collection of MCP definitions and complete skill bundles, delivery of existing shared rules/index, known conflicts and affected client scope. It does not inspect the current Git project, create repository files, import project memory or enable project hooks.
+The command shows a **preview** before writing. In an interactive terminal it then asks for confirmation of that exact plan. Declining writes nothing. `--dry-run`, `--json` and noninteractive calls preview without prompting or writing. It finds detected, enabled clients and shows collection of MCP definitions and complete skill bundles, delivery of existing shared rules/index, known conflicts and affected client scope. It does not inspect the current Git project, create repository files, import project memory or enable project hooks.
 
 The Hub is stored at `~/.agent-hub` by default. This is the shared configuration/knowledge store, not a project directory. `AGENT_HUB_HOME` chooses another Hub location.
 
-For a terminal prompt after the preview, use `ahub quick --interactive` (or `ahub project connect /path/to/project --interactive`). This requires a terminal and applies the same in-memory reviewed revision only after confirmation. Otherwise, copy the complete **Apply this workflow** command printed by your preview. It includes `--apply`, `--expect` and `--at`; do not invent a revision or drop options. Generated commands pin the installed Node and CLI paths deliberately; ordinary interactive commands use `ahub`. Changed inputs require a new preview.
+Quick and project connect ask after the preview when stdin/stdout are terminals. The legacy `--interactive` flag remains supported, requires a terminal and cannot be combined with apply, JSON or dry-run. Otherwise, copy the complete **Apply this workflow** command printed by your preview. It includes `--apply`, `--expect` and `--at`; do not invent a revision or drop options. Generated commands pin the installed Node and CLI paths deliberately; ordinary interactive commands use `ahub`. Changed inputs require a new preview.
 
 After applying, read the per-stage result and restart affected clients. Native trust and permissions remain client-owned. Check configuration and, when desired, actual MCP connectivity:
 
@@ -81,7 +81,7 @@ ahub project connect /path/to/project --no-automation
 ahub project connect /path/to/project --client codex
 ```
 
-These commands preview. Use each plan's own apply command. `--no-automation` omits enablement; it does not turn off an existing policy. Use `memory auto disable` for a reviewed disable operation. The old `quick --workspace` form now directs you to `project connect`; `--no-project` is unnecessary for ordinary quick setup.
+In a terminal these public workflows show the plan and ask before applying. Use --dry-run to preview only. Noninteractive calls use each plan's own exact apply command. `--no-automation` omits enablement; it does not turn off an existing policy. Use `memory auto disable` for a reviewed disable operation. The old `quick --workspace` form now directs you to `project connect`; `--no-project` is unnecessary for ordinary quick setup.
 
 ## Prefer the local UI?
 
@@ -136,6 +136,10 @@ ahub undo
 ahub undo <run-id>
 ```
 
-These are previews. Disconnect covers all registered checkouts of that ID, disables its policy and removes pending session tokens. Knowledge, source bindings and repository handoff notes remain. Shared hook handlers remain installed for other projects. A later project connect rechecks the checkout identity before reusing its knowledge.
+Undo and disconnect show the plan and ask in an interactive terminal. Explicit dry runs, JSON and pipes remain read-only; apply requires the emitted revision. Disconnect covers all registered checkouts of that ID, disables its policy and removes pending session tokens. Knowledge, source bindings and repository handoff notes remain. Shared hook handlers remain installed for other projects. A later project connect rechecks the checkout identity before reusing its knowledge.
 
 Undo restores the state immediately before a recorded quick/project-connect run, including a partially completed run. It rejects later changes to the Hub or touched external targets. Its output archives current data and keeps the independent first-baseline reset. Snapshots live outside Hub in its private recovery directory; they include personal configuration and consume disk space. A process killed before finishing snapshot metadata requires manual recovery review or the normal reset preview.
+
+## Help without overload
+
+Run `ahub` for six everyday groups and two starting routes: quick or ui. Use `ahub --advanced --help` for specialized operations, and `ahub --advanced quick --help` for technical flags used by generated script commands. Hidden help entries remain callable. [The command reference](CLI.md) explains who uses each command and why; runtime launchers and callbacks are separate from ordinary setup.

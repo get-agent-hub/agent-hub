@@ -8,7 +8,7 @@ The server calls the existing status collector and the shared `src/core/import-p
 
 Overview separates **Set up shared Hub** from optional **Connect project memory**. Hub setup works from any folder and previews global MCP, skill and shared instruction/index collection/delivery. The header selects a verified registered project, the startup folder or shared knowledge. Switching expires every preview. Project connection is available for the selected Git project and previews its memory, handoff and hooks. The scope and storage/project paths are labeled separately. Both results show completed, unchanged, skipped and blocked stages, restore previews, per-run undo and the separate first-baseline reset command. See [QUICKSTART.md](QUICKSTART.md).
 
-`POST /api/quick/preview` accepts only `clients` and `prefer`. `POST /api/project/connect/preview` accepts only `clients` and `automation`; its project directory is fixed to the server startup location. The corresponding `/apply` routes consume private single-use `previewId` plus `revision`. A Hub preview cannot be applied through a project route. Unknown or cross-scope options are rejected. IDs expire after five minutes; writes share the UI operation guard and each stage's filesystem lock. No source-bearing internal plan enters the response. Each workflow is staged rather than one transaction.
+`POST /api/quick/preview` accepts only `clients` and `prefer`. `POST /api/project/connect/preview` accepts only `clients` and `automation`; its project directory is the verified server-side selection or startup folder. The corresponding `/apply` routes consume private single-use `previewId` plus `revision`. A Hub preview cannot be applied through a project route. Unknown or cross-scope options are rejected. IDs expire after five minutes; writes share the UI operation guard and each stage's filesystem lock. No source-bearing internal plan enters the response. Each workflow is staged rather than one transaction.
 
 ## API
 
@@ -50,7 +50,7 @@ The probe is an unauthenticated GET to the base URL plus `/healthz/readiness`, w
 
 `POST /api/content/preview` accepts `skills-import`, `skills-sync`, `context-sync`, `init-repo` or `project-disconnect`. It returns only actions, paths, a revision and copyable commands. Source rules and memory text are excluded. `POST /api/content/apply` consumes the opaque preview ID, rebuilds the plan and applies it under the shared Hub lock. The same Host/Origin/token protections and five-minute, single-use preview lifetime apply. All content writes serialize with imports and MCP sync.
 
-The local UI has Skills import/delivery controls, context delivery on Instructions/Memory and Prepare repository on Repos & tasks. Init-repo is bound to the server's startup workspace. The isolated QA harness injects fixture-only content targets as well as MCP targets, so these controls never default to the developer's real client directories there.
+The local UI has Skills import/delivery controls, context delivery on Instructions/Memory and Prepare repository on Repos & tasks. Init-repo is bound to the selected verified project or startup folder. The isolated QA harness injects fixture-only content targets as well as MCP targets, so these controls never default to the developer's real client directories there.
 
 ## Evidence and project selection
 
