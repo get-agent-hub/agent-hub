@@ -30,39 +30,15 @@ try {
     AGENT_HUB_SHARED_SKILLS: path.join(directory, 'shared-skills'),
     AGENT_HUB_DSH_PROFILE: 'web',
     npm_config_userconfig: path.join(directory, 'npmrc'),
+    npm_config_prefix: prefix,
+    npm_config_cache: path.join(directory, 'npm-cache'),
   };
   assert.ok(process.env.npm_execpath, 'Run through npm run install:check.');
-  const [archive] = JSON.parse(
-    execFileSync(
-      process.execPath,
-      [
-        process.env.npm_execpath,
-        'pack',
-        '--ignore-scripts',
-        '--json',
-        '--pack-destination',
-        directory,
-      ],
-      { cwd: source, env, encoding: 'utf8' },
-    ),
-  );
-  const tarball = path.join(directory, archive.filename);
-  execFileSync(
-    process.execPath,
-    [
-      process.env.npm_execpath,
-      'install',
-      '--global',
-      '--prefix',
-      prefix,
-      '--no-audit',
-      '--no-fund',
-      tarball,
-    ],
-    { cwd: workspace, env, stdio: 'pipe' },
-  );
-
-  await fs.rm(tarball);
+  execFileSync(process.execPath, ['scripts/install-global.mjs'], {
+    cwd: source,
+    env,
+    stdio: 'pipe',
+  });
   const installedPackage = path.join(prefix, 'lib/node_modules/agent-hub');
   assert.equal((await fs.lstat(installedPackage)).isSymbolicLink(), false);
   assert.ok((await fs.stat(path.join(installedPackage, 'npm-shrinkwrap.json'))).isFile());
@@ -72,6 +48,8 @@ try {
   const run = (args, name = 'ahub') =>
     execFileSync(name, args, { cwd: workspace, env, encoding: 'utf8' });
   assert.match(run(['--help']), /quick/);
+  const metadata = JSON.parse(await fs.readFile(path.join(source, 'package.json'), 'utf8'));
+  assert.equal(run(['--version']).trim(), metadata.version);
   assert.equal(run(['--version']), run(['--version'], 'agent-hub'));
   const preview = JSON.parse(run(['quick', '--client', 'codex', '--json']));
   await assert.rejects(fs.access(home), { code: 'ENOENT' });
@@ -123,7 +101,7 @@ try {
   const state = await (await fetch(`${url}/api/state`)).json();
   assert.equal(state.status.hub.root, home);
   console.log(
-    'Standalone tarball install verified after deleting its source archive in a temporary prefix: ahub + agent-hub, quick preview/apply, status and UI assets from an unrelated directory.',
+    'Real installer verified in a temporary prefix after its source archive cleanup: ahub + agent-hub version, quick preview/apply, status and UI assets from an unrelated directory.',
   );
 } finally {
   if (ui && ui.exitCode === null) {

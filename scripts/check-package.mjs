@@ -19,6 +19,7 @@ for (const required of [
   'ui/app/quick.js',
   'docs/QUICKSTART.md',
   'docs/CLI.md',
+  'docs/RELEASE.md',
   'dist/integrations/dsh-memory.js',
   'dist/core/memory-discovery.js',
   'dist/core/memory-onboarding.js',
@@ -37,12 +38,14 @@ for (const required of [
   'docs/RECOVERY.md',
   'docs/DESIGN.md',
   'LICENSE',
+  'CHANGELOG.md',
+  'SECURITY.md',
 ]) {
   assert.ok(files.has(required), `Package is missing ${required}`);
 }
 for (const file of files)
   assert.ok(
-    /^(dist\/|ui\/app\/|docs\/(CLI|QUICKSTART|CONTENT|MEMORY|AUTOMATION|WORKING_GUIDE|RECOVERY|DESIGN)\.md$|README\.md$|LICENSE$|package\.json$|npm-shrinkwrap\.json$)/.test(
+    /^(dist\/|ui\/app\/|docs\/(CLI|RELEASE|QUICKSTART|CONTENT|MEMORY|AUTOMATION|WORKING_GUIDE|RECOVERY|DESIGN)\.md$|README\.md$|CHANGELOG\.md$|SECURITY\.md$|LICENSE$|package\.json$|npm-shrinkwrap\.json$)/.test(
       file,
     ),
     `Unexpected package file: ${file}`,

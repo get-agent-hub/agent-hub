@@ -27,3 +27,12 @@ jobs:
       - run: npm audit --omit=dev --audit-level=moderate
       - run: npm run package:check
       - run: npm run install:check
+      - run: npm run release:prepare
+        if: matrix.os == 'ubuntu-latest' && matrix.node == '22.13.0'
+      - uses: actions/upload-artifact@v4
+        if: matrix.os == 'ubuntu-latest' && matrix.node == '22.13.0'
+        with:
+          name: beta-candidate
+          path: .tmp/release/
+          include-hidden-files: true
+          if-no-files-found: error

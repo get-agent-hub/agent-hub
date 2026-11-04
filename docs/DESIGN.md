@@ -1,6 +1,6 @@
 # Agent Hub design
 
-Agent Hub is a local source of truth for MCP settings, skills and shared context across Claude Code, Codex CLI and DeepSeek Harness. Node.js ≥22.13 is required. macOS/Linux are supported targets; Windows remains experimental. The package is private until a public name/version and release are chosen.
+Agent Hub is a local source of truth for MCP settings, skills and shared context across Claude Code, Codex CLI and DeepSeek Harness. Node.js ≥22.13 is required. macOS/Linux are supported targets; Windows remains experimental. Candidate 0.1.0-beta.1 uses reviewed source and package archives; public npm registry publication remains disabled.
 
 ## Principles
 
@@ -66,7 +66,7 @@ The immutable Hub baseline and append-only first-touch originals live outside th
 
 Implemented: quick setup/sync through CLI and guided UI, init, MCP import/launcher/sync/doctor, restore/reset, local UI, skills add/list/remove/import/delivery, shared rules/index delivery, init-repo templates and scoped memory record management through CLI/UI/MCP. Explicit content mutations default to preview and require the reviewed revision. Project automation is enabled through a reviewed setup; subsequent native imports/checkpoints use that policy, the same transaction service and recovery. Plain sync retains MCP-only behavior; `--area skills` and `--area context` select the other projections.
 
-Next is the maintainer's real working trial in [WORKING_GUIDE.md](WORKING_GUIDE.md), including model-driven retrieval and a two-client memory handoff, followed by remote macOS/Linux CI, package install checks and release identity. Structured interchange with an external graph memory server remains separate future work. The separate English landing page uses locale files for translation PRs; hosting is maintainer-managed and deferred.
+Before publication, complete the maintainer's real working trial in [WORKING_GUIDE.md](WORKING_GUIDE.md), including model-driven retrieval and a two-client memory handoff, plus visual review and remote macOS/Linux CI. Package and actual installer checks run in isolated profiles; [RELEASE.md](RELEASE.md) defines candidate artifacts and remaining gates. Structured graph-memory interchange remains separate future work. The separate landing and documentation support English/Russian through locale files; domain, hosting and deployment are maintainer-managed.
 
 ## Memory MVP
 

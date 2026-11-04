@@ -1,6 +1,6 @@
 # Public release code review
 
-Review scope: all tracked TypeScript, browser JavaScript, fixtures, CLI commands, configuration and documentation. This pass includes refactoring and regression coverage, not a claim that every possible defect is eliminated.
+This is a historical review of tracked TypeScript, browser JavaScript, fixtures, CLI commands, configuration and documentation. Later verification is recorded in [QA.md](QA.md); the current candidate and publication gates are in [RELEASE.md](RELEASE.md). This review does not claim that every possible defect is eliminated.
 
 ## Findings addressed
 
@@ -41,8 +41,8 @@ The production dependency audit reported **zero vulnerabilities**. The full deve
 - The dependency audit covers the lockfile, not user-configured executables or packages downloaded by external launchers.
 - Readiness probes are optional unauthenticated HTTP checks. They do not execute tools or establish provider API permissions, and an ingress may obscure the actual service state.
 - Interactive terminal prompts and desktop browser-opening behavior are not fully automated by the unit suite. Source-level browser helpers and HTTP boundaries are tested; this pass does not claim a full automated browser matrix.
-- Instruction delivery, repository initialization and session indexing remain explicitly unimplemented.
-- The npm name/version and release remain maintainer decisions; no package was published by this review.
+- Instruction delivery and repository initialization are implemented. Archived-session indexing remains unimplemented.
+- The candidate version is 0.1.0-beta.1, distributed as reviewed archives. Public npm registry publication remains deferred; this review did not publish a package.
 
 ## Follow-up: original-state recovery
 

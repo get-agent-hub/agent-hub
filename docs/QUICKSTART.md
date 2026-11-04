@@ -12,7 +12,7 @@ npm run install:global
 ahub --help
 ```
 
-The package is currently private; `npm install --global agent-hub` from a public registry is not available yet. Run `npm run install:global` from the downloaded source directory. It builds, packs and globally installs a standalone package copy with a production shrinkwrap. Afterwards use `ahub` from any directory; `agent-hub` is an equivalent executable name.
+Candidate 0.1.0-beta.1 is distributed as reviewed source and package archives. The package stays private to prevent accidental registry publication; `npm install --global agent-hub` from a public registry is not an advertised installation route. Run `npm run install:global` from the downloaded source directory. It builds, packs and globally installs a standalone package copy with a production shrinkwrap. Afterwards use `ahub` from any directory; `agent-hub` is an equivalent executable name. See [RELEASE.md](RELEASE.md) for tarball installation, checksums and publication gates. Both installation routes may download locked dependencies from npm.
 
 The source checkout may be removed after installation. Keep Node and the installed package at stable paths: generated launchers and memory hooks bind to the installed runtime. If the shell cannot find `ahub`, check `npm prefix --global` and add its binary directory to PATH (on macOS/Linux, `<prefix>/bin`). Use a user-writable npm prefix or your Node version manager when permissions prevent installation.
 

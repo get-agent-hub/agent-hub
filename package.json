@@ -1,6 +1,6 @@
 {
   "name": "agent-hub",
-  "version": "0.0.0",
+  "version": "0.1.0-beta.1",
   "private": true,
   "description": "Single source of truth for your AI coding agents: skills, MCP, instructions, memory, task state.",
   "type": "module",
@@ -27,7 +27,8 @@
     "package:check": "npm run build && node scripts/check-package.mjs",
     "install:check": "npm run build && node scripts/check-global-install.mjs",
     "install:global": "npm run build && node scripts/install-global.mjs",
-    "docs:commands": "npm run build && node scripts/write-command-reference.mjs"
+    "docs:commands": "npm run build && node scripts/write-command-reference.mjs",
+    "release:prepare": "npm run build && node scripts/prepare-release.mjs"
   },
   "license": "MIT",
   "dependencies": {
@@ -60,6 +61,17 @@
     "docs/DESIGN.md",
     "LICENSE",
     "npm-shrinkwrap.json",
-    "docs/CLI.md"
-  ]
+    "docs/CLI.md",
+    "CHANGELOG.md",
+    "SECURITY.md",
+    "docs/RELEASE.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/redzumi/agent-hub.git"
+  },
+  "bugs": {
+    "url": "https://github.com/redzumi/agent-hub/issues"
+  },
+  "homepage": "https://github.com/redzumi/agent-hub#readme"
 }

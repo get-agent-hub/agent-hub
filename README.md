@@ -2,7 +2,7 @@
 
 A local source of truth for the skills, MCP tools and shared context used by Claude Code, Codex and DeepSeek Harness.
 
-Requires Node.js **22.13 or newer** and npm. macOS and Linux are the supported release targets; Windows remains experimental. The npm package is marked private until its public name and first release version are chosen.
+Requires Node.js **22.13 or newer** and npm. macOS and Linux are the supported release targets; Windows remains experimental. Candidate **0.1.0-beta.1** uses reviewed source and package archives. The npm package remains private to prevent accidental registry publication.
 
 ```sh
 npm ci
@@ -11,6 +11,8 @@ ahub quick
 ```
 
 Install from the unpacked source directory, then run `ahub` from any project. The `agent-hub` executable is also available as an alias. A public registry installation is not available yet. The installer packs a standalone copy with locked production dependencies; the source checkout can be removed afterwards. The npm global binary directory must be on your shell's PATH.
+
+See [CHANGELOG.md](CHANGELOG.md) for the beta scope, [RELEASE.md](docs/RELEASE.md) for tarball installation, checksums and publication gates, and [SECURITY.md](SECURITY.md) for private vulnerability reporting. Installation may download locked dependencies from npm. The candidate is prepared locally; this does not mean a public release has been published.
 
 `ahub quick` previews shared Hub setup: create/adopt Hub, collect MCP and skills, then deliver global MCP, skill links and existing shared instruction/index blocks to selected clients. It works from any folder and does not require a Git project. In an interactive terminal, review the plan and confirm it. Noninteractive previews print a complete **Apply this workflow** command. Existing Hub values stay authoritative, conflicts need review, and affected clients should be restarted.
 

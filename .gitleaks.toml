@@ -1,0 +1,13 @@
+title = "Agent Hub secret scanning"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "generic-api-key"
+
+[[rules.allowlists]]
+description = "Public synthetic token used to verify QA credential redaction, including historical formatting"
+condition = "AND"
+paths = ['''^tests/qa-harness\.mjs$''']
+regexes = ['''^qa-fixture-secret-1234567890$''']
