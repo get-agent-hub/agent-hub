@@ -68,10 +68,10 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/redzumi/agent-hub.git"
+    "url": "git+https://github.com/get-agent-hub/agent-hub.git"
   },
   "bugs": {
-    "url": "https://github.com/redzumi/agent-hub/issues"
+    "url": "https://github.com/get-agent-hub/agent-hub/issues"
   },
-  "homepage": "https://github.com/redzumi/agent-hub#readme"
+  "homepage": "https://getahub.dev"
 }

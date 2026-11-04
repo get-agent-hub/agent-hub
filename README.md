@@ -1,5 +1,7 @@
 # Agent Hub
 
+[Website and documentation](https://getahub.dev) · [Source](https://github.com/get-agent-hub/agent-hub) · [Releases](https://github.com/get-agent-hub/agent-hub/releases)
+
 A local source of truth for the skills, MCP tools and shared context used by Claude Code, Codex and DeepSeek Harness.
 
 Requires Node.js **22.13 or newer** and npm. macOS and Linux are the supported release targets; Windows remains experimental. Candidate **0.1.0-beta.1** uses reviewed source and package archives. The npm package remains private to prevent accidental registry publication.
