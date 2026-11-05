@@ -324,9 +324,15 @@ function render() {
     sessions: sessionsPage,
   };
   $('#content').innerHTML =
-    query && !['skills', 'mcp', 'memory', 'projects'].includes(page)
-      ? searchResults()
-      : views[page](params);
+    state.stateUnavailable && page !== 'projects'
+      ? intro(
+          'Settings could not be read',
+          state.stateIssue,
+          `<a class="btn primary" href="${link('projects')}">Find projects independently</a>`,
+        )
+      : query && !['skills', 'mcp', 'memory', 'projects'].includes(page)
+        ? searchResults()
+        : views[page](params);
 }
 
 setupQuickUi({ api, load, notice, getState: () => state });
@@ -719,7 +725,8 @@ $('#search').addEventListener('input', (event) => {
 });
 $('#refresh').addEventListener('click', () => {
   notice('');
-  load();
+  if (route().page === 'projects') void projectDiscovery.refresh();
+  else load();
 });
 document.addEventListener('keydown', (event) => {
   if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {

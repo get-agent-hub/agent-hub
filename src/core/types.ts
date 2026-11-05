@@ -56,7 +56,13 @@ export interface ClientAdapter {
   /** Global-scope MCP definitions as stored by the client (secrets included). */
   readMcpRaw(): Promise<RawMcp[]>;
   /** Optional read-only metadata capability; never returns conversation bodies. */
-  discoverSessions?(): Promise<SessionScan>;
+  discoverSessions?(control?: SessionDiscoveryControl): Promise<SessionScan>;
+}
+
+export interface SessionDiscoveryControl {
+  signal?: AbortSignal;
+  /** Cumulative receipt with a delta of observations; returning applies backpressure. */
+  onBatch?: (batch: SessionScan) => Promise<void>;
 }
 
 export interface SessionScan {
@@ -66,6 +72,13 @@ export interface SessionScan {
   filesRead: number;
   bytesRead: number;
   issues: string[];
+  entriesRead?: number;
+  unresolvedFiles?: number;
+  skippedFiles?: number;
+  finished?: boolean;
+  directory?: string;
+  phase?: 'enumerating' | 'reading';
+  totalFiles?: number;
 }
 
 export interface HubState {

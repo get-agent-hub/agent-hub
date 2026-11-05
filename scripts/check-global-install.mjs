@@ -17,6 +17,12 @@ try {
   await fs.mkdir(path.join(directory, 'codex'));
   await fs.writeFile(path.join(directory, 'codex', 'config.toml'), '# fixture only\n');
   await fs.writeFile(path.join(directory, 'npmrc'), '');
+  const collection = path.join(directory, 'claude', 'projects', 'fixture');
+  await fs.mkdir(collection, { recursive: true });
+  await fs.writeFile(
+    path.join(collection, 'fixture.jsonl'),
+    JSON.stringify({ sessionId: 'installed-fixture', cwd: workspace }) + '\n',
+  );
   const env = {
     ...process.env,
     PATH: [path.join(prefix, 'bin'), path.dirname(process.execPath), process.env.PATH].join(
@@ -97,11 +103,30 @@ try {
       }
     });
   });
-  for (const asset of ['/', '/quick.js']) assert.equal((await fetch(`${url}${asset}`)).status, 200);
+  for (const asset of ['/', '/quick.js', '/projects.js'])
+    assert.equal((await fetch(`${url}${asset}`)).status, 200);
   const state = await (await fetch(`${url}/api/state`)).json();
   assert.equal(state.status.hub.root, home);
+  const post = async (route, body) => {
+    const response = await fetch(`${url}${route}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Agent-Hub-Token': state.token },
+      body: JSON.stringify(body),
+    });
+    assert.ok(response.ok, `${route}: ${response.status}`);
+    return response.json();
+  };
+  let scan = await post('/api/projects/discovery/start', { clients: ['claude-code'] });
+  for (let attempt = 0; scan.state === 'running' && attempt < 100; attempt++) {
+    await new Promise((resolve) => setTimeout(resolve, 25));
+    scan = await post('/api/projects/discovery/status', { id: scan.id });
+  }
+  assert.equal(scan.state, 'complete');
+  assert.equal(scan.coverage, 'complete');
+  assert.equal(scan.projects.length, 1);
+  assert.equal(scan.projects[0].locations[0], await fs.realpath(workspace));
   console.log(
-    'Real installer verified in a temporary prefix after its source archive cleanup: ahub + agent-hub version, quick preview/apply, status and UI assets from an unrelated directory.',
+    'Real installer verified in a temporary prefix after its source archive cleanup: ahub + agent-hub version, quick preview/apply, status, UI assets and a read-only discovery job from an unrelated directory.',
   );
 } finally {
   if (ui && ui.exitCode === null) {

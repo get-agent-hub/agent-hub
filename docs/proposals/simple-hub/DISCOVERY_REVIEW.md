@@ -2,7 +2,21 @@
 
 2026-11-05 · implementation reviewed: `7c6e650` · [delivery plan](DELIVERY.md)
 
-**Status: open findings.** This review does not fix the runtime issues or mark the first discovery increment complete for large sources. It identifies the next work required before describing discovery as comprehensive.
+**Status: the regressions below are fixed within the supported initial-metadata scope.** The original findings remain as evidence of what failed. This does not complete the full catalog, all native formats or all 47 acceptance cases.
+
+## Resolution and remaining boundaries
+
+The reader now inventories bounded filenames and visits collections round-robin. One Find projects action continues in small batches, publishing progress while the local server retains the job. It reads complete JSON records in 4 KiB chunks, preserves the initial 64 KiB context window and can extend to 1 MiB to find initial metadata in a large record. Exact thresholds do not imply missing work. This addresses R01–R03 without asking users to manage cursors.
+
+Git failures remain unverified candidates with partial coverage; unrelated unreadable settings no longer block Projects bootstrap (R04–R05). Observations, retained groups and HTTP pages have separate limits. Status returns at most 100 rows and about 128 KiB of row data; source errors and capacity remain visible. Stop cancels cooperatively, settles the public job immediately and rejects late results. At most two native reads may drain; filesystem I/O has no hard termination guarantee (R06–R07, R11).
+
+The UI separates repository-backed projects from other folders, shows paths and scan age, retains previous observations during incomplete/failed retries and makes Refresh start or reattach to the selected scan. Reload reattaches to the server job. Reveal folder resolves a server-owned reference and rechecks its filesystem binding; no browser path grants access (R08–R10).
+
+Limits remain explicit: 200,000 entries, 100,000 files, 256 MiB read per scan, 64 initial locations per session, 5,000 verified-location cache entries, 2,000 groups and 100,000 observations. Unsupported or excessive records stay unresolved, never silently complete. A ten-minute job timer stops scheduling work. A stopped job is not paused; server restart starts fresh. There is no durable checkpoint, automatic partitioning beyond these supported capacities, user exclusion/correction, durable project catalog or discovery-to-memory connection yet. Those broader R01/R08/R09 outcomes belong to the next catalog slice.
+
+Verification on 2026-11-05: all 234 tests passed, including 29 discovery regressions; the latter also passed on Node 22.13. Overall coverage: 92.89% lines, 84.98% branches, 90.39% functions. A separate headless browser profile tested 112 synthetic groups, pagination, filtering across pages, progress, Stop/retry, failed retries, Refresh/reload reattachment, retained details/focus and desktop/mobile layout. Screenshots were inspected. Package/install and the repeated real-source trial are recorded in [DELIVERY.md](DELIVERY.md). Resource limits are safety bounds, not a measured peak-memory or latency guarantee. An unassisted usability and broader native-format trial remain required.
+
+## Original findings
 
 The user-run local Claude scan returned 15 groups after reading 73 files and exactly 4 MiB. Its receipt reported both missing supported metadata in some prefixes and exhaustion of the read budget. No transcript content or private project names are included here. Further checks used synthetic temporary sources, repositories and local servers; production profiles were not changed.
 
@@ -26,7 +40,7 @@ P1 blocks reliable discovery across supported sources. P2 affects truthful statu
 | R10 | P2 · source                             | General Refresh reloads state while the discovery report stays in browser memory. A failed HTTP retry can leave the previous successful report displayed without its age. A successful response containing unavailable sources can instead replace old results with an empty list. | Record scan time/source selection and distinguish previous results from current evidence. Define Refresh behavior for this page explicitly. Keep previous observations visibly stale during failure/partial retries; do not imply deletion. Test source disappearance, failed retry, refresh, navigation and overlapping tabs.                                                |
 | R11 | P1 · reproduced and source              | Aborting an HTTP request does not cancel the underlying discovery reader. Another request receives 409 until it finishes. There is no discovery cancel/progress contract; the cooperative time check does not bound filesystem calls.                                              | Use resumable bounded work with cancellation checks and a clear lifecycle. A stopped browser request must not leave an unexplained permanent busy state. Test a gated/slow reader, disconnect, cancel, retry and shutdown. Do not claim a hard deadline for native filesystem I/O without isolation that can enforce it.                                                      |
 
-## Evidence in the current code
+## Evidence in the originally reviewed code (`7c6e650`)
 
 - [Claude reader](../../../src/adapters/claude-sessions.ts): fixed prefix/file/entry/byte budgets, complete-line parsing and no continuation. The terminal limit check explains R02.
 - [Project grouping](../../../src/core/project-discovery.ts): Git exit classification, source-only aggregate coverage and a verification limit that does not cap output cardinality.
@@ -42,13 +56,13 @@ The 12 discovery tests exercise useful foundations, but their limit tests check 
 
 The existing 47 acceptance cases remain valid, but several were only verified in a narrow metadata subset. High overall coverage does not establish fairness, source completeness, bounded output or graceful failure of the complete UI startup path.
 
-## Next implementation order
+## Original implementation order
 
 1. **Finish the reader and enumeration contract:** R01–R03. Use smaller reads where metadata can be safely obtained, source/generation-bound continuation and explicit completion. A single Find projects action processes bounded passes; users should not have to increase limits or manage cursors.
 2. **Make independent discovery and status reliable:** R04, R05, R07. Keep individual source/phase errors separate and allow the supported selected client to work despite unrelated failures.
 3. **Bound the complete operation:** R06, R11. Add observation/result budgets, progress and cancellation without installing another worker/service or adding ordinary CLI commands. Bind any continuation to its selected source and revision, never an arbitrary browser path.
 4. **Make the result interpretable and useful:** R08–R10. Keep working folders, disambiguate names, show scan age and previous results correctly, then add the reviewed connection/resource flow from slice 1b.
 
-Before closing these findings, convert each reproduction into a regression test that asserts the required behavior. Include a large/mixed fixture corpus and a default-services UI startup test. Then repeat the already selected real-source metadata scan read-only and record processed/remaining/unresolved counts and responsiveness. An unassisted usability trial and complete native-format coverage still require separate evidence.
+The follow-up implementation must convert each reproduction into a regression test that asserts the required behavior. Include a large/mixed fixture corpus and a default-services UI startup test. Then repeat the already selected real-source metadata scan read-only and record processed/remaining/unresolved counts and responsiveness. An unassisted usability trial and complete native-format coverage still require separate evidence.
 
 These findings refine existing cases C01, C11–C18, C24, C29, C32, C35, C41 and C46. They do not add archive or mutation capability to the first slice, and they do not mark the remaining cases passed.

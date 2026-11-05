@@ -15,6 +15,8 @@ import { planImport } from '../dist/core/import-plan.js';
 import { planSync } from '../dist/core/sync.js';
 import { runDoctor } from '../dist/core/doctor.js';
 import { planContent } from '../dist/ui/content.js';
+import { discoverProjects } from '../dist/core/project-discovery.js';
+import { setTimeout as delay } from 'node:timers/promises';
 
 const project = fileURLToPath(new URL('../', import.meta.url));
 const root = await fs.mkdtemp(path.join(os.tmpdir(), 'agent-hub-qa-'));
@@ -88,6 +90,15 @@ for (const [id, cwd] of [
       message: { content: 'Synthetic QA conversation; not returned by project discovery.' },
     }) + '\n',
   );
+if (process.argv.includes('--many-projects')) {
+  for (let index = 0; index < 110; index++) {
+    const id = `qa-extra-${String(index).padStart(3, '0')}`;
+    await fs.writeFile(
+      path.join(sessionCollection, `${id}.jsonl`),
+      JSON.stringify({ type: 'user', sessionId: id, cwd: path.join(root, id) }) + '\n',
+    );
+  }
+}
 execFileSync('git', ['init', '-q', '-b', 'main'], { cwd: repo });
 await fs.writeFile(
   path.join(repo, 'AGENTS.md'),
@@ -199,6 +210,11 @@ const ui = await startUiServer({
   port,
   cwd: repo,
   services: {
+    discoverProjects: async (clients, sources, control) => {
+      if (process.argv.includes('--slow-discovery'))
+        await delay(1200, undefined, { signal: control?.signal });
+      return discoverProjects(clients, sources, control);
+    },
     state: (cwd = repo) => uiState(cwd, sources),
     skill: (name, source) => skillDocument(name, source, sources),
     plan: (item, opts) => planImport(item, opts, sources),

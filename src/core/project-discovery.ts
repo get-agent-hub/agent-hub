@@ -9,14 +9,48 @@ import { HubError } from './errors.js';
 import { isAbsoluteLocalPath } from './paths.js';
 
 const exec = promisify(execFile);
-type Location = {
-  key: string;
+export interface DiscoveredProject {
+  id: string;
   label: string;
   kind: 'repository' | 'folder' | 'missing' | 'unverified';
-  directory: string;
-};
+  locations: string[];
+  chats: number;
+  clients: ClientId[];
+}
+export interface DiscoveryReport {
+  metadataOnly: true;
+  coverage: 'complete' | 'partial';
+  finished?: boolean;
+  checkedAt?: string;
+  sources: {
+    client: ClientId;
+    label: string;
+    coverage: SessionScan['coverage'] | 'unsupported';
+    filesRead: number;
+    bytesRead: number;
+    issues: string[];
+    entriesRead?: number;
+    unresolvedFiles?: number;
+    skippedFiles?: number;
+    finished?: boolean;
+    directory?: string;
+    phase?: SessionScan['phase'];
+    totalFiles?: number;
+  }[];
+  issues: string[];
+  projects: DiscoveredProject[];
+}
+export interface DiscoveryControl {
+  signal?: AbortSignal;
+  onProgress?: (report: DiscoveryReport) => void;
+}
+type Location = { key: string; label: string; kind: DiscoveredProject['kind']; directory: string };
 
-async function locate(cwd: string): Promise<Location> {
+export async function verifiedProjectLocation(
+  cwd: string,
+  signal?: AbortSignal,
+): Promise<Location> {
+  signal?.throwIfAborted();
   const fallback = (kind: Location['kind'], directory = cwd): Location => ({
     key: `folder:${directory}`,
     label: path.basename(directory) || directory,
@@ -28,10 +62,10 @@ async function locate(cwd: string): Promise<Location> {
     directory = await fs.realpath(cwd);
     if (!(await fs.stat(directory)).isDirectory()) return fallback('missing');
   } catch (error) {
+    signal?.throwIfAborted();
     return fallback((error as NodeJS.ErrnoException).code === 'ENOENT' ? 'missing' : 'unverified');
   }
   try {
-    // Metadata probes must not inherit another repository's Git binding or run fsmonitor hooks.
     const env = Object.fromEntries(
       Object.entries(process.env).filter(([key]) => !key.startsWith('GIT_')),
     );
@@ -47,12 +81,14 @@ async function locate(cwd: string): Promise<Location> {
       ],
       {
         cwd: directory,
-        env: { ...env, GIT_OPTIONAL_LOCKS: '0', GIT_TERMINAL_PROMPT: '0' },
+        env: { ...env, LC_ALL: 'C', LANG: 'C', GIT_OPTIONAL_LOCKS: '0', GIT_TERMINAL_PROMPT: '0' },
         timeout: 1000,
         maxBuffer: 16 * 1024,
+        signal,
       },
     );
-    const fields = stdout.trimEnd().split('\n');
+    // Strip the record terminator, not significant trailing spaces in a path.
+    const fields = stdout.replace(/\r?\n$/, '').split('\n');
     if (fields.length !== 2 || !fields.every(isAbsoluteLocalPath))
       return fallback('unverified', directory);
     const root = await fs.realpath(fields[0]!);
@@ -64,10 +100,13 @@ async function locate(cwd: string): Promise<Location> {
       directory: root,
     };
   } catch (error) {
-    return fallback(
-      (error as { code?: unknown }).code === 128 ? 'folder' : 'unverified',
-      directory,
-    );
+    signal?.throwIfAborted();
+    const failure = error as { code?: unknown; stderr?: unknown };
+    const ordinary =
+      failure.code === 128 &&
+      typeof failure.stderr === 'string' &&
+      /^fatal: not a git repository\b/.test(failure.stderr);
+    return fallback(ordinary ? 'folder' : 'unverified', directory);
   }
 }
 
@@ -78,9 +117,14 @@ export function sessionDiscoveryClients(sources = adapters) {
     supported: !!discoverSessions,
   }));
 }
+class CapacityReached extends Error {}
 
-/** A transient read-only catalog; discovered IDs are never registered write capabilities. */
-export async function discoverProjects(clients: ClientId[], sources: ClientAdapter[] = adapters) {
+/** Transient observations only: these IDs never authorize project/memory writes. */
+export async function discoverProjects(
+  clients: ClientId[],
+  sources: ClientAdapter[] = adapters,
+  control: DiscoveryControl = {},
+): Promise<DiscoveryReport> {
   if (
     !clients.length ||
     clients.length > sources.length ||
@@ -88,107 +132,33 @@ export async function discoverProjects(clients: ClientId[], sources: ClientAdapt
     clients.some((id) => !sources.some((source) => source.id === id))
   )
     throw new HubError('Choose known clients once each.');
-  const reports: {
-    client: ClientId;
-    label: string;
-    coverage: SessionScan['coverage'] | 'unsupported';
-    filesRead: number;
-    bytesRead: number;
-    issues: string[];
-  }[] = [];
+  const reports: DiscoveryReport['sources'] = [];
+  const issues = new Set<string>();
   const projects = new Map<
     string,
-    {
-      id: string;
-      label: string;
-      kind: Location['kind'];
+    Omit<DiscoveredProject, 'locations' | 'chats' | 'clients'> & {
       locations: Set<string>;
       chats: Set<string>;
       clients: Set<ClientId>;
     }
   >();
   const locations = new Map<string, Location>();
-  const started = Date.now();
+  let observations = 0;
   let limited = false;
-  for (const client of clients) {
-    const source = sources.find((source) => source.id === client)!;
-    if (!source.discoverSessions) {
-      reports.push({
-        client,
-        label: source.label,
-        coverage: 'unsupported',
-        filesRead: 0,
-        bytesRead: 0,
-        issues: ['Project discovery is not supported for this client yet.'],
-      });
-      continue;
-    }
-    let scan: SessionScan;
-    try {
-      scan = await source.discoverSessions();
-    } catch {
-      reports.push({
-        client,
-        label: source.label,
-        coverage: 'unavailable',
-        filesRead: 0,
-        bytesRead: 0,
-        issues: ['Session metadata could not be read.'],
-      });
-      continue;
-    }
-    reports.push({
-      client,
-      label: source.label,
-      coverage: scan.coverage,
-      filesRead: scan.filesRead,
-      bytesRead: scan.bytesRead,
-      issues: scan.issues,
-    });
-    for (const session of scan.sessions) {
-      for (const cwd of session.locations) {
-        if (!isAbsoluteLocalPath(cwd)) continue;
-        let location = locations.get(cwd);
-        if (!location) {
-          if (locations.size >= 32 || Date.now() - started > 5000) {
-            limited = true;
-            location = {
-              key: `folder:${cwd}`,
-              label: path.basename(cwd) || cwd,
-              kind: 'unverified',
-              directory: cwd,
-            };
-          } else location = await locate(cwd);
-          locations.set(cwd, location);
-        }
-        let project = projects.get(location.key);
-        if (!project) {
-          project = {
-            id: `discovered:${hash(location.key).slice(0, 24)}`,
-            label: location.label,
-            kind: location.kind,
-            locations: new Set(),
-            chats: new Set(),
-            clients: new Set(),
-          };
-          projects.set(location.key, project);
-        }
-        project.locations.add(location.directory);
-        project.chats.add(`${client}:${scan.source}:${session.id}`);
-        project.clients.add(client);
-      }
-    }
-  }
-  return {
-    metadataOnly: true as const,
+  let finished = false;
+  const view = (): DiscoveryReport => ({
+    metadataOnly: true,
     coverage:
-      !limited && reports.every((report) => report.coverage === 'complete')
-        ? ('complete' as const)
-        : ('partial' as const),
-    sources: reports,
-    issues: limited
-      ? ['Some project locations were not verified because the discovery limit was reached.']
-      : [],
+      finished &&
+      !limited &&
+      !issues.size &&
+      reports.every((report) => report.coverage === 'complete' && report.finished !== false)
+        ? 'complete'
+        : 'partial',
+    finished: finished && !limited && reports.every((report) => report.finished !== false),
+    checkedAt: new Date().toISOString(),
+    sources: reports.map((report) => ({ ...report, issues: [...report.issues] })),
+    issues: [...issues],
     projects: [...projects.values()]
       .map((project) => ({
         ...project,
@@ -197,5 +167,120 @@ export async function discoverProjects(clients: ClientId[], sources: ClientAdapt
         clients: [...project.clients].sort(),
       }))
       .sort((a, b) => a.label.localeCompare(b.label) || a.id.localeCompare(b.id)),
+  });
+  const progress = () => {
+    control.signal?.throwIfAborted();
+    control.onProgress?.(view());
   };
+  for (const client of clients) {
+    control.signal?.throwIfAborted();
+    const source = sources.find((source) => source.id === client)!;
+    const index = reports.length;
+    reports.push({
+      client,
+      label: source.label,
+      coverage: source.discoverSessions ? 'partial' : 'unsupported',
+      filesRead: 0,
+      bytesRead: 0,
+      finished: false,
+      issues: source.discoverSessions
+        ? []
+        : ['Project discovery is not supported for this client yet.'],
+    });
+    if (!source.discoverSessions) {
+      reports[index]!.finished = true;
+      progress();
+      continue;
+    }
+    const receipt = (scan: SessionScan): DiscoveryReport['sources'][number] => ({
+      client,
+      label: source.label,
+      coverage: scan.coverage,
+      filesRead: scan.filesRead,
+      bytesRead: scan.bytesRead,
+      issues: [...scan.issues],
+      entriesRead: scan.entriesRead,
+      unresolvedFiles: scan.unresolvedFiles,
+      skippedFiles: scan.skippedFiles,
+      finished: scan.finished,
+      directory: scan.directory,
+      phase: scan.phase,
+      totalFiles: scan.totalFiles,
+    });
+    let emitted = false;
+    const consume = async (scan: SessionScan) => {
+      control.signal?.throwIfAborted();
+      reports[index] = receipt(scan);
+      for (const session of scan.sessions) {
+        if (!/^[a-zA-Z0-9_-]{1,128}$/.test(session.id)) continue;
+        for (const cwd of session.locations) {
+          control.signal?.throwIfAborted();
+          if (!isAbsoluteLocalPath(cwd)) continue;
+          if (++observations > 100_000) throw new CapacityReached();
+          let location = locations.get(cwd);
+          if (!location) {
+            if (locations.size >= 5000) throw new CapacityReached();
+            location = await verifiedProjectLocation(cwd, control.signal);
+            locations.set(cwd, location);
+            if (location.kind === 'unverified')
+              issues.add(
+                'Some folders could not be verified. Check Git availability and folder access, then scan again.',
+              );
+          }
+          let project = projects.get(location.key);
+          if (!project) {
+            if (projects.size >= 2000) throw new CapacityReached();
+            project = {
+              id: `discovered:${hash(location.key).slice(0, 24)}`,
+              label: location.label,
+              kind: location.kind,
+              locations: new Set(),
+              chats: new Set(),
+              clients: new Set(),
+            };
+            projects.set(location.key, project);
+          }
+          if (!project.locations.has(location.directory) && project.locations.size >= 128)
+            throw new CapacityReached();
+          project.locations.add(location.directory);
+          project.chats.add(`${client}:${scan.source}:${session.id}`);
+          project.clients.add(client);
+          if (observations % 16 === 0) progress();
+        }
+      }
+      progress();
+    };
+    progress();
+    try {
+      const result = await source.discoverSessions({
+        signal: control.signal,
+        onBatch: async (batch) => {
+          emitted = true;
+          await consume(batch);
+        },
+      });
+      if (!emitted || result.sessions.length) await consume(result);
+      else reports[index] = receipt(result);
+    } catch (error) {
+      control.signal?.throwIfAborted();
+      if (error instanceof CapacityReached) {
+        limited = true;
+        issues.add(
+          'The metadata view reached its supported capacity. Results are partial; remaining observations were not discarded as deletions.',
+        );
+        break;
+      }
+      reports[index] = {
+        ...reports[index]!,
+        coverage: 'unavailable',
+        finished: true,
+        issues: ['Session metadata could not be read. Check source access and scan again.'],
+      };
+    }
+    progress();
+  }
+  finished = true;
+  const result = view();
+  control.onProgress?.(result);
+  return result;
 }

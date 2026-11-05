@@ -11,7 +11,7 @@ export const claudeAdapter: ClientAdapter = {
   id: 'claude-code',
   label: 'Claude Code',
 
-  discoverSessions: () => claudeSessions(clientPaths.claudeHome()),
+  discoverSessions: (control) => claudeSessions(clientPaths.claudeHome(), undefined, control),
 
   async detect(): Promise<DetectResult> {
     const paths = {

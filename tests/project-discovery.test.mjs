@@ -8,6 +8,7 @@ import { claudeSessions } from '../dist/adapters/claude-sessions.js';
 import { discoverProjects } from '../dist/core/project-discovery.js';
 import { startUiServer } from '../dist/ui/server.js';
 import { projectDiscoveryView } from '../ui/app/projects.js';
+import { createDiscoveryJobs } from '../dist/ui/project-discovery.js';
 
 async function fixture(t) {
   const root = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'agent-hub-discovery-')));
@@ -36,7 +37,7 @@ async function fixture(t) {
   const adapter = {
     id: 'claude-code',
     label: 'Claude Code',
-    discoverSessions: () => claudeSessions(home),
+    discoverSessions: (control) => claudeSessions(home, undefined, control),
   };
   return { root, home, session, adapter };
 }
@@ -86,7 +87,10 @@ test('discovers non-Git projects from metadata without registration, body exposu
     [{ label: 'plain project', chats: 1, kind: 'folder' }],
   );
   assert.ok(!JSON.stringify(first).includes('private-transcript-body'));
-  assert.deepEqual(await discoverProjects(['claude-code'], [f.adapter]), first);
+  const repeated = await discoverProjects(['claude-code'], [f.adapter]);
+  assert.deepEqual(repeated.projects, first.projects);
+  assert.deepEqual(repeated.sources, first.sources);
+  assert.ok(repeated.checkedAt);
   assert.deepEqual(await snapshot(f.root), before);
 });
 
@@ -174,7 +178,7 @@ test('bounded prefix, file and directory limits report partial coverage without 
   const invalid = await claudeSessions(f.home);
   assert.equal(invalid.coverage, 'partial');
   assert.ok(!JSON.stringify(invalid).includes('private-malformed-transcript'));
-  assert.ok(invalid.bytesRead < 70000);
+  assert.ok(invalid.bytesRead < 1024 * 1024);
 });
 
 test('skips sidechains, symlinked collections/files and unsafe project paths', async (t) => {
@@ -247,7 +251,7 @@ test('project probing ignores inherited Git binding and never executes a configu
   await assert.rejects(fs.access(marker));
 });
 
-test('location verification is bounded while unverified metadata remains visible', async (t) => {
+test('more than 32 working locations can finish without a verification-starvation cutoff', async (t) => {
   const f = await fixture(t);
   await f.session(
     'many',
@@ -255,8 +259,8 @@ test('location verification is bounded while unverified metadata remains visible
   );
   const result = await discoverProjects(['claude-code'], [f.adapter]);
   assert.equal(result.projects.length, 40);
-  assert.equal(result.coverage, 'partial');
-  assert.ok(result.projects.some((project) => project.kind === 'unverified'));
+  assert.equal(result.coverage, 'complete');
+  assert.ok(result.projects.every((project) => project.kind === 'missing'));
 });
 
 test('local HTTP flow requires selection/token, rejects supplied paths and never authorizes discovered IDs', async (t) => {
@@ -414,4 +418,511 @@ test('UI output escapes source metadata and explains unsupported/partial discove
   assert.match(output, /not supported yet/);
   assert.match(output, /not a chat backup/);
   assert.match(output, /Folder unavailable/);
+});
+
+const limits = { entries: 1000, files: 1000, bytes: 1024 * 1024, prefix: 1024 * 1024 };
+const tick = () => new Promise((resolve) => setImmediate(resolve));
+const minimalReport = (projects = [], coverage = 'complete') => ({
+  metadataOnly: true,
+  coverage,
+  finished: true,
+  checkedAt: new Date().toISOString(),
+  sources: [],
+  issues: [],
+  projects,
+});
+
+function isolateEnvironment(t, values) {
+  const saved = Object.fromEntries(Object.keys(values).map((key) => [key, process.env[key]]));
+  Object.assign(process.env, values);
+  t.after(() => {
+    for (const [key, value] of Object.entries(saved)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  });
+}
+
+async function clientUi(t, f, services = {}) {
+  isolateEnvironment(t, {
+    AGENT_HUB_HOME: path.join(f.root, 'hub'),
+    CLAUDE_CONFIG_DIR: f.home,
+    AGENT_HUB_CLAUDE_CONFIG: path.join(f.root, 'claude.json'),
+    CODEX_HOME: path.join(f.root, 'codex'),
+    DSH_HOME: path.join(f.root, 'absent-dsh'),
+    DSH_AGENTS_HOME: path.join(f.root, 'absent-agents'),
+    AGENT_HUB_SHARED_SKILLS: path.join(f.root, 'absent-skills'),
+  });
+  await fs.writeFile(process.env.AGENT_HUB_CLAUDE_CONFIG, '{}');
+  const ui = await startUiServer({ port: 0, cwd: f.root, services });
+  t.after(() => ui.close());
+  const state = await (await fetch(`${ui.url}/api/state`)).json();
+  const post = (route, body, token = state.token) =>
+    fetch(`${ui.url}${route}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Agent-Hub-Token': token },
+      body: JSON.stringify(body),
+    });
+  return { ui, state, post };
+}
+
+async function completed(post, id) {
+  for (let attempt = 0; attempt < 200; attempt++) {
+    const response = await post('/api/projects/discovery/status', { id });
+    assert.equal(response.status, 200);
+    const report = await response.json();
+    if (report.state !== 'running') return report;
+    await tick();
+  }
+  throw new Error('Fixture scan did not complete');
+}
+
+test('exact file, entry and byte thresholds are complete, while genuinely remaining work is partial', async (t) => {
+  const f = await fixture(t);
+  const file = await f.session('one', [f.root]);
+  const bytes = (await fs.stat(file)).size;
+  const exact = await claudeSessions(f.home, { ...limits, entries: 2, files: 1, bytes });
+  assert.equal(exact.coverage, 'complete');
+  assert.equal(exact.finished, true);
+  assert.equal(exact.filesRead, 1);
+  assert.equal(exact.entriesRead, 2);
+  assert.equal(exact.bytesRead, bytes);
+  await f.session('two', [f.root]);
+  const partial = await claudeSessions(f.home, { ...limits, files: 1 });
+  assert.equal(partial.coverage, 'partial');
+  assert.equal(partial.finished, false);
+  assert.equal(partial.filesRead, 1);
+});
+
+test('one run continues beyond four MiB in bounded batches and reaches late collections fairly', async (t) => {
+  const f = await fixture(t);
+  for (let index = 0; index < 80; index++) {
+    const file = await f.session(`large-${index}`, [f.root], 'early-large');
+    await fs.appendFile(
+      file,
+      JSON.stringify({
+        type: 'assistant',
+        message: { content: 'private-large-body'.repeat(5000) },
+      }) + '\n',
+    );
+  }
+  await f.session('late', [f.root], 'late-small');
+  const batches = [];
+  const report = await claudeSessions(f.home, undefined, {
+    onBatch: async (batch) => {
+      if (batch.sessions.length) batches.push(batch.sessions.map((session) => session.id));
+    },
+  });
+  assert.equal(report.coverage, 'complete');
+  assert.equal(report.filesRead, 81);
+  assert.equal(report.totalFiles, 81);
+  assert.ok(report.bytesRead > 4 * 1024 * 1024);
+  assert.ok(batches.every((batch) => batch.length <= 32));
+  assert.ok(batches[0].includes('late'));
+  assert.equal(new Set(batches.flat()).size, 81);
+  assert.deepEqual(report.sessions, []);
+});
+
+test('valid large UTF-8 first records yield metadata without interpreting nested message fields', async (t) => {
+  const f = await fixture(t);
+  const file = await f.session('large', [f.root]);
+  await fs.writeFile(
+    file,
+    JSON.stringify({
+      type: 'user',
+      sessionId: 'large',
+      cwd: f.root,
+      message: { content: '😀'.repeat(30000), cwd: '/decoy-path' },
+    }) + '\n',
+  );
+  const result = await claudeSessions(f.home);
+  assert.equal(result.coverage, 'complete');
+  assert.ok(result.bytesRead > 64 * 1024);
+  assert.deepEqual(result.sessions, [{ id: 'large', locations: [f.root] }]);
+  assert.ok(!JSON.stringify(result).includes('😀'));
+  await fs.writeFile(
+    file,
+    JSON.stringify({
+      type: 'user',
+      sessionId: 'large',
+      message: { cwd: '/decoy-path', content: '"cwd":"/fake"' },
+    }) + '\n',
+  );
+  const nested = await claudeSessions(f.home);
+  assert.deepEqual(nested.sessions, []);
+  assert.equal(nested.unresolvedFiles, 1);
+});
+
+test('a corrupt repository or missing Git never becomes a successful ordinary-folder observation', async (t) => {
+  const f = await fixture(t);
+  const repo = path.join(f.root, 'broken');
+  await fs.mkdir(repo);
+  git(repo, 'init', '-q', '-b', 'master');
+  await fs.writeFile(path.join(repo, '.git', 'config'), '[broken\n');
+  await f.session('chat', [repo]);
+  const broken = await discoverProjects(['claude-code'], [f.adapter]);
+  assert.equal(broken.projects[0].kind, 'unverified');
+  assert.equal(broken.coverage, 'partial');
+  assert.ok(broken.issues.length);
+  const savedPath = process.env.PATH;
+  let absent;
+  try {
+    process.env.PATH = path.join(f.root, 'absent-bin');
+    absent = await discoverProjects(['claude-code'], [f.adapter]);
+  } finally {
+    process.env.PATH = savedPath;
+  }
+  assert.equal(absent.projects[0].kind, 'unverified');
+  assert.equal(absent.coverage, 'partial');
+});
+
+test('Git paths with significant trailing spaces remain verified', async (t) => {
+  const f = await fixture(t);
+  const repo = path.join(f.root, 'project');
+  const gitDirectory = path.join(f.root, 'metadata ');
+  await fs.mkdir(repo);
+  git(repo, 'init', '-q', '-b', 'master', '--separate-git-dir', gitDirectory);
+  await f.session('chat', [repo]);
+  const result = await discoverProjects(['claude-code'], [f.adapter]);
+  assert.equal(result.projects[0].kind, 'repository');
+  assert.equal(result.coverage, 'complete');
+});
+
+test('malformed unselected client settings cannot block discovery bootstrap or selected-source scans', async (t) => {
+  const f = await fixture(t);
+  await f.session('chat', [f.root]);
+  const codex = path.join(f.root, 'codex');
+  await fs.mkdir(codex);
+  await fs.writeFile(path.join(codex, 'config.toml'), '[invalid TOML');
+  const { state, post } = await clientUi(t, f);
+  assert.equal(state.stateUnavailable, true);
+  assert.ok(state.token);
+  assert.ok(
+    state.discoveryClients.some((client) => client.id === 'claude-code' && client.supported),
+  );
+  const start = await post('/api/projects/discovery/start', { clients: ['claude-code'] });
+  assert.equal(start.status, 202);
+  const report = await completed(post, (await start.json()).id);
+  assert.equal(report.state, 'complete');
+  assert.equal(report.projects[0].chats, 1);
+  assert.equal(report.coverage, 'complete');
+});
+
+test('result pages bound rows and bytes while search and continuation cover all known groups', async (t) => {
+  const f = await fixture(t);
+  const scan = {
+    source: 'fixture',
+    coverage: 'complete',
+    finished: true,
+    filesRead: 1,
+    bytesRead: 1,
+    issues: [],
+    sessions: [
+      {
+        id: 'many',
+        locations: Array.from({ length: 500 }, (_, index) => path.join(f.root, `folder-${index}`)),
+      },
+    ],
+  };
+  const jobs = createDiscoveryJobs((clients, control) =>
+    discoverProjects(clients, [{ ...f.adapter, discoverSessions: async () => scan }], control),
+  );
+  t.after(() => jobs.close());
+  const id = jobs.start(['claude-code']);
+  await jobs.wait(id);
+  const all = new Set();
+  let offset = 0;
+  do {
+    const page = jobs.status(id, offset);
+    assert.ok(page.projects.length <= 100);
+    assert.ok(Buffer.byteLength(JSON.stringify(page)) < 140 * 1024);
+    for (const project of page.projects) all.add(project.id);
+    if (page.nextOffset === null) break;
+    offset = page.nextOffset;
+  } while (offset > 0);
+  assert.equal(all.size, 500);
+  const filtered = jobs.status(id, 0, 'folder-499');
+  assert.equal(filtered.matches, 1);
+  assert.equal(filtered.projects[0].label, 'folder-499');
+});
+
+test('excessive observations are explicitly limited instead of producing an unbounded successful response', async (t) => {
+  const f = await fixture(t);
+  const adapter = {
+    ...f.adapter,
+    discoverSessions: async () => ({
+      source: 'fixture',
+      coverage: 'complete',
+      finished: true,
+      filesRead: 1,
+      bytesRead: 1,
+      issues: [],
+      sessions: [
+        {
+          id: 'many',
+          locations: Array.from({ length: 2100 }, (_, index) =>
+            path.join(f.root, `folder-${index}`),
+          ),
+        },
+      ],
+    }),
+  };
+  const result = await discoverProjects(['claude-code'], [adapter]);
+  assert.equal(result.projects.length, 2000);
+  assert.equal(result.coverage, 'partial');
+  assert.equal(result.finished, false);
+  assert.match(result.issues.join(' '), /capacity/);
+});
+
+test('oversized per-session location metadata is unresolved and never silently counted as complete', async (t) => {
+  const f = await fixture(t);
+  await f.session(
+    'many',
+    Array.from({ length: 500 }, (_, index) => path.join(f.root, `folder-${index}`)),
+  );
+  const scan = await claudeSessions(f.home);
+  assert.equal(scan.coverage, 'partial');
+  assert.equal(scan.unresolvedFiles, 1);
+  assert.equal(scan.sessions.length, 0);
+});
+
+test('stopping a job settles immediately, ignores late results and permits a new scan', async (t) => {
+  let enter;
+  const entered = new Promise((resolve) => {
+    enter = resolve;
+  });
+  let release;
+  const gate = new Promise((resolve) => {
+    release = resolve;
+  });
+  let calls = 0;
+  const jobs = createDiscoveryJobs(async () => {
+    if (++calls === 1) {
+      enter();
+      await gate;
+    }
+    return minimalReport();
+  });
+  t.after(() => {
+    release();
+    jobs.close();
+  });
+  const first = jobs.start(['claude-code']);
+  assert.equal(jobs.start(['claude-code']), first);
+  await entered;
+  jobs.stop(first);
+  assert.equal((await jobs.wait(first)).state, 'cancelled');
+  const second = jobs.start(['claude-code']);
+  assert.notEqual(first, second);
+  assert.equal((await jobs.wait(second)).state, 'complete');
+  release();
+  await tick();
+  assert.equal(jobs.status(first).state, 'cancelled');
+});
+
+test('previous observations survive failed/partial scans but a complete empty scan confirms absence', async (t) => {
+  const project = {
+    id: 'discovered:' + 'a'.repeat(24),
+    label: 'original',
+    kind: 'folder',
+    locations: ['/fixture/original'],
+    chats: 1,
+    clients: ['claude-code'],
+  };
+  let mode = 'success';
+  const jobs = createDiscoveryJobs(async () => {
+    if (mode === 'fail') throw new Error('private-error');
+    return minimalReport(
+      mode === 'success' ? [project] : [],
+      mode === 'partial' ? 'partial' : 'complete',
+    );
+  });
+  t.after(() => jobs.close());
+  const first = jobs.start(['claude-code']);
+  await jobs.wait(first);
+  mode = 'fail';
+  const failed = jobs.start(['claude-code']);
+  await jobs.wait(failed);
+  assert.equal(jobs.status(failed).projects[0].previous, true);
+  assert.ok(!JSON.stringify(jobs.status(failed)).includes('private-error'));
+  mode = 'partial';
+  const partial = jobs.start(['claude-code']);
+  await jobs.wait(partial);
+  assert.equal(jobs.status(partial).projects[0].previous, true);
+  mode = 'empty';
+  const empty = jobs.start(['claude-code']);
+  await jobs.wait(empty);
+  assert.equal(jobs.status(empty).total, 0);
+});
+
+test('revealing folders requires a retained source reference and rechecks current filesystem bindings', async (t) => {
+  const f = await fixture(t);
+  const directory = path.join(f.root, 'plain');
+  await fs.mkdir(directory);
+  await f.session('chat', [directory]);
+  const revealed = [];
+  const { post } = await clientUi(t, f, {
+    state: async () => ({}),
+    revealDirectory: async (folder) => {
+      revealed.push(folder);
+    },
+  });
+  const started = await (
+    await post('/api/projects/discovery/start', { clients: ['claude-code'] })
+  ).json();
+  const report = await completed(post, started.id);
+  const payload = { id: report.id, projectId: report.projects[0].id };
+  assert.equal(
+    (await post('/api/projects/discovery/reveal', { ...payload, path: directory })).status,
+    400,
+  );
+  assert.equal((await post('/api/projects/discovery/reveal', payload, '')).status, 403);
+  assert.equal(
+    (
+      await post('/api/projects/discovery/reveal', {
+        ...payload,
+        projectId: 'discovered:' + '0'.repeat(24),
+      })
+    ).status,
+    409,
+  );
+  assert.equal((await post('/api/projects/discovery/reveal', payload)).status, 200);
+  assert.deepEqual(revealed, [directory]);
+  await fs.rename(directory, directory + '-moved');
+  await fs.symlink(f.root, directory);
+  assert.equal((await post('/api/projects/discovery/reveal', payload)).status, 409);
+  assert.deepEqual(revealed, [directory]);
+});
+
+test('status/cancel requests require operator token and reject path, page and scan injection', async (t) => {
+  const f = await fixture(t);
+  const { post } = await clientUi(t, f, { state: async () => ({}) });
+  assert.deepEqual(await (await post('/api/projects/discovery/status', {})).json(), { job: null });
+  for (const route of ['status', 'cancel'])
+    assert.equal((await post('/api/projects/discovery/' + route, {}, '')).status, 403);
+  for (const payload of [
+    { id: '../file' },
+    { path: f.home },
+    { offset: -1 },
+    { offset: 1.2 },
+    { offset: 9000 },
+    { query: 'x'.repeat(257) },
+  ])
+    assert.equal((await post('/api/projects/discovery/status', payload)).status, 400);
+});
+
+test('source cancellation closes its iterators and the next independent scan can finish', async (t) => {
+  const f = await fixture(t);
+  for (let index = 0; index < 65; index++) await f.session(`chat-${index}`, [f.root]);
+  const controller = new AbortController();
+  await assert.rejects(
+    claudeSessions(f.home, undefined, {
+      signal: controller.signal,
+      onBatch: async (batch) => {
+        if (batch.sessions.length) controller.abort();
+      },
+    }),
+    { name: 'AbortError' },
+  );
+  const next = await claudeSessions(f.home);
+  assert.equal(next.coverage, 'complete');
+  assert.equal(next.filesRead, 65);
+});
+
+test('collection changes during scanning remain partial until a fresh scan observes the new inventory', async (t) => {
+  const f = await fixture(t);
+  for (let index = 0; index < 35; index++) await f.session(`chat-${index}`, [f.root]);
+  let changed = false;
+  const result = await claudeSessions(f.home, undefined, {
+    onBatch: async (batch) => {
+      if (!changed && batch.sessions.length) {
+        changed = true;
+        await f.session('added-during-scan', [f.root]);
+      }
+    },
+  });
+  assert.equal(result.coverage, 'partial');
+  assert.match(result.issues.join(' '), /changed/);
+  const next = await claudeSessions(f.home);
+  assert.equal(next.filesRead, 36);
+  assert.equal(next.coverage, 'complete');
+});
+
+test('aborting the legacy HTTP read releases public busy state without accepting late results', async (t) => {
+  const f = await fixture(t);
+  let enter;
+  const entered = new Promise((resolve) => {
+    enter = resolve;
+  });
+  let release;
+  const gate = new Promise((resolve) => {
+    release = resolve;
+  });
+  let calls = 0;
+  const { post, ui, state } = await clientUi(t, f, {
+    state: async () => ({}),
+    discoverProjects: async () => {
+      if (++calls === 1) {
+        enter();
+        await gate;
+      }
+      return minimalReport();
+    },
+  });
+  t.after(() => release());
+  const controller = new AbortController();
+  const pending = fetch(ui.url + '/api/projects/discover', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Agent-Hub-Token': state.token },
+    body: JSON.stringify({ clients: ['claude-code'] }),
+    signal: controller.signal,
+  }).catch(() => null);
+  await entered;
+  controller.abort();
+  await pending;
+  let cancelled;
+  for (let attempt = 0; attempt < 100; attempt++) {
+    cancelled = await (await post('/api/projects/discovery/status', {})).json();
+    if (cancelled.state === 'cancelled') break;
+    await tick();
+  }
+  assert.equal(cancelled.state, 'cancelled');
+  assert.equal((await post('/api/projects/discover', { clients: ['claude-code'] })).status, 200);
+  release();
+  await tick();
+});
+
+test('UI separates working folders, labels stale observations and keeps details open', () => {
+  const report = {
+    ...minimalReport(
+      [
+        {
+          id: 'discovered:' + 'b'.repeat(24),
+          label: 'same-name',
+          kind: 'folder',
+          locations: ['/fixture/one/same-name'],
+          chats: 1,
+          clients: ['claude-code'],
+          previous: true,
+        },
+      ],
+      'partial',
+    ),
+    state: 'failed',
+    total: 1,
+    error: 'Reader unavailable',
+  };
+  const html = projectDiscoveryView({
+    clients: [{ id: 'claude-code', label: 'Claude', supported: true }],
+    selected: ['claude-code'],
+    report,
+    opened: ['coverage'],
+    error: 'Request failed',
+  });
+  assert.match(html, /Other working folders/);
+  assert.match(html, /Previous result/);
+  assert.match(html, /\/fixture\/one\/same-name/);
+  assert.match(html, /data-discovery-detail="coverage" open/);
+  assert.ok(!html.includes('class="banner ok"'));
+  assert.match(html, /Reveal folder/);
 });

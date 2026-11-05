@@ -33,6 +33,7 @@ for (const required of [
   'ui/app/memory.js',
   'ui/app/projects.js',
   'dist/core/project-discovery.js',
+  'dist/ui/project-discovery.js',
   'dist/adapters/claude-sessions.js',
   'ui/app/base.css',
   'docs/CONTENT.md',
