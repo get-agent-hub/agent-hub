@@ -152,3 +152,5 @@ The landing should explain the outcome, three steps, one example and recovery. D
 First deliver source metadata and automatic projects together with one clear setup/sync experience. Then make all-area reconciliation and recovery real, add the optional worker, and incrementally preserve/search chats. Native cross-client continuation is a later, separately verified adapter capability. Until then, offer reading the archive, opening the original chat, or creating a new conversation with selected context.
 
 The [delivery plan](DELIVERY.md) specifies concrete slices and failure cases. Preserve existing useful services; remove duplicate user journeys first, then consolidate internal code where two real callers share behavior. A smaller menu alone is not completion.
+
+The follow-up [coverage review](DELIVERY.md#additional-boundaries-found-in-the-follow-up-review) adds access isolation, multi-client races, archive assets/edits, storage failures, portability and disconnect. These remain required design/test outcomes, not claims of completed verification.
