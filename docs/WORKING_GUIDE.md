@@ -12,6 +12,12 @@ The numbered route below deliberately exercises individual commands and explicit
 
 ## 0. Set up the working terminal
 
+### Optional read-only project discovery (current source)
+
+Start `ahub ui` from any folder, open **Projects**, select Claude Code and choose **Find projects**. Check a known Git project, an ordinary folder and source coverage. Repeat: counts should be stable. Opening the page alone must not scan chat files. A missing directory stays listed as unavailable; it does not connect memory or change the header's registered project selection. Source histories and settings remain unchanged. No chat bodies, archive, search or native continuation are provided by this slice. Record this as a manual trial separately from the automated fixtures in `tests/project-discovery.test.mjs`.
+
+### Prepare the trial environment
+
 Install the CLI using [Quick start](QUICKSTART.md) first. Use the installed `ahub` executable throughout the working trial; no shell wrapper or source-directory cwd is needed. Capture its resolved runtime path only for the explicit Memory MCP launch definition below.
 
     command -v ahub

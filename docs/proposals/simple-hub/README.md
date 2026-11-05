@@ -2,13 +2,14 @@
 
 Research and design proposal · 2026-11-05 · reviewed core: `06c4960`.
 
-**Status: proposed, not implemented.** This consolidates the earlier simplification and relationship reviews. The released beta still has MCP-only `sync`, setup-run recovery and no shared chat archive. This proposal does not change that contract.
+**Status: design target with a first implementation slice.** This consolidates the earlier simplification and relationship reviews. The working source now has explicit read-only project discovery from local Claude chat metadata in the UI. The released beta still has MCP-only `sync`, setup-run recovery and no shared chat archive. This proposal does not change that release contract.
 
 Agent Hub should find your clients, collect the content you choose, and keep it available across those clients. Projects should appear from existing chat and client metadata. Users should not have to build a catalog before receiving useful results.
 
 - [Relationships: what can be discovered and what needs a choice](RELATIONSHIPS.md)
 - [Evidence: client contracts, limitations and implementation costs](EVIDENCE.md)
 - [Delivery plan and acceptance cases](DELIVERY.md)
+- [Decided policies for access, conflicts, archives and recovery](POLICIES.md)
 
 ## One ordinary workflow
 

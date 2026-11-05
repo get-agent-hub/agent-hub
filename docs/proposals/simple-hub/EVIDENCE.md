@@ -77,3 +77,7 @@ The [session abstraction](https://github.com/deepseek-ai/deepseek-harness/blob/f
 - [SQLite FTS5](https://sqlite.org/fts5.html) offers a possible derived keyword index; it does not supply semantic search or Russian morphology automatically. [`node:sqlite` at Node 22.13](https://nodejs.org/download/release/v22.13.0/docs/api/sqlite.html) was experimental. Select an index implementation after compatibility/performance checks, not by assuming the minimum runtime provides a stable API.
 
 No import throughput, memory ceiling or user completion time was measured in this research. The delivery plan requires benchmarks with fixtures and actual usability checks before making performance or simplicity claims.
+
+## First implementation after the reviewed beta
+
+The working source now provides explicit local Claude metadata discovery through the Projects UI and a capability on the existing adapter boundary. The new `tests/project-discovery.test.mjs` exercises the reader, grouping and local HTTP flow with temporary sources. It does not establish complete archives, native continuation, durable identities, other clients or Windows compatibility. See [the delivery status](DELIVERY.md#first-working-increment-local-claude-project-discovery) and [decided policies](POLICIES.md). The published beta/source tag remains unchanged.

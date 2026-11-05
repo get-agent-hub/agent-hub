@@ -2,6 +2,7 @@ import { escape, link, pill, mark, empty, intro } from './html.js';
 import { setupContentUi } from './content.js';
 import { setupMemoryUi } from './memory.js';
 import { setupQuickUi } from './quick.js';
+import { setupProjectDiscoveryUi } from './projects.js';
 import {
   doctorResultText,
   serviceDetails,
@@ -17,6 +18,7 @@ const pages = {
   mcp: 'MCP servers',
   instructions: 'Instructions',
   memory: 'Memory',
+  projects: 'Projects',
   repos: 'Repos & tasks',
   sessions: 'Sessions',
 };
@@ -38,6 +40,7 @@ const icons = {
   repos: icon(
     '<path d="M6 3v12M18 9a9 9 0 0 1-9 9"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="6" r="3"/>',
   ),
+  projects: icon('<path d="M3 6h7l2 2h9v12H3z"/>'),
   sessions: icon('<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12Z"/>'),
 };
 
@@ -281,7 +284,7 @@ function sessionsPage() {
       'Search past conversations and carry decisions into the next agent.',
       pill('Planned'),
     ) +
-    `<div class="card roadmap">${empty('Keep the thread, across agents', 'Session indexing comes after shared project context. No conversations have been indexed by Agent Hub yet.')}<ul class="list timeline"><li><span class="num">1</span><div class="copy"><b>Shared configurations</b><div class="sub">Skills and MCP, with import and drift detection.</div></div>${pill('Available', 'ok')}</li><li><span class="num">2</span><div class="copy"><b>Project context & handoff</b><div class="sub">AGENTS.md, PROJECT.md and NOW.md travel with your code.</div></div>${pill('Available', 'ok')}</li><li><span class="num">3</span><div class="copy"><b>Conversation search</b><div class="sub">An index over Claude, Codex and DSH sessions, without copying their histories.</div></div>${pill('Later')}</li></ul></div>`
+    `<div class="card roadmap">${empty('Keep the thread, across agents', 'Open Projects to find working folders from local Claude chat metadata. Conversation archiving and search are not available yet.')}<ul class="list timeline"><li><span class="num">1</span><div class="copy"><b>Shared configurations</b><div class="sub">Skills and MCP, with import and drift detection.</div></div>${pill('Available', 'ok')}</li><li><span class="num">2</span><div class="copy"><b>Project context & handoff</b><div class="sub">AGENTS.md, PROJECT.md and NOW.md travel with your code.</div></div>${pill('Available', 'ok')}</li><li><span class="num">3</span><div class="copy"><b>Conversation search</b><div class="sub">A shared archive with declared source coverage; reading and search are not available yet.</div></div>${pill('Later')}</li></ul></div>`
   );
 }
 
@@ -316,14 +319,18 @@ function render() {
     mcp: mcpPage,
     instructions: instructionsPage,
     memory: memoryPage,
+    projects: () => projectDiscovery.view(query),
     repos: reposPage,
     sessions: sessionsPage,
   };
   $('#content').innerHTML =
-    query && !['skills', 'mcp', 'memory'].includes(page) ? searchResults() : views[page](params);
+    query && !['skills', 'mcp', 'memory', 'projects'].includes(page)
+      ? searchResults()
+      : views[page](params);
 }
 
 setupQuickUi({ api, load, notice, getState: () => state });
+const projectDiscovery = setupProjectDiscoveryUi({ api, getState: () => state, render, notice });
 
 async function load() {
   $('#refresh').disabled = true;

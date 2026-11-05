@@ -15,6 +15,8 @@ import { createMemorySession, type MemorySession } from '../core/memory-session.
 import { registeredWorkspace, projectCatalog } from '../core/project-catalog.js';
 import { hubRoot } from '../core/paths.js';
 import { planQuick, applyQuick, planProjectConnect, applyProjectConnect } from '../core/quick.js';
+import { discoverProjects, sessionDiscoveryClients } from '../core/project-discovery.js';
+import { CLIENT_IDS } from '../core/types.js';
 
 const assets = new URL('../../ui/app/', import.meta.url);
 const staticFiles: Record<string, [string, string]> = {
@@ -25,6 +27,7 @@ const staticFiles: Record<string, [string, string]> = {
   '/content.js': ['content.js', 'text/javascript; charset=utf-8'],
   '/quick.js': ['quick.js', 'text/javascript; charset=utf-8'],
   '/memory.js': ['memory.js', 'text/javascript; charset=utf-8'],
+  '/projects.js': ['projects.js', 'text/javascript; charset=utf-8'],
   '/app.css': ['app.css', 'text/css; charset=utf-8'],
   '/base.css': ['base.css', 'text/css; charset=utf-8'],
 };
@@ -76,6 +79,7 @@ export async function startUiServer(
       doctor?: typeof runDoctor;
       contentPlan?: typeof planContent;
       memory?: MemorySession;
+      discoverProjects?: typeof discoverProjects;
     };
   } = {},
 ) {
@@ -109,11 +113,13 @@ export async function startUiServer(
       cwd = selectedWorkspace,
     ) => planContent(operation, contentOptions, cwd),
     memory: memorySession(),
+    discoverProjects,
     ...options.services,
   };
   const token = randomBytes(32).toString('hex');
   let origin = '';
   let applying = false;
+  let discovering = false;
   const quickPreviews = new Map<
     string,
     { plan: Awaited<ReturnType<typeof planQuick>>; expires: number }
@@ -217,6 +223,7 @@ export async function startUiServer(
               }
             : {}),
           projects: await projectCatalog(hubRoot()),
+          discoveryClients: sessionDiscoveryClients(),
           selection: {
             mode:
               selectedProject === undefined
@@ -235,6 +242,31 @@ export async function startUiServer(
           },
           token,
         });
+        return;
+      }
+      if (req.method === 'POST' && url.pathname === '/api/projects/discover') {
+        if (req.headers['x-agent-hub-token'] !== token)
+          throw new RequestError(403, 'Refresh the page before finding projects.');
+        const body = await jsonBody(req);
+        if (
+          Object.keys(body).some((key) => key !== 'clients') ||
+          !Array.isArray(body.clients) ||
+          !body.clients.length ||
+          body.clients.length > CLIENT_IDS.length ||
+          new Set(body.clients).size !== body.clients.length ||
+          body.clients.some((id) => !CLIENT_IDS.includes(id as ClientId))
+        )
+          throw new RequestError(
+            400,
+            'Choose known clients once each. Source paths cannot be supplied.',
+          );
+        if (discovering) throw new RequestError(409, 'Project discovery is already running.');
+        discovering = true;
+        try {
+          json(200, await services.discoverProjects(body.clients as ClientId[]));
+        } finally {
+          discovering = false;
+        }
         return;
       }
       if (req.method === 'POST' && url.pathname === '/api/project/select') {

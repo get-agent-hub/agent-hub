@@ -6,11 +6,37 @@ This is an implementation plan, not completed work. Each slice should leave a us
 
 ## What is covered, and what has actually been verified
 
-The matrices below describe required outcomes. A listed case is not a passing test. The new project catalog, all-content reconciliation and chat archive do not yet have implementation evidence.
+The matrices below describe required outcomes. A listed case is not a passing test. The first read-only metadata discovery slice has isolated implementation tests; all-content reconciliation and chat archive still await implementation. [POLICIES.md](POLICIES.md) defines the decisions each slice must enforce.
 
 Existing source tests cover important foundations: scoped memory/MCP access in `tests/memory.test.mjs`, native-memory conflicts/deletions in `tests/memory-consistency.test.mjs`, config and link guards in `tests/sync.test.mjs` and `tests/content.test.mjs`, HTTP protections in `tests/ui.test.mjs`, and interrupted writes/disk-full recovery in `tests/reset.test.mjs`. These contracts must be retained and extended. The follow-up review inspected those tests; it did not rerun them or establish coverage for future features.
 
 During implementation, record each case as required, implemented, automated-test passed, or manual trial passed, with the corresponding test/commit/report. Keep these statuses separate. A fixture test does not prove real-client compatibility, and the current macOS/Linux CI matrix does not establish Windows support.
+
+## First working increment: local Claude project discovery
+
+Implemented in `src/adapters/claude-sessions.ts`, `src/core/project-discovery.ts` and the UI Projects page. An explicit token-protected request reads only selected configured sources, returns metadata/counts, groups verified worktrees and keeps ordinary/missing folders. It writes no catalog, settings, native history or project binding. No automatic scan on page load; no new CLI command or runtime dependency.
+
+The metadata scan has fixed production budgets: 2,048 directory entries, 256 files, 4 MiB total reads and a 64 KiB prefix per file. At most 32 distinct locations receive verification, with a five-second cooperative verification budget and a one-second timeout per Git process. Filesystem calls themselves are not guaranteed to finish within that budget. Limits, unsafe/unreadable files and absent metadata produce explicit partial coverage. Complete coverage refers only to this selected metadata scope, not all conversations or later cwd changes.
+
+`tests/project-discovery.test.mjs` verifies ordinary folders, worktree grouping, separate repositories, source immutability, stable repeated results, metadata privacy, duplicate views/forks, missing folders, incomplete records, read limits, symlinks, unsupported sources, Git environment isolation, HTTP selection/token/path guards and escaped UI output. These are isolated fixtures; an actual-client and unassisted usability trial remain pending. Discovery result IDs cannot be used with the registered-project selector.
+
+Verification on 2026-11-05: the full check and coverage runs passed 217 tests, including 12 discovery tests. Overall coverage was 92.34% lines, 84.59% branches and 90.48% functions. The discovery suite also passed on Node 22.13. Package contents and installation into a temporary npm prefix were verified. A separate headless browser profile exercised the synthetic QA interface at desktop/mobile widths: navigation, explicit scan, results, unsupported clients, filtering, refresh and source deselection; screenshots were inspected. This is fixture/UI evidence, not a claim that all 47 future cases or real-client formats passed.
+
+Remaining work in slice 1: more client readers and native project/remote-environment contracts, durable IDs/aliases and user corrections, scoped resource inventory, and the unified setup review. Preserve the existing explicit write-authorized project registry during this work.
+
+## Case ownership and completion gates
+
+Case IDs below are stable. A case can span slices; only the tested subset is verified. Every case has an implementation gate:
+
+| Slice                                                    | Required cases                                                                                               | Current evidence                                                                                                      |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| 1a: explicit Claude metadata discovery                   | C01, C11, C12, C13, C15, C17, C18, C32, C46                                                                  | Metadata subsets verified by the isolated discovery suite; broader identity/archive/platform outcomes remain required |
+| 1b: durable catalog, native grouping and scope inventory | C11, C12, C14, C29, C37, C46                                                                                 | Required; no claim that transient discovery completes these                                                           |
+| 2: reconciliation, connection ownership and recovery     | C01, C02, C03, C04, C05, C06, C07, C08, C09, C10, C26, C27, C28, C33, C34, C35, C38, C43, C45, C46           | Required; retain existing guarded-write/recovery tests and add tests for all-content operations                       |
+| 3: optional worker and live resource refresh             | C24, C25, C47                                                                                                | Required; verify restart, missed events and runtime/config separation                                                 |
+| 4: archive, grants, source fidelity and retrieval        | C12, C13, C15, C16, C17, C18, C19, C20, C21, C22, C23, C30, C31, C32, C36, C37, C39, C40, C41, C42, C44, C46 | Required; end-to-end ingestion, access, retention and recovery evidence before claiming preservation                  |
+
+Before closing a slice: implement its policy, add failure-oriented fixture/integration tests, run `npm run check`, coverage and package checks, then record a separate real-client/manual trial. A failed or skipped gate stays visible; do not mark the entire matrix passed after a subset run.
 
 ## 1. Find sources and projects; make the first result clear
 
@@ -66,37 +92,37 @@ Do not rewrite storage, build a graph engine, add compulsory embeddings, install
 
 Use injected temporary client profiles, synthetic sessions and controlled fixture APIs. Never run write tests against the user's real clients. Existing recovery, secret-redaction and unrelated-settings tests remain required.
 
-| Case                                                     | Required observable result                                                       |
-| -------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| First run and unchanged rerun                            | Correct selected content; second run has no writes or duplicates                 |
-| Two clients edit different items                         | Both edits collected; independent updates proceed                                |
-| Same item changes differently                            | Both versions retained; item-scoped choice; no timestamp winner                  |
-| Deletion, old client returns                             | Recorded removal respected; unavailable source never treated as deletion         |
-| Intact link edited / link replaced                       | One canonical edit / detected drift; no import loop                              |
-| Hub launcher encountered during import                   | Original portable tool recognized; no recursive wrapper                          |
-| Same MCP endpoint, different auth/profile                | Keep policy variants and credentials distinct; no secret in public reports       |
-| Unrelated client settings                                | Byte/semantic preservation according to the existing format contract             |
-| Scoped instructions or memory                            | No promotion to global; native precedence retained                               |
-| Native Markdown and structured records                   | Text/metadata preserved; existing structured callers still work                  |
-| Worktrees, clones, submodules, non-Git folder            | Verified grouping only; ordinary folders remain usable                           |
-| Remote cwd / missing folder / folder move                | No false host resolution; history retained; accepted move preserves Hub identity |
-| One chat touches several projects                        | Primary and explicit related associations survive rescans                        |
-| Native project with multiple roots                       | Preserve source grouping without forcing one Git root                            |
-| CLI and IDE show one stored chat                         | One archive entry; same IDs in different stores remain separate                  |
-| Forks/subagents and absent lineage                       | Explicit family links preserved; common prefixes do not merge chats              |
-| Partial pages, hidden/archived sources, permission error | Declared coverage; no false “all chats” or destructive absence inference         |
-| Truncated/rotated JSONL; partially written record        | Resume/rebuild without lost complete events or duplicate identities              |
-| DSH compressed/newer format                              | Verified framing or explicit unsupported status; no native repair/write lease    |
-| Metadata available, body deferred/unreadable             | Catalog remains useful; archive status stays incomplete                          |
-| Index corruption                                         | Rebuild from preserved archive without contacting a model                        |
-| Completed vs proposed file/tool event                    | Only supported completed events count as actual activity                         |
-| Client chat deleted                                      | Archive retained; explicit Hub deletion stays a separate action                  |
-| Watch missed event/restart/overlapping commands          | Periodic reconciliation, persisted progress and lock prevent lost updates        |
-| Stopped n8n/tool service                                 | Configuration remains intact; runtime unavailability shown separately            |
-| Failure halfway through apply                            | Accurate partial result and recoverable recorded stages                          |
-| Undo after subsequent user edit                          | Later edit protected with a clear explanation and recovery options               |
-| Existing CLI calls and noninteractive usage              | Same documented scope/JSON; no unexpected prompt or expanded writes              |
-| User correction/rejected grouping                        | Rescans preserve it; the same suggestion does not reappear repeatedly            |
+| Case                                                           | Required observable result                                                       |
+| -------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| C01 · First run and unchanged rerun                            | Correct selected content; second run has no writes or duplicates                 |
+| C02 · Two clients edit different items                         | Both edits collected; independent updates proceed                                |
+| C03 · Same item changes differently                            | Both versions retained; item-scoped choice; no timestamp winner                  |
+| C04 · Deletion, old client returns                             | Recorded removal respected; unavailable source never treated as deletion         |
+| C05 · Intact link edited / link replaced                       | One canonical edit / detected drift; no import loop                              |
+| C06 · Hub launcher encountered during import                   | Original portable tool recognized; no recursive wrapper                          |
+| C07 · Same MCP endpoint, different auth/profile                | Keep policy variants and credentials distinct; no secret in public reports       |
+| C08 · Unrelated client settings                                | Byte/semantic preservation according to the existing format contract             |
+| C09 · Scoped instructions or memory                            | No promotion to global; native precedence retained                               |
+| C10 · Native Markdown and structured records                   | Text/metadata preserved; existing structured callers still work                  |
+| C11 · Worktrees, clones, submodules, non-Git folder            | Verified grouping only; ordinary folders remain usable                           |
+| C12 · Remote cwd / missing folder / folder move                | No false host resolution; history retained; accepted move preserves Hub identity |
+| C13 · One chat touches several projects                        | Primary and explicit related associations survive rescans                        |
+| C14 · Native project with multiple roots                       | Preserve source grouping without forcing one Git root                            |
+| C15 · CLI and IDE show one stored chat                         | One archive entry; same IDs in different stores remain separate                  |
+| C16 · Forks/subagents and absent lineage                       | Explicit family links preserved; common prefixes do not merge chats              |
+| C17 · Partial pages, hidden/archived sources, permission error | Declared coverage; no false “all chats” or destructive absence inference         |
+| C18 · Truncated/rotated JSONL; partially written record        | Resume/rebuild without lost complete events or duplicate identities              |
+| C19 · DSH compressed/newer format                              | Verified framing or explicit unsupported status; no native repair/write lease    |
+| C20 · Metadata available, body deferred/unreadable             | Catalog remains useful; archive status stays incomplete                          |
+| C21 · Index corruption                                         | Rebuild from preserved archive without contacting a model                        |
+| C22 · Completed vs proposed file/tool event                    | Only supported completed events count as actual activity                         |
+| C23 · Client chat deleted                                      | Archive retained; explicit Hub deletion stays a separate action                  |
+| C24 · Watch missed event/restart/overlapping commands          | Periodic reconciliation, persisted progress and lock prevent lost updates        |
+| C25 · Stopped n8n/tool service                                 | Configuration remains intact; runtime unavailability shown separately            |
+| C26 · Failure halfway through apply                            | Accurate partial result and recoverable recorded stages                          |
+| C27 · Undo after subsequent user edit                          | Later edit protected with a clear explanation and recovery options               |
+| C28 · Existing CLI calls and noninteractive usage              | Same documented scope/JSON; no unexpected prompt or expanded writes              |
+| C29 · User correction/rejected grouping                        | Rescans preserve it; the same suggestion does not reappear repeatedly            |
 
 Benchmark cold/warm discovery and ingestion with small and large fixture corpora, large single sessions and interrupted reads. Record wall time, peak memory, bytes read, progress responsiveness and archive/index size. Establish budgets from those measurements; API pagination alone is not evidence of bounded resource use.
 
@@ -137,23 +163,23 @@ Hub API scopes govern what Hub returns. They do not isolate applications that in
 
 ## Additional acceptance cases
 
-| Case                                                                                   | Required observable result                                                                                                                               |
-| -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Project A requests project B history through search, direct ID or related-chat link    | Unauthorized titles, counts, snippets, assets and bodies remain inaccessible; combining project cards does not expand grants                             |
-| Profile/account changes while a connection exists                                      | Grants and credentials are re-evaluated for the new binding; previous private access is not inherited by path/name alone                                 |
-| Scan an executable skill or a chat containing tool/hook commands                       | No discovery-time execution, dependency install or permission change; retrieved text retains source/data labeling                                        |
-| Three clients independently edit the same managed item                                 | Every candidate survives; result is independent of source traversal order                                                                                |
-| A second Hub targets an already managed config/skill                                   | Ownership conflict is shown; explicit transfer preserves recovery and content                                                                            |
-| Native client writes during Hub apply                                                  | Changed source/destination revisions invalidate affected writes; no false successful acknowledgement; already completed stages remain recoverable        |
-| Disk full, interrupted write or corrupted archive segment                              | Last valid archive remains readable; progress is not advanced past uncommitted data; retry is idempotent                                                 |
-| Upgrade fails or an older binary opens newer Hub data                                  | Original data remains available; unknown format is not overwritten; recovery instructions identify the supported version                                 |
-| Hub moved/copied to another machine, executable missing or credential expired          | Local bindings are reviewed; no fabricated tool availability or silent account reuse                                                                     |
-| Source store cloned and later diverges                                                 | Explicit store identity/alias policy prevents accidental merging or dropping distinct events                                                             |
-| Images, binary assets, external links and deferred tool output                         | Asset/content coverage is visible; missing data is not presented as preserved; asset paths cannot escape their permitted roots                           |
-| Earlier messages edited, same-sized file rewritten, branch/compaction changes          | Revision validation detects supported rewrites; index refreshes without silently losing preserved history                                                |
-| User excludes a project, then reconnects or requests deletion                          | Exclusions survive scans; deletion scope and retained recovery copies are explicit; stale sources do not immediately reimport intentionally removed data |
-| Old deletion records are compacted and an offline source returns                       | Full reconciliation/rejoin is required where needed; old content is not resurrected because a marker expired                                             |
-| Search/API reads while indexing or updating grants                                     | Results use a consistent supported view and current grants; in-flight work does not expose newly excluded content                                        |
-| Disconnect/uninstall, deleted Hub directory or broken Hub link                         | Preserve available content, report missing targets and provide reviewed native restoration/materialization; no destructive automatic reset               |
-| Case/Unicode collisions, spaces, long paths, permission loss, read-only/offline volume | Bounded clear failure and no wrong-target write; unsupported platforms/filesystems remain explicitly unverified                                          |
-| Checkout changes project-local instructions/tools while watcher is running             | Effective resources refresh without changing project identity or globally promoting branch-local content                                                 |
+| Case                                                                                         | Required observable result                                                                                                                               |
+| -------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| C30 · Project A requests project B history through search, direct ID or related-chat link    | Unauthorized titles, counts, snippets, assets and bodies remain inaccessible; combining project cards does not expand grants                             |
+| C31 · Profile/account changes while a connection exists                                      | Grants and credentials are re-evaluated for the new binding; previous private access is not inherited by path/name alone                                 |
+| C32 · Scan an executable skill or a chat containing tool/hook commands                       | No discovery-time execution, dependency install or permission change; retrieved text retains source/data labeling                                        |
+| C33 · Three clients independently edit the same managed item                                 | Every candidate survives; result is independent of source traversal order                                                                                |
+| C34 · A second Hub targets an already managed config/skill                                   | Ownership conflict is shown; explicit transfer preserves recovery and content                                                                            |
+| C35 · Native client writes during Hub apply                                                  | Changed source/destination revisions invalidate affected writes; no false successful acknowledgement; already completed stages remain recoverable        |
+| C36 · Disk full, interrupted write or corrupted archive segment                              | Last valid archive remains readable; progress is not advanced past uncommitted data; retry is idempotent                                                 |
+| C37 · Upgrade fails or an older binary opens newer Hub data                                  | Original data remains available; unknown format is not overwritten; recovery instructions identify the supported version                                 |
+| C38 · Hub moved/copied to another machine, executable missing or credential expired          | Local bindings are reviewed; no fabricated tool availability or silent account reuse                                                                     |
+| C39 · Source store cloned and later diverges                                                 | Explicit store identity/alias policy prevents accidental merging or dropping distinct events                                                             |
+| C40 · Images, binary assets, external links and deferred tool output                         | Asset/content coverage is visible; missing data is not presented as preserved; asset paths cannot escape their permitted roots                           |
+| C41 · Earlier messages edited, same-sized file rewritten, branch/compaction changes          | Revision validation detects supported rewrites; index refreshes without silently losing preserved history                                                |
+| C42 · User excludes a project, then reconnects or requests deletion                          | Exclusions survive scans; deletion scope and retained recovery copies are explicit; stale sources do not immediately reimport intentionally removed data |
+| C43 · Old deletion records are compacted and an offline source returns                       | Full reconciliation/rejoin is required where needed; old content is not resurrected because a marker expired                                             |
+| C44 · Search/API reads while indexing or updating grants                                     | Results use a consistent supported view and current grants; in-flight work does not expose newly excluded content                                        |
+| C45 · Disconnect/uninstall, deleted Hub directory or broken Hub link                         | Preserve available content, report missing targets and provide reviewed native restoration/materialization; no destructive automatic reset               |
+| C46 · Case/Unicode collisions, spaces, long paths, permission loss, read-only/offline volume | Bounded clear failure and no wrong-target write; unsupported platforms/filesystems remain explicitly unverified                                          |
+| C47 · Checkout changes project-local instructions/tools while watcher is running             | Effective resources refresh without changing project identity or globally promoting branch-local content                                                 |

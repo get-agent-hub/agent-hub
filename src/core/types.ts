@@ -55,6 +55,17 @@ export interface ClientAdapter {
   read(): Promise<ClientSnapshot>;
   /** Global-scope MCP definitions as stored by the client (secrets included). */
   readMcpRaw(): Promise<RawMcp[]>;
+  /** Optional read-only metadata capability; never returns conversation bodies. */
+  discoverSessions?(): Promise<SessionScan>;
+}
+
+export interface SessionScan {
+  source: string;
+  coverage: 'complete' | 'partial' | 'unavailable' | 'not-found';
+  sessions: { id: string; locations: string[] }[];
+  filesRead: number;
+  bytesRead: number;
+  issues: string[];
 }
 
 export interface HubState {

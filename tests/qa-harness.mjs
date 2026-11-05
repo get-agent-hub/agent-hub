@@ -71,6 +71,23 @@ await fs.writeFile(
 );
 const repo = path.join(root, 'qa-project');
 await fs.mkdir(path.join(repo, '.agents/state'), { recursive: true });
+const sessionCollection = path.join(process.env.CLAUDE_CONFIG_DIR, 'projects', 'qa-metadata');
+await fs.mkdir(sessionCollection, { recursive: true });
+const ordinaryFolder = path.join(root, 'notes-folder');
+await fs.mkdir(ordinaryFolder);
+for (const [id, cwd] of [
+  ['qa-repository-chat', repo],
+  ['qa-folder-chat', ordinaryFolder],
+])
+  await fs.writeFile(
+    path.join(sessionCollection, `${id}.jsonl`),
+    JSON.stringify({
+      type: 'user',
+      sessionId: id,
+      cwd,
+      message: { content: 'Synthetic QA conversation; not returned by project discovery.' },
+    }) + '\n',
+  );
 execFileSync('git', ['init', '-q', '-b', 'main'], { cwd: repo });
 await fs.writeFile(
   path.join(repo, 'AGENTS.md'),

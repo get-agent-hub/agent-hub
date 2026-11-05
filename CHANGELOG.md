@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Find projects from selected local Claude Code chat metadata in the UI, including ordinary folders, missing locations and grouped Git worktrees. Discovery is read-only and reports incomplete coverage; it does not archive chats or connect project memory. Codex and DSH readers remain planned.
+- Record implementation policies and 47 acceptance cases for simpler setup, synchronization, archive access and recovery, with explicit ownership by implementation slice.
+
 ## 0.1.0-beta.1 — 2026-11-04
 
 First public beta. Distributed on GitHub as a source ZIP and a standalone npm tarball; no public npm registry package is published.

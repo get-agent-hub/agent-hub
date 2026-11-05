@@ -14,6 +14,18 @@ export function expandHome(p: string): string {
   return p;
 }
 
+/** Native metadata must contain a bounded absolute path for this host, without control characters. */
+export function isAbsoluteLocalPath(value: unknown): value is string {
+  return (
+    typeof value === 'string' &&
+    value.length <= 4096 &&
+    path.isAbsolute(value) &&
+    !Array.from(value).some(
+      (character) => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127,
+    )
+  );
+}
+
 /** Inverse of expandHome, for display and portable config. */
 export function tildify(p: string): string {
   return p === HOME || p.startsWith(HOME + path.sep) ? '~' + p.slice(HOME.length) : p;

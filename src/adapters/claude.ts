@@ -5,10 +5,13 @@ import { exists, listSkills, readText } from '../core/fs.js';
 import { toMcpEntry } from '../core/mcp.js';
 import type { ClientAdapter, ClientSnapshot, DetectResult, RawMcp } from '../core/types.js';
 import { reservedSkill } from './policies.js';
+import { claudeSessions } from './claude-sessions.js';
 
 export const claudeAdapter: ClientAdapter = {
   id: 'claude-code',
   label: 'Claude Code',
+
+  discoverSessions: () => claudeSessions(clientPaths.claudeHome()),
 
   async detect(): Promise<DetectResult> {
     const paths = {
