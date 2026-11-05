@@ -114,3 +114,26 @@ test('chat list rows show human labels and project context while technical count
   assert.match(partial, /Incomplete archive/);
   assert.ok(!partial.includes('<script>'));
 });
+
+test('chat rows show native local time safely and never substitute the archive capture date', () => {
+  const chat = {
+    id: 'id',
+    nativeId: 'native',
+    title: 'Example',
+    client: 'codex',
+    kind: 'chat',
+    content: 'complete',
+    projects: [],
+    observedAt: '2030-01-01T00:00:00Z',
+  };
+  const html = chatSummary({ ...chat, startedAt: '2026-11-03T09:30:00.000Z' });
+  assert.match(html, /<time class="chat-time" datetime="2026-11-03T09:30:00.000Z"/);
+  assert.match(html, /First recorded/);
+  assert.ok(!html.includes('2030-01-01'));
+  for (const startedAt of [undefined, null, 'invalid<script>']) {
+    const missing = chatSummary({ ...chat, startedAt });
+    assert.match(missing, /Time unavailable/);
+    assert.ok(!missing.includes('<script>'));
+    assert.ok(!missing.includes('<time'));
+  }
+});

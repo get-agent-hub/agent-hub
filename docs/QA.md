@@ -2,6 +2,16 @@
 
 The implemented import → sync → doctor → restore flow was exercised through the live UI and production CLI on macOS. Client writes used temporary configurations. Production client configurations were not synchronized.
 
+## Native conversation time — 2026-11-06
+
+`npm run check` and standalone coverage pass **303 tests**; coverage is **92.95% lines**, **84.89% branches** and **90.92% functions**. The targeted **18-test** history/presentation/navigation suite passes on Node **22.13**.
+
+Package validation passes **374 files / 1,850,774 unpacked bytes** and the real temporary-prefix installer passes.
+
+Chat rows and open conversations show the date/time of the first available native record, in the browser’s local timezone. The tooltip includes the timezone. Missing or invalid source clocks remain unavailable; archive capture time is never used as a substitute. Existing catalogs obtain this read-only projection from a bounded saved-event prefix without native-source access or catalog migration. DSH session creation clocks and Codex session metadata are supported.
+
+New regressions cover valid native time after malformed/missing values, offset normalization, explicit-title preservation, reading after source removal, unchanged catalog/raw bytes and safe unknown-time rendering. A read-only sample of 50 existing chats found native times for all 50 in approximately 363 ms without printing private titles or messages. A synthetic browser scenario passed list/open-conversation time, Europe/Moscow conversion, unknown-time labels and desktop/400px layout without overflow or runtime exceptions. No real archive or client files were changed.
+
 ## Existing Hub connections across installations — 2026-11-06
 
 `npm run check` and standalone coverage pass **300 tests**. Coverage is **92.82% lines**, **84.76% branches** and **90.92% functions**; architecture remains **183 modules / 897 imports**.

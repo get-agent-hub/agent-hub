@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Show native conversation date/time in chat rows and the open conversation, in the browser’s local timezone. Existing archives work without reimport; missing timestamps are not replaced with capture dates.
+
 - Recognize existing connections to the same Hub across Node versions and package locations. Keep working launchers instead of reporting false MCP conflicts or migrating their paths. Do not offer launchers as original import sources; other Hub targets and launch overrides still require review.
 
 - Make MCP setup a per-server choice: explain differing settings, show both Hub/client directions and review client connections separately. Keep configuration JSON, batch operations and connection probes in disclosures. Compare credentials privately without returning their values.

@@ -120,3 +120,19 @@
   color: var(--muted);
   font-size: 13px;
 }
+
+.chat-time {
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+@media (max-width: 600px) {
+  .chat-row {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .chat-row .chat-time {
+    width: 100%;
+  }
+}

@@ -42,24 +42,32 @@ export function publicHistoryEvent(event: HistoryEvent) {
   };
 }
 
-/** Older catalogs keep their source bytes; derive a readable title without rewriting their data. */
+/** Derive list metadata from a bounded native prefix; never substitute the archive capture time. */
 export async function titledHistoryChat(
   chat: HistoryChat,
   events: AsyncIterable<HistoryEvent>,
   signal?: AbortSignal,
 ) {
   signal?.throwIfAborted();
-  if (!titleNeedsRepair(chat.title, chat.nativeId)) return chat;
-  let title: string | undefined;
+  const repairTitle = titleNeedsRepair(chat.title, chat.nativeId);
+  let title = repairTitle ? undefined : chat.title;
+  let nativeTitle = false;
+  let startedAt: string | null = null;
   let bytes = 0;
   try {
     for await (const event of events) {
       const row = object(event.raw),
         data = object(row.data);
+      const time = event.timestamp;
+      if (time && /T.*(?:Z|[+-]\d{2}:?\d{2})$/i.test(time) && Number.isFinite(Date.parse(time)))
+        startedAt ??= new Date(time).toISOString();
       const native = event.type === 'session/title' ? data.title : row.customTitle;
-      if (typeof native === 'string' && native.trim())
-        return { ...chat, title: native.slice(0, 200) };
-      title ??= messageTitle(event);
+      if (repairTitle && !nativeTitle && typeof native === 'string' && native.trim()) {
+        title = native.slice(0, 200);
+        nativeTitle = true;
+      }
+      if (repairTitle && !nativeTitle) title ??= messageTitle(event);
+      if (startedAt && (!repairTitle || nativeTitle)) break;
       bytes += event.text.length;
       if (event.ordinal >= 255 || bytes >= 1024 * 1024) break;
     }
@@ -68,11 +76,14 @@ export async function titledHistoryChat(
     return {
       ...chat,
       title: title ?? `Conversation ${chat.nativeId}`,
+      startedAt,
       issues: [
         ...chat.issues,
-        'The conversation title could not be fully checked because its saved event index is unavailable.',
+        repairTitle
+          ? 'The conversation title could not be fully checked because its saved event index is unavailable.'
+          : 'The conversation time could not be checked because its saved event index is unavailable.',
       ],
     };
   }
-  return { ...chat, title: title ?? `Conversation ${chat.nativeId}` };
+  return { ...chat, title: title ?? `Conversation ${chat.nativeId}`, startedAt };
 }

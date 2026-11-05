@@ -188,3 +188,52 @@ test('an unavailable derived title cannot break the chat list or suppress cancel
     { name: 'AbortError' },
   );
 });
+
+test('chat time uses the first valid native record, including existing archives without source access', async (t) => {
+  const f = await historyFixture(t);
+  const messages = [
+    {
+      type: 'custom-title',
+      customTitle: 'Explicit title',
+      sessionId: 'native-chat',
+      cwd: f.project,
+    },
+    { ...user('Unknown time'), timestamp: 'invalid-time' },
+    { ...user('Native time'), timestamp: '2026-11-03T12:30:00+03:00' },
+    { ...user('Later message'), timestamp: '2026-11-04T10:00:00Z' },
+  ];
+  const bytes = f.encode(messages);
+  await fs.writeFile(f.file, bytes);
+  const chat = (await ingestHistory(f.root, [f.source])).chats[0];
+  await fs.rm(f.source.root, { recursive: true });
+  const catalogFile = path.join(f.root, 'state/history/catalog.json');
+  const before = await fs.readFile(catalogFile);
+  const listed = (await listHistory(f.root, operator)).chats[0];
+  assert.equal(listed.startedAt, '2026-11-03T09:30:00.000Z');
+  assert.equal(listed.title, 'Explicit title');
+  assert.notEqual(listed.startedAt, chat.observedAt);
+  const opened = await readConversation(f.root, operator, chat.id);
+  assert.equal(opened.chat.startedAt, listed.startedAt);
+  assert.deepEqual(await fs.readFile(catalogFile), before);
+  assert.equal(
+    Buffer.from((await rawWindow(f.root, chat.id, chat.revision, 0)).data, 'base64').toString(),
+    bytes,
+  );
+});
+
+test('native session clocks support Codex and DSH and missing clocks do not become capture time', async (t) => {
+  assert.equal(
+    historyEvent({ type: 'session_meta', payload: { timestamp: '2026-11-03T09:30:00Z' } }, 0)
+      .timestamp,
+    '2026-11-03T09:30:00Z',
+  );
+  assert.equal(
+    historyEvent({ type: 'session', createdAt: Date.parse('2026-11-03T09:30:00Z') }, 0).timestamp,
+    '2026-11-03T09:30:00.000Z',
+  );
+  const f = await historyFixture(t);
+  await fs.writeFile(f.file, f.encode([{ ...user('A useful title'), cwd: f.project }]));
+  const chat = (await ingestHistory(f.root, [f.source])).chats[0];
+  assert.equal((await listHistory(f.root, operator)).chats[0].startedAt, null);
+  assert.ok(chat.observedAt);
+});

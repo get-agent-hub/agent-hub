@@ -100,7 +100,12 @@ export function historyEvent(raw: unknown, ordinal: number): HistoryEvent {
     parentId: string(row.parentUuid) ?? string(row.parentId),
     type,
     role,
-    timestamp: timestamp(row.timestamp ?? row.time ?? payload.timestamp),
+    timestamp: timestamp(
+      row.timestamp ??
+        row.time ??
+        payload.timestamp ??
+        (type === 'session' ? row.createdAt : undefined),
+    ),
     text,
     raw,
     category,
