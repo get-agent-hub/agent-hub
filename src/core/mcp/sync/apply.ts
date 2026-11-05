@@ -20,6 +20,7 @@ export async function applySync(plan: SyncPlan, expectedRevision?: string) {
     const fresh = await planSync(plan.options, plan.context);
     if (fresh.revision !== plan.revision)
       throw new HubError('Configuration changed since the preview. Run a new dry run.');
+    if (fresh.blocked) throw new HubError('Sync inputs need review. Run a new dry run.');
     const changes = fresh.targets.filter((t) => t.next !== (t.snapshot.content ?? ''));
     if (!changes.length) return { changedFiles: 0, backup: null, restoreCommand: null };
     await ensureBaseline(

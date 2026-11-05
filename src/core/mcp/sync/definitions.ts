@@ -1,8 +1,9 @@
+import fs from 'node:fs/promises';
 import path from 'node:path';
 import { adapters } from '../../../adapters/index.js';
 import { CODEX_POLICY_KEYS } from '../../../adapters/policies.js';
 import type { ClientId } from '../../../contracts/clients.js';
-import { clientPaths, hubRoot } from '../../../shared/paths.js';
+import { clientPaths, expandHome, hubRoot } from '../../../shared/paths.js';
 import { cliPath } from '../../../shared/runtime.js';
 import { hubCommand } from '../../../shared/shell.js';
 import { hash, isRecord, stableStringify as stable } from '../../../shared/values.js';
@@ -100,15 +101,72 @@ export function launchCommand(name: string, context: SyncContext) {
   return hubCommand(context, ['mcp', 'run', name]);
 }
 
-export function isCurrentProjection(raw: Definition, name: string, root: string) {
-  const cli = cliPath;
-  return (
-    raw.command === process.execPath &&
-    stable(raw.args) === stable([cli, 'mcp', 'run', name]) &&
-    isRecord(raw.env) &&
-    Object.keys(raw.env).length === 1 &&
-    raw.env.AGENT_HUB_HOME === path.resolve(root)
-  );
+/** A connection follows a Hub/server identity, not the UI's Node or installation path. */
+export async function isCurrentProjection(raw: Definition, name: string, root: string) {
+  const args = raw.args;
+  const allowed = [
+    'command',
+    'args',
+    'env',
+    'type',
+    'transport',
+    'serverName',
+    ...CODEX_POLICY_KEYS,
+  ];
+  if (
+    typeof raw.command !== 'string' ||
+    !Array.isArray(args) ||
+    args.length !== 4 ||
+    typeof args[0] !== 'string' ||
+    args[1] !== 'mcp' ||
+    args[2] !== 'run' ||
+    args[3] !== name ||
+    !isRecord(raw.env) ||
+    Object.keys(raw.env).length !== 1 ||
+    typeof raw.env.AGENT_HUB_HOME !== 'string' ||
+    Object.keys(raw).some((key) => !allowed.includes(key)) ||
+    (raw.type !== undefined && raw.type !== 'stdio') ||
+    (raw.transport !== undefined && raw.transport !== 'stdio') ||
+    (raw.serverName !== undefined && raw.serverName !== name) ||
+    (raw.env_vars !== undefined && (!Array.isArray(raw.env_vars) || raw.env_vars.length > 0))
+  )
+    return false;
+  const home = expandHome(raw.env.AGENT_HUB_HOME);
+  if (!path.isAbsolute(home)) return false;
+  const target = path.resolve(home);
+  try {
+    if (target !== path.resolve(root) && (await fs.realpath(target)) !== (await fs.realpath(root)))
+      return false;
+    if (raw.command === process.execPath && args[0] === cliPath) return true;
+    if (
+      !path.isAbsolute(raw.command) ||
+      !/^node(?:\.exe)?$/i.test(path.basename(raw.command)) ||
+      !path.isAbsolute(args[0])
+    )
+      return false;
+    const [cli, runtime] = await Promise.all([fs.realpath(args[0]), fs.stat(raw.command)]);
+    if (
+      !runtime.isFile() ||
+      path.basename(cli) !== 'cli.js' ||
+      path.basename(path.dirname(cli)) !== 'dist' ||
+      !(await fs.stat(cli)).isFile()
+    )
+      return false;
+    const packageRoot = path.dirname(path.dirname(cli));
+    const metadata = path.join(packageRoot, 'package.json');
+    const stat = await fs.stat(metadata);
+    if (!stat.isFile() || stat.size > 64 * 1024) return false;
+    const pkg: unknown = JSON.parse(await fs.readFile(metadata, 'utf8'));
+    if (!isRecord(pkg) || pkg.name !== 'agent-hub' || !isRecord(pkg.bin)) return false;
+    const binaries = pkg.bin;
+    return ['ahub', 'agent-hub'].every((name) => {
+      const entry = binaries[name];
+      return typeof entry === 'string' && path.resolve(packageRoot, entry) === cli;
+    });
+  } catch {
+    // Missing or unreadable installations need review; never execute a client command to identify it.
+    return false;
+  }
 }
 
 export function syncCommand(context: SyncContext, options: SyncOptions, args: string[]) {

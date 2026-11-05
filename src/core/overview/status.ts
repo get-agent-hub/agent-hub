@@ -56,7 +56,7 @@ export async function collectStatus(sources: ClientAdapter[] = adapters): Promis
       const entry = snap.mcp.find((m) => m.name === raw.name);
       if (entry)
         entry.fingerprint =
-          isCurrentProjection(raw.raw, raw.name, hub.root) && hubFingerprints.has(raw.name)
+          hubFingerprints.has(raw.name) && (await isCurrentProjection(raw.raw, raw.name, hub.root))
             ? hubFingerprints.get(raw.name)!
             : hash(semantic(normalize(client, raw.raw), hubEnv)).slice(0, 12);
     }

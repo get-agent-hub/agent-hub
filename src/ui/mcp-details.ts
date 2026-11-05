@@ -8,7 +8,7 @@ import {
   type HubServer,
 } from '../core/configuration/registry.js';
 import { readEnvFile } from '../core/configuration/env.js';
-import { normalize } from '../core/mcp/importer.js';
+import { normalize, isHubProjection } from '../core/mcp/importer.js';
 import { isCurrentProjection, semantic } from '../core/mcp/sync.js';
 import { hubRoot, tildify } from '../shared/paths.js';
 import { displayServer } from './data.js';
@@ -20,6 +20,7 @@ type Copy = {
   server: HubServer;
   managed: boolean;
   ambiguous: boolean;
+  hubLauncher?: boolean;
 };
 const fields = ['transport', 'command', 'args', 'url', 'cwd', 'env', 'headers'] as const;
 
@@ -45,14 +46,17 @@ export async function mcpDetails(name: string, sources: ClientAdapter[] = adapte
     sources.map(async (adapter) => {
       if (!(await adapter.detect()).installed) return [];
       const records = (await adapter.readMcpRaw()).filter((row) => row.name === name);
-      return records.map((row) => ({
-        client: adapter.id,
-        label: adapter.label,
-        path: tildify(row.source),
-        server: normalize(adapter.id, row.raw),
-        managed: isCurrentProjection(row.raw, name, root),
-        ambiguous: records.length > 1,
-      }));
+      return Promise.all(
+        records.map(async (row) => ({
+          client: adapter.id,
+          label: adapter.label,
+          path: tildify(row.source),
+          server: normalize(adapter.id, row.raw),
+          managed: await isCurrentProjection(row.raw, name, root),
+          hubLauncher: isHubProjection(row.raw),
+          ambiguous: records.length > 1,
+        })),
+      );
     }),
   );
   copies.push(...native.flat());
@@ -87,6 +91,7 @@ export async function mcpDetails(name: string, sources: ClientAdapter[] = adapte
       label: copy.label,
       path: copy.path,
       managed: copy.managed,
+      hubLauncher: copy.hubLauncher === true,
       ambiguous: copy.ambiguous,
       matchesHub: hub ? signatures[index] === signatures[0] : null,
       differences: hub

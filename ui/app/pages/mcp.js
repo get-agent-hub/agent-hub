@@ -11,14 +11,18 @@ function copyCard(copy, name, hasHub, canConnect) {
       ? hasHub
         ? 'Uses Hub settings'
         : 'Points to a missing Hub copy'
-      : copy.matchesHub
-        ? 'Same launch settings as Hub'
-        : hasHub
-          ? 'Different from Hub'
-          : 'Available to add to Hub';
-  const choose = !source && !copy.managed && !copy.ambiguous && copy.matchesHub !== true;
+      : copy.hubLauncher
+        ? 'Hub connection needs review'
+        : copy.matchesHub
+          ? 'Same launch settings as Hub'
+          : hasHub
+            ? 'Different from Hub'
+            : 'Available to add to Hub';
+  const choose =
+    !source && !copy.managed && !copy.hubLauncher && !copy.ambiguous && copy.matchesHub !== true;
   return `<article class="mcp-copy"><div class="row"><b>${escape(copy.label)}</b>${pill(status, copy.matchesHub === false ? 'warn' : '')}</div>
     ${copy.managed && !hasHub ? '<p class="small-note">This launcher has no original server settings. Use a working copy from another client, or restore the Hub definition from a backup.</p>' : ''}
+    ${copy.hubLauncher && !copy.managed ? '<p class="small-note">This is a Hub launcher, not an original server definition. Its Hub target, installation or extra launch settings need review. Keep it separate, or preview reconnecting it to this Hub.</p>' : ''}
     ${copy.ambiguous ? '<p class="small-note">Several entries in this client use this name. Resolve the duplicate entries in the client before choosing this copy.</p>' : ''}
     ${copy.differences.length ? `<p class="small-note">${hasHub ? 'Differs from Hub' : 'Copies differ'}: ${copy.differences.map((field) => escape(mcpFieldLabels[field] || 'other settings')).join(', ')}. Private values are hidden.</p>` : ''}
     ${hasHub && canConnect && copy.matchesHub === false && !copy.ambiguous ? `<button class="btn sm" data-mcp-deliver="${escape(name)}" data-client="${escape(copy.client)}" data-replace="true">Use Hub settings in ${escape(copy.label)}</button><p class="small-note">Replaces only this server in ${escape(copy.label)} after review. Hub is kept as it is.</p>` : ''}

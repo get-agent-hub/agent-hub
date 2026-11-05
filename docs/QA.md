@@ -2,6 +2,18 @@
 
 The implemented import → sync → doctor → restore flow was exercised through the live UI and production CLI on macOS. Client writes used temporary configurations. Production client configurations were not synchronized.
 
+## Existing Hub connections across installations — 2026-11-06
+
+`npm run check` and standalone coverage pass **300 tests**. Coverage is **92.82% lines**, **84.76% branches** and **90.92% functions**; architecture remains **183 modules / 897 imports**.
+
+New regressions reproduce false conflicts when clients use another Node or Agent Hub package path. Matching requires the same physical Hub and exact server, a supported unmodified launcher shape and readable package/bin metadata for a different installation. Discovery reads files without executing client commands. Working launchers remain in place during sync, including when delivering another server; client policies and unrelated entries are retained. Different Hub targets, missing or unrelated installations, extra arguments/environment, working-folder overrides and unknown launch settings still require review. Hub wrappers are not offered as original sources to import. A missing installation after preview blocks fresh application before any client write.
+
+A targeted **33-test** connection/comparison/sync suite passes on Node **22.13**. A fresh headless-browser scenario confirmed that three clients using another installation show matching Hub connections, batch delivery previews no changes and all client bytes remain unchanged. Adding an environment override restores the review state without offering that wrapper as an import source. Desktop and 400px mobile screenshots were inspected; credentials stayed hidden and no runtime exceptions or page overflow occurred.
+
+Package validation passes **374 files / 1,847,905 unpacked bytes** and the actual temporary-prefix installation passes. Normal global installation and published artifacts were not changed.
+
+A read-only check of the reported real server confirmed all three client entries are connections to the same Hub, with no differing launch fields. No credentials or raw client definitions were printed and no real client configuration was applied.
+
 ## MCP settings choices — 2026-11-06
 
 `npm run check` and standalone coverage pass **296 tests**. Coverage is **92.87% lines**, **84.63% branches** and **90.91% functions**; architecture verifies **183 modules / 897 imports**.

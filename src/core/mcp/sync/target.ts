@@ -4,7 +4,13 @@ import { snapshot } from '../../../shared/file-store.js';
 import { editDefinitions, readDefinitions, type Definition } from '../config-edit.js';
 import { definitionSignature, desiredSignature } from '../imported-definitions.js';
 import { normalize } from '../importer.js';
-import { definitionHash, launchCommand, projection, semantic } from './definitions.js';
+import {
+  definitionHash,
+  isCurrentProjection,
+  launchCommand,
+  projection,
+  semantic,
+} from './definitions.js';
 import type {
   Ownership,
   SyncContext,
@@ -121,6 +127,16 @@ export async function planTarget(input: TargetInputs): Promise<TargetPlan> {
           ? `Missing variables: ${missing.join(', ')}`
           : 'Server has no command or URL',
       });
+      continue;
+    }
+    if (before && (await isCurrentProjection(before, name, context.root))) {
+      rows.push({
+        name,
+        action: 'keep',
+        note: 'Already connected to this Hub; installation paths may differ.',
+      });
+      // Keep the working installation instead of silently migrating it to the UI's checkout.
+      owned[name] = definitionHash(before);
       continue;
     }
     const desired = projection(target.id, name, server, before, context);

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Recognize existing connections to the same Hub across Node versions and package locations. Keep working launchers instead of reporting false MCP conflicts or migrating their paths. Do not offer launchers as original import sources; other Hub targets and launch overrides still require review.
+
 - Make MCP setup a per-server choice: explain differing settings, show both Hub/client directions and review client connections separately. Keep configuration JSON, batch operations and connection probes in disclosures. Compare credentials privately without returning their values.
 
 - Show one recorded root per project, with related folders in details and separate groups for ordinary or unavailable historical locations. Retain all associations, identities and client grants.
