@@ -147,7 +147,7 @@ async function load() {
     render();
     const results = await Promise.allSettled([
       api('/api/history/status', {}),
-      api('/api/history/list', { limit: 5 }),
+      api('/api/history/list', { limit: 5, sort: 'newest' }),
     ]);
     if (generation !== loadVersion) return;
     archive = {

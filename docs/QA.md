@@ -2,6 +2,16 @@
 
 The implemented import → sync → doctor → restore flow was exercised through the live UI and production CLI on macOS. Client writes used temporary configurations. Production client configurations were not synchronized.
 
+## Native date sorting — 2026-11-06
+
+`npm run check` and standalone coverage pass **306 tests**; coverage is **93.05% lines**, **84.93% branches** and **90.93% functions**. The targeted **13-test** sorting/title/HTTP suite also passes on Node **22.13**.
+
+Package validation passes **374 files / 1,853,912 unpacked bytes** and the actual temporary-prefix installer passes.
+
+All data → Chats defaults to newest displayed native first-record date first; the Date selector also supports oldest first. Sorting covers the full filtered inventory before pagination. Missing timestamps stay last in both directions, equal dates retain catalog order and no date is replaced with archive capture time. UI direction is kept in the URL across filters, paging and reload; changing it resets the page offset. Overview uses newest-first too. Message search keeps event-search order; existing CLI/MCP list calls without an explicit sort retain their previous archive order.
+
+Regressions verify global order across one-item pages, both directions, unknown dates, unchanged catalog bytes after native-source removal, filters/grants, ties and HTTP enum validation. A synthetic browser run passes default order, direction changes, URL/reload, client filter retention, offset reset, Overview and 400px layout without overflow or runtime exceptions. A read-only cold query over 586 existing chats took approximately 2.26 seconds using at most eight concurrent bounded prefix readers; only dates/summary counts were inspected, no private titles or messages printed. No native client files or archive catalogs were rewritten.
+
 ## Native conversation time — 2026-11-06
 
 `npm run check` and standalone coverage pass **303 tests**; coverage is **92.95% lines**, **84.89% branches** and **90.92% functions**. The targeted **18-test** history/presentation/navigation suite passes on Node **22.13**.

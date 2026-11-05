@@ -21,6 +21,7 @@ export interface HistoryQuery {
   offset?: number;
   limit?: number;
   view?: HistoryView;
+  sort?: 'newest' | 'oldest';
 }
 export function pageOptions(options: HistoryQuery) {
   const offset = options.offset ?? 0,
@@ -32,10 +33,11 @@ export function pageOptions(options: HistoryQuery) {
     limit < 1 ||
     limit > 100 ||
     (options.query?.length ?? 0) > 500 ||
-    (options.view !== undefined && !['events', 'conversation'].includes(options.view))
+    (options.view !== undefined && !['events', 'conversation'].includes(options.view)) ||
+    (options.sort !== undefined && !['newest', 'oldest'].includes(options.sort))
   )
     throw new HubError(
-      'Choose a nonnegative offset, a limit of 1–100 and a query of at most 500 characters.',
+      'Choose a nonnegative offset, a limit of 1–100, a query of at most 500 characters and newest/oldest sorting.',
     );
   return { offset, limit };
 }
@@ -49,11 +51,25 @@ export async function listHistory(root: string, access: HistoryAccess, options: 
       (!options.query ||
         `${chat.title} ${chat.nativeId}`.toLowerCase().includes(options.query.toLowerCase())),
   );
-  const chats = await Promise.all(
-    all
-      .slice(offset, offset + limit)
-      .map((chat) => titledHistoryChat(chat, historyEvents(root, chat.id, chat.revision))),
-  );
+  const candidates = options.sort ? all : all.slice(offset, offset + limit);
+  const presented: Awaited<ReturnType<typeof titledHistoryChat>>[] = [];
+  // Global sorting needs every matching date, with bounded concurrent file readers.
+  for (let start = 0; start < candidates.length; start += 8) {
+    presented.push(
+      ...(await Promise.all(
+        candidates
+          .slice(start, start + 8)
+          .map((chat) => titledHistoryChat(chat, historyEvents(root, chat.id, chat.revision))),
+      )),
+    );
+  }
+  if (options.sort)
+    presented.sort((a, b) => {
+      if (!a.startedAt || !b.startedAt) return a.startedAt ? -1 : b.startedAt ? 1 : 0;
+      const difference = Date.parse(a.startedAt) - Date.parse(b.startedAt);
+      return options.sort === 'oldest' ? difference : -difference;
+    });
+  const chats = options.sort ? presented.slice(offset, offset + limit) : presented;
   const permitted = new Set(visibleHistory(await readHistory(root), access).map((chat) => chat.id));
   if (chats.some((chat) => !permitted.has(chat.id)))
     throw new HubError('History access changed. Refresh the current scope.');

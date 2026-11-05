@@ -26,11 +26,15 @@ export function setupHistoryUi({ api, render, notice }) {
     const options = {
       offset: Number(params.get('offset') || 0),
       limit: 50,
+      sort: params.get('sort') === 'oldest' ? 'oldest' : 'newest',
       view: params.get('view') === 'events' ? 'events' : 'conversation',
     };
     if (params.get('project')) options.project = params.get('project');
     if (params.get('client')) options.client = params.get('client');
-    if (query) options.query = query;
+    if (query) {
+      options.query = query;
+      delete options.sort;
+    }
     return options;
   }
   async function fetchView(query, params, nextKey) {
@@ -110,7 +114,7 @@ export function setupHistoryUi({ api, render, notice }) {
       return empty('Reading local history…', 'Native clients are not being changed.');
     if (params.get('chat') && result?.chat)
       return historyConversation({ result, status, params, pager });
-    const filters = `<div class="tags"><select class="input" id="history-project"><option value="">All projects</option>${status.projects.map((project) => `<option value="${project.id}" ${params.get('project') === project.id ? 'selected' : ''}>${escape(project.label)} · ${project.chats}</option>`).join('')}</select><select class="input" id="history-client"><option value="">All clients</option>${['claude-code', 'codex', 'dsh'].map((client) => `<option value="${client}" ${params.get('client') === client ? 'selected' : ''}>${escape(clientLabels[client] || client)}</option>`).join('')}</select></div>`;
+    const filters = `<div class="tags"><select class="input" id="history-project"><option value="">All projects</option>${status.projects.map((project) => `<option value="${project.id}" ${params.get('project') === project.id ? 'selected' : ''}>${escape(project.label)} · ${project.chats}</option>`).join('')}</select><select class="input" id="history-client"><option value="">All clients</option>${['claude-code', 'codex', 'dsh'].map((client) => `<option value="${client}" ${params.get('client') === client ? 'selected' : ''}>${escape(clientLabels[client] || client)}</option>`).join('')}</select>${query ? '' : `<label class="small-note">Date <select class="input" id="history-sort"><option value="newest" ${params.get('sort') !== 'oldest' ? 'selected' : ''}>Newest first</option><option value="oldest" ${params.get('sort') === 'oldest' ? 'selected' : ''}>Oldest first</option></select></label>`}</div>`;
     const rows = result?.matches
       ? result.matches.map(
           (match) =>
@@ -296,9 +300,14 @@ export function setupHistoryUi({ api, render, notice }) {
       render();
     }
     if (element.id === 'history-auto') automatic = element.checked;
-    if (['history-project', 'history-client'].includes(element.id)) {
+    if (['history-project', 'history-client', 'history-sort'].includes(element.id)) {
       const params = Object.fromEntries(new URLSearchParams(location.hash.split('?')[1]));
-      params[element.id === 'history-project' ? 'project' : 'client'] = element.value;
+      const field = {
+        'history-project': 'project',
+        'history-client': 'client',
+        'history-sort': 'sort',
+      }[element.id];
+      params[field] = element.value;
       delete params.offset;
       location.hash = link('sessions', params);
     }

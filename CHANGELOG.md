@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Default chat lists and Overview conversations to newest native dates first. Add an oldest-first selector, sort before pagination and keep unknown dates last without changing archived data.
+
 - Show native conversation date/time in chat rows and the open conversation, in the browser’s local timezone. Existing archives work without reimport; missing timestamps are not replaced with capture dates.
 
 - Recognize existing connections to the same Hub across Node versions and package locations. Keep working launchers instead of reporting false MCP conflicts or migrating their paths. Do not offer launchers as original import sources; other Hub targets and launch overrides still require review.
