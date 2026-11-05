@@ -8,6 +8,11 @@ export function createStateRoutes(session: UiSession) {
   const { services, token } = session;
 
   const handle: UiRoute = async ({ req, url, json }) => {
+    if (req.method === 'GET' && url.pathname === '/api/mcp') {
+      const result = await services.mcp(url.searchParams.get('name') ?? '');
+      json(result ? 200 : 404, result ?? { error: 'MCP server not found.' });
+      return true;
+    }
     if (req.method === 'GET' && url.pathname === '/api/state') {
       let state: {
         [key: string]: unknown;

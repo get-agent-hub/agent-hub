@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Make MCP setup a per-server choice: explain differing settings, show both Hub/client directions and review client connections separately. Keep configuration JSON, batch operations and connection probes in disclosures. Compare credentials privately without returning their values.
+
 - Show one recorded root per project, with related folders in details and separate groups for ordinary or unavailable historical locations. Retain all associations, identities and client grants.
 
 - Use substantive chat titles instead of Claude terminal notices, greeting-only excerpts and pasted-content wrapper tags, including in existing archives without reimport. Keep list rows readable and archive metadata in conversation details.

@@ -15,6 +15,7 @@ import { planSync } from '../dist/core/mcp/sync.js';
 import { discoverProjects } from '../dist/core/projects/discovery.js';
 import { planContent } from '../dist/core/setup/content.js';
 import { listSkills } from '../dist/shared/fs.js';
+import { mcpDetails } from '../dist/ui/mcp-details.js';
 import { skillDocument, uiState } from '../dist/ui/data.js';
 import { startUiServer } from '../dist/ui/server.js';
 
@@ -345,6 +346,7 @@ const ui = await startUiServer({
     },
     state: (cwd = repo) => uiState(cwd, sources),
     skill: (name, source) => skillDocument(name, source, sources),
+    mcp: (name) => mcpDetails(name, sources),
     plan: (item, opts) => planImport(item, opts, sources),
     syncPlan: (opts) => planSync(opts, context),
     doctor: (opts, _, control) => runDoctor(opts, doctorContext, control),

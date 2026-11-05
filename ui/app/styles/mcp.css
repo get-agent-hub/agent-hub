@@ -1,0 +1,122 @@
+.mcp-layout {
+  grid-template-columns: minmax(240px, 0.85fr) minmax(0, 1.5fr);
+}
+.mcp-detail {
+  position: static;
+}
+.mcp-guide {
+  padding: 18px 22px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  margin-bottom: 20px;
+  font-size: 13px;
+}
+.mcp-guide p {
+  margin: 6px 0;
+  color: var(--muted);
+  max-width: 800px;
+}
+.mcp-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.mcp-filter .active {
+  background: var(--accent-bg);
+  border-color: var(--accent);
+}
+.mcp-detail > .card-b > p {
+  margin: 0 0 22px;
+  font-size: 13px;
+}
+.mcp-step {
+  margin-bottom: 26px;
+}
+.mcp-step > h3 {
+  color: var(--text);
+  font: 500 20px var(--serif);
+  margin: 0 0 10px;
+}
+.mcp-copy {
+  padding: 16px;
+  margin-top: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  min-width: 0;
+}
+.mcp-copy > .row {
+  flex-wrap: wrap;
+}
+.mcp-copy .row b {
+  font-size: 13px;
+}
+.mcp-copy .pill {
+  font-size: 10px;
+}
+.mcp-copy .btn {
+  height: auto;
+  min-height: 32px;
+  padding: 6px 10px;
+  white-space: normal;
+  margin-top: 14px;
+}
+.mcp-config {
+  margin-top: 12px;
+}
+.mcp-config summary,
+.mcp-all-copies summary {
+  color: var(--muted);
+  font-size: 12px;
+}
+.mcp-config .code {
+  margin-top: 12px;
+  max-height: 300px;
+}
+.mcp-client {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.mcp-client > div {
+  flex: 1;
+  min-width: 0;
+}
+.mcp-client b {
+  font-size: 13px;
+}
+.mcp-client .btn {
+  height: auto;
+  min-height: 32px;
+  max-width: 180px;
+  white-space: normal;
+  flex-shrink: 0;
+}
+.mcp-client:last-child {
+  border: 0;
+}
+.mcp-layout .resource-sources {
+  margin-top: 8px;
+}
+@media (max-width: 600px) {
+  .mcp-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .mcp-client {
+    flex-direction: column;
+  }
+  .mcp-client .btn {
+    max-width: 100%;
+  }
+  .mcp-guide {
+    padding: 16px;
+  }
+}
+
+#import-dialog .import-options[hidden],
+#sync-dialog label[hidden] {
+  display: none;
+}

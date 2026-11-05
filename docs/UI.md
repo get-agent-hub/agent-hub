@@ -28,6 +28,21 @@ A conversation opens with readable messages. Reasoning and tool output can be ex
 
 Memory records and native-memory automation are available through **Manage records** in Memory. The **Knowledge scope** selector chooses shared knowledge, the folder where the UI started or a registered project. The document list below contains shared index files, rather than individual knowledge records.
 
+## Share MCP server settings
+
+Open **All data → MCP servers**. Start with **Needs setup**:
+
+- **Settings differ**: the same server name has different launch settings. The comparison names what differs, such as the program, arguments, address or credentials. This does not mean the server is offline. Keep separate settings if the difference is intentional.
+- **Not in Hub**: choose a working client copy and **Add … copy to Hub**. This saves only that server in Hub; client files stay as they are.
+- **Ready to connect**: Hub has a definition, but some selected clients do not have it yet. Choose **Add to …** for each client where you want it.
+- **Settings match**: the launch settings agree. The client list distinguishes independent copies from connections that already use Hub. **Connect to Hub** replaces an equivalent independent entry with a Hub launcher after review.
+
+When a client differs from Hub, choose a direction: **Use Hub settings in …** updates only that server in the named client; **Use … settings in Hub** replaces only the Hub definition. Saving a client copy in Hub does not automatically update other clients. Review each client connection separately. Disabled clients and clients outside the server’s selected scope remain separate.
+
+Every action opens a preview. Check the named server and destination, then apply or cancel. Client writes keep unrelated entries and local tool policies, create a backup and reject plans when their inputs change. Restart affected clients after delivery.
+
+**View settings** and **Compare all copies** contain technical details; credential values stay hidden. Several entries with the same name in one client require reviewing those entries in that client before choosing a source. **Test the connection** is separate and starts a server probe only when requested. **Advanced** retains batch import and delivery; a blocked delivery links back to the affected server’s settings choice.
+
 ## Navigation and appearance
 
 Use Command/Ctrl+K to focus search. Keyboard focus has a visible outline; **Skip to content** bypasses navigation. Background reads preserve expanded details and focused controls within the same view. The theme button switches light/dark appearance and remembers it locally when browser storage is available. The layout adapts to a narrow screen.
@@ -43,6 +58,7 @@ The browser loads fonts, scripts and styles locally. It adds no frontend framewo
 
 | Route                            | Purpose                                                                                                                                                 |
 | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/mcp?name=…`            | Read-only comparison of a known server’s Hub/client copies, differing field names and sanitized settings; never arbitrary paths or credential values    |
 | `GET /api/state`                 | Actual hub/client status, sanitized registry definitions, known hub Markdown documents, current repository context, refresh timestamp and session token |
 | `GET /api/skill?name=…&source=…` | A skill selected from the discovered hub/client inventory; never an arbitrary filesystem path                                                           |
 | `POST /api/import/preview`       | Build an MCP import plan without writing; accepts `item`, `source`, `prefer`, `overwrite`                                                               |

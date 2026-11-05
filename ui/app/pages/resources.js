@@ -1,8 +1,4 @@
 import { escape, link, pill, empty, intro } from '../shared/html.js';
-import {
-  healthDetails as renderHealthDetails,
-  healthPill as renderHealthPill,
-} from '../entities/health.js';
 import { resourceSources, resourceComparison } from '../entities/resource.js';
 import { clientLabels as labels } from '../shared/navigation.js';
 
@@ -66,36 +62,6 @@ export function createResourcePages({ getState, getQuery, api, render, route }) 
         `<button class="btn" data-content-operation="skills-import">Import skills into Hub</button><button class="btn primary" data-content-operation="skills-sync">Sync skills → clients</button>`,
       ) +
       `<div class="split"><div class="card table-wrap">${items.length ? `<table class="table"><thead><tr><th>Skill</th><th>Found in</th></tr></thead><tbody>${items.map((s) => `<tr class="${s === selected ? 'selected' : ''}"><td class="name"><a class="row-link" href="${link('skills', { name: s.name })}">${escape(s.name)}</a>${Object.values(s.cells).includes('broken') ? `<div>${pill('Broken link', 'err')}</div>` : Object.values(s.cells).includes('other-copy') ? `<div>${pill('Separate copies', 'warn')}</div>` : ''}</td><td>${resourceSources(s.cells, cols)}</td></tr>`).join('')}</tbody></table>` : empty(query ? 'No matching skills' : 'No skills found', query ? 'Try another search.' : 'Add skills to your Hub or a client to see them here.')}</div><div class="card detail">${detail}</div></div>`
-    );
-  }
-
-  function mcpPage(params) {
-    const items = state.status.mcp.filter((m) =>
-      matches(m.name, JSON.stringify(state.servers.find((s) => s.name === m.name)?.config || {})),
-    );
-    const selected = items.find((s) => s.name === params.get('name')) || items[0];
-    const cols = columns();
-    let detail = empty('Select an MCP server', 'Choose a server to inspect its hub definition.');
-    if (selected) {
-      const server = state.servers.find((s) => s.name === selected.name);
-      detail = `<div class="card-h"><h2>${escape(selected.name)}</h2>${server ? pill(server.config.transport, 'accent') : pill('Client only', 'warn')}</div>${server ? `<pre class="code">${escape(JSON.stringify(server.config, null, 2))}</pre><div class="card-b"><h3>Secret references</h3>${server.references.length ? `<div class="tags">${server.references.map((r) => pill(r)).join('')}</div><p class="small-note">Values are resolved from .env when the server starts.</p>` : '<span class="muted">No secret references.</span>'}</div><div class="card-b"><h3>Client scope</h3><div class="tags">${(server.config.only || ['claude-code', 'codex', 'dsh']).map((id) => pill(labels[id] || id)).join('')}</div><p class="small-note">This is the intended scope. Use Sync to review and apply the client configuration.</p></div>` : empty('Not in your hub', 'Import this definition from a client to manage it centrally.')}${server ? renderHealthDetails(selected.name, state.doctor) : ''}<div class="card-b"><button class="btn" data-action="import" data-name="${escape(selected.name)}">${server ? 'Review re-import' : 'Import this server'}</button></div>`;
-    }
-    if (selected)
-      detail +=
-        resourceComparison(selected.cells, cols, 'mcp') +
-        directionActions(
-          'mcp',
-          selected.name,
-          cols.filter((id) => id !== 'hub' && selected.cells[id]),
-          state.servers.some((server) => server.name === selected.name),
-        );
-    return (
-      intro(
-        'MCP servers',
-        'One registry for your tools. Inspect definitions and check their connections.',
-        `<button class="btn" data-action="doctor">Check MCP</button><button class="btn" data-action="import">Import MCP</button><button class="btn primary" data-action="sync">Deliver to clients</button>`,
-      ) +
-      `<div class="split"><div class="card table-wrap">${items.length ? `<table class="table"><thead><tr><th>Server</th><th>Found in</th><th>Connection</th></tr></thead><tbody>${items.map((m) => `<tr class="${m === selected ? 'selected' : ''}"><td class="name"><a class="row-link" href="${link('mcp', { name: m.name })}">${escape(m.name)}</a><div class="minor">${m.inlineSecret ? pill('Inline secret', 'warn') : m.variants > 1 ? pill('Definitions differ', 'warn') : !m.cells.hub ? 'Client only' : escape(state.servers.find((s) => s.name === m.name)?.config.transport || 'In Hub')}</div></td><td>${resourceSources(m.cells, cols)}</td><td>${renderHealthPill(m.name, state.doctor)}</td></tr>`).join('')}</tbody></table>` : empty(query ? 'No matching servers' : 'No MCP servers found', query ? 'Try another search.' : 'Import client definitions to start your registry.')}</div><div class="card detail">${detail}</div></div>`
     );
   }
 
@@ -171,7 +137,6 @@ export function createResourcePages({ getState, getQuery, api, render, route }) 
       query = getQuery();
       return {
         skills: skillsPage,
-        mcp: mcpPage,
         instructions: instructionsPage,
         memory: memoryPage,
         repos: reposPage,

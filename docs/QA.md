@@ -2,6 +2,16 @@
 
 The implemented import → sync → doctor → restore flow was exercised through the live UI and production CLI on macOS. Client writes used temporary configurations. Production client configurations were not synchronized.
 
+## MCP settings choices — 2026-11-06
+
+`npm run check` and standalone coverage pass **296 tests**. Coverage is **92.87% lines**, **84.63% branches** and **90.91% functions**; architecture verifies **183 modules / 897 imports**.
+
+A targeted **29-test** MCP comparison/sync suite also passes on Node **22.13**. Package validation passes **374 files / 1,840,297 unpacked bytes**; the actual temporary-prefix installation passes and serves the new MCP assets and comparison API.
+
+Six new regressions cover effective configuration comparison, credential redaction, client-only policies, exact Hub launcher recognition, ambiguous duplicate entries, known-name-only HTTP reads, origin checks, setup states, explicit copy directions and retaining the selected server after setup. The read-only comparison does not return raw native fields, credential values or private fingerprints.
+
+A separate headless-browser run used only the synthetic QA profiles: cancelling an import left all native files byte-identical; choosing Claude then Codex copies changed only Hub; explicit delivery replaced only the named server in Claude; a late external edit rejected the old preview and survived a fresh reviewed apply. Other client files, unrelated entries and local settings were preserved. Adding the missing DSH connection was reviewed separately. Desktop/mobile screenshots were inspected; the 400px page had no horizontal overflow or runtime exceptions. Technical settings stayed collapsed and the synthetic credential was absent from DOM content. No real client configuration was applied.
+
 ## Readable lists and project locations — 2026-11-06
 
 `npm run check` and standalone coverage pass **290 tests**. Coverage is **92.61% lines**, **84.35% branches** and **90.74% functions**; architecture verifies **180 modules / 884 imports**. A targeted **19-test** title/presentation/navigation/project-view suite also passes on Node **22.13**. Package validation passes **369 files / 1,814,793 unpacked bytes** and the actual temporary-prefix installer passes all existing workflows and the new project asset.

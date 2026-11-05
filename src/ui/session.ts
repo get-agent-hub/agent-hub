@@ -13,6 +13,7 @@ import {
 } from '../core/setup/quick.js';
 import { hubRoot } from '../shared/paths.js';
 import { skillDocument, uiState } from './data.js';
+import { mcpDetails } from './mcp-details.js';
 import { revealDirectory } from './project-discovery.js';
 import type { HistorySource } from '../contracts/history.js';
 import type { SyncContext } from '../core/mcp/sync.js';
@@ -28,6 +29,7 @@ export type UiOptions = {
     plan?: typeof planImport;
     apply?: typeof applyImport;
     skill?: typeof skillDocument;
+    mcp?: typeof mcpDetails;
     syncPlan?: typeof planSync;
     syncApply?: typeof applySync;
     doctor?: typeof runDoctor;
@@ -62,6 +64,7 @@ export function createUiSession(options: UiOptions) {
     plan: planImport,
     apply: applyImport,
     skill: skillDocument,
+    mcp: mcpDetails,
     syncPlan: planSync,
     syncApply: applySync,
     doctor: runDoctor,

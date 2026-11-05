@@ -4,6 +4,7 @@ import { createView } from './shared/view.js';
 import { copy } from './shared/en.js';
 import { overviewPage } from './pages/overview.js';
 import { sourcesPage } from './pages/sources.js';
+import { createMcpPage } from './pages/mcp.js';
 import { createResourcePages } from './pages/resources.js';
 import { setupContentUi } from './features/content.js';
 import { setupMemoryUi } from './features/memory.js';
@@ -82,7 +83,11 @@ function render() {
   } else if (page === 'data') {
     body =
       dataTabs(resource) +
-      (resource === 'chats' ? historyUi.view(query, params) : resourcePages.view(resource, params));
+      (resource === 'chats'
+        ? historyUi.view(query, params)
+        : resource === 'mcp'
+          ? mcpPage.view(state, query, params)
+          : resourcePages.view(resource, params));
   } else if (page === 'projects') {
     body =
       resource === 'repos'
@@ -100,6 +105,7 @@ function render() {
   paint(body, `${page}:${resource}:${params.get('chat') || ''}:${params.get('revision') || ''}`);
 }
 
+const mcpPage = createMcpPage({ api, render });
 const resourcePages = createResourcePages({
   getState: () => state,
   getQuery: () => query,
@@ -126,6 +132,7 @@ async function load() {
     state = nextState;
     projectDiscovery.initialize();
     resourcePages.invalidate();
+    mcpPage.invalidate();
     const picker = $('#project-picker');
     picker.innerHTML =
       '<option value="">Shared knowledge</option><option value="@current">Folder where UI started</option>' +

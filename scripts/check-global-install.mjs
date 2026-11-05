@@ -141,6 +141,9 @@ try {
     '/pages/overview.js',
     '/pages/sources.js',
     '/pages/resources.js',
+    '/pages/mcp.js',
+    '/entities/mcp.js',
+    '/styles/mcp.css',
     '/features/quick.js',
     '/features/projects.js',
     '/features/history.js',
@@ -166,6 +169,12 @@ try {
   ])
     assert.equal((await fetch(`${url}${asset}`)).status, 200);
   const state = await (await fetch(`${url}/api/state`)).json();
+  if (state.status.mcp[0])
+    assert.equal(
+      (await fetch(`${url}/api/mcp?${new URLSearchParams({ name: state.status.mcp[0].name })}`))
+        .status,
+      200,
+    );
   assert.equal(state.status.hub.root, home);
   const post = async (route, body) => {
     const response = await fetch(`${url}${route}`, {
