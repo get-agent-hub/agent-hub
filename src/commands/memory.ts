@@ -1,18 +1,22 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { TextDecoder } from 'node:util';
-import { hubRoot } from '../core/paths.js';
-import { HubError } from '../core/errors.js';
-import { inspectArtifact, sameArtifact } from '../core/artifacts.js';
-import { memoryLocation, memoryRegistry, planMemoryProject } from '../core/memory-projects.js';
-import { MEMORY_LIMIT, queryMemory, type MemoryRecord } from '../core/memory-store.js';
 import {
   getMemory,
   planMemoryMutation,
   type MemoryContext,
   type MemoryMutation,
-} from '../core/memory.js';
-import { printJson, table } from '../core/output.js';
+} from '../core/memory/records.js';
+import { MEMORY_LIMIT, queryMemory, type MemoryRecord } from '../core/memory/store.js';
+import {
+  memoryLocation,
+  memoryRegistry,
+  planMemoryProject,
+} from '../core/projects/memory-bindings.js';
+import { inspectArtifact, sameArtifact } from '../shared/artifacts.js';
+import { HubError } from '../shared/errors.js';
+import { printJson, table } from '../shared/output.js';
+import { hubRoot } from '../shared/paths.js';
 import { runManaged, type ManagedOptions } from './content.js';
 
 export interface MemoryOptions extends ManagedOptions {

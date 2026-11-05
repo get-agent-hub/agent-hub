@@ -12,6 +12,7 @@ export default defineConfig([
     rules: {
       eqeqeq: ['error', 'always'],
       'no-var': 'error',
+      'no-duplicate-imports': ['error', { allowSeparateTypeImports: true }],
       'prefer-const': 'error',
       'no-unused-vars': [
         'error',
@@ -42,27 +43,20 @@ export default defineConfig([
         },
       ],
       '@typescript-eslint/no-floating-promises': 'error',
-      'no-restricted-imports': [
-        'error',
-        {
-          patterns: [
-            {
-              group: ['../commands/*', '../ui/*'],
-              message: 'Core modules must not depend on presentation layers.',
-            },
-          ],
-        },
-      ],
+      'max-lines': ['error', { max: 400 }],
+      'max-lines-per-function': ['error', { max: 250, skipBlankLines: true, skipComments: true }],
     },
   },
-  {
-    files: ['src/commands/**/*.ts', 'src/ui/**/*.ts', 'src/cli.ts'],
-    rules: { 'no-restricted-imports': 'off' },
-  },
+  { files: ['src/core/**/*.ts'], rules: { 'no-console': 'error' } },
+  { files: ['tests/**/*.mjs'], rules: { 'max-lines': ['error', { max: 800 }] } },
+  { files: ['scripts/**/*.mjs'], rules: { 'max-lines': ['error', { max: 400 }] } },
   {
     files: ['tests/**/*.mjs', 'scripts/**/*.mjs', '*.mjs'],
     languageOptions: { globals: globals.node },
   },
   { files: ['ui/**/*.js'], languageOptions: { globals: globals.browser } },
+  { files: ['ui/app/**/*.js'], rules: { 'max-lines': ['error', { max: 400 }] } },
+  // Existing browser shell is held at its current size until the separate UI rebuild.
+  { files: ['ui/app/app.js'], rules: { 'max-lines': ['error', { max: 765 }] } },
   prettier,
 ]);

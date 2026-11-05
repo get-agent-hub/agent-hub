@@ -1,7 +1,7 @@
-import { collectStatus, type Col, type SkillCell } from '../core/status.js';
-import { c, printJson, table } from '../core/output.js';
-import { readiness } from '../core/readiness.js';
-import { tildify } from '../core/paths.js';
+import { readiness } from '../core/overview/readiness.js';
+import { collectStatus, type Col, type SkillCell } from '../core/overview/status.js';
+import { c, printJson, table } from '../shared/output.js';
+import { tildify } from '../shared/paths.js';
 
 const skillMark: Record<SkillCell, string> = {
   ok: c.green('✓'),

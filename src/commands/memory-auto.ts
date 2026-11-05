@@ -1,15 +1,18 @@
 import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
-import { hubRoot } from '../core/paths.js';
-import { HubError } from '../core/errors.js';
-import { printJson } from '../core/output.js';
+import { readAutomation } from '../core/memory/automation/config.js';
+import {
+  getAutomaticConflict,
+  planAutomaticResolution,
+} from '../core/memory/automation/conflicts.js';
+import { automaticCheckpoint, memoryHook } from '../core/memory/automation/runtime.js';
+import { planAutomationDisable, planAutomationSetup } from '../core/memory/automation/setup.js';
+import { autoStatus } from '../core/memory/automation/status.js';
+import { planNativeSync, syncNativeAutomatically } from '../core/memory/automation/sync.js';
+import { HubError } from '../shared/errors.js';
+import { printJson } from '../shared/output.js';
+import { hubRoot } from '../shared/paths.js';
 import { runManaged, type ManagedOptions } from './content.js';
-import { planAutomationSetup, planAutomationDisable } from '../core/memory-auto-setup.js';
-import { planNativeSync, syncNativeAutomatically } from '../core/memory-auto-sync.js';
-import { automaticCheckpoint, memoryHook } from '../core/memory-auto-runtime.js';
-import { readAutomation } from '../core/memory-auto-config.js';
-import { autoStatus } from '../core/memory-auto-status.js';
-import { getAutomaticConflict, planAutomaticResolution } from '../core/memory-auto-conflicts.js';
 
 interface AutoOptions extends ManagedOptions {
   workspace?: string;

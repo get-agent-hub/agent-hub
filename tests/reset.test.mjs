@@ -1,19 +1,19 @@
 import assert from 'node:assert/strict';
-import { test } from 'node:test';
+import { execFileSync, spawnSync } from 'node:child_process';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { test } from 'node:test';
 import { pathToFileURL } from 'node:url';
-import { execFileSync, spawnSync } from 'node:child_process';
-import { stringify as yaml } from 'yaml';
 import { stringify as toml } from 'smol-toml';
-import { planSync, applySync } from '../dist/core/sync.js';
-import { planReset, applyReset, publicResetPlan } from '../dist/core/reset.js';
-import { readBaseline, baselineDirectory } from '../dist/core/baseline.js';
-import { inspectTree } from '../dist/core/recovery-tree.js';
-import { recoveryRoot } from '../dist/core/recovery-paths.js';
-import { withHubLock } from '../dist/core/hub-lock.js';
-import { planRestore, applyRestore } from '../dist/core/restore.js';
+import { stringify as yaml } from 'yaml';
+import { applySync, planSync } from '../dist/core/mcp/sync.js';
+import { baselineDirectory, readBaseline } from '../dist/core/recovery/baseline.js';
+import { applyReset, planReset, publicResetPlan } from '../dist/core/recovery/reset.js';
+import { applyRestore, planRestore } from '../dist/core/recovery/restore.js';
+import { withHubLock } from '../dist/shared/hub-lock.js';
+import { recoveryRoot } from '../dist/shared/recovery-paths.js';
+import { inspectTree } from '../dist/shared/recovery-tree.js';
 
 const cli = path.resolve('dist/cli.js');
 async function fixture(t, createHub = true) {
@@ -257,7 +257,7 @@ test('a killed sync leaves a recoverable intent journal; reset only recovers loc
   const f = await fixture(t);
   const target = await fs.realpath(f.file('dsh'));
   const script = path.join(f.base, 'crash.mjs');
-  const module = pathToFileURL(path.resolve('dist/core/sync.js')).href;
+  const module = pathToFileURL(path.resolve('dist/core/mcp/sync.js')).href;
   await fs.writeFile(
     script,
     `import fs from 'node:fs/promises'; import {planSync,applySync} from ${JSON.stringify(module)}; const rename=fs.rename.bind(fs); fs.rename=async(from,to)=>{await rename(from,to);if(to===${JSON.stringify(target)} && from.includes('.agent-hub-'))process.kill(process.pid,'SIGKILL');}; await applySync(await planSync({},${JSON.stringify(f.context)}));`,
@@ -393,7 +393,7 @@ test('reset can finish after a process is killed immediately after archiving the
       });
     else await applySync(await planSync({}, f.context));
     const script = path.join(f.base, 'crash-reset.mjs');
-    const module = pathToFileURL(path.resolve('dist/core/reset.js')).href;
+    const module = pathToFileURL(path.resolve('dist/core/recovery/reset.js')).href;
     await fs.writeFile(
       script,
       `import fs from 'node:fs/promises'; import {planReset,applyReset} from ${JSON.stringify(module)}; const rename=fs.rename.bind(fs); fs.rename=async(from,to)=>{await rename(from,to);if(from===${JSON.stringify(f.root)})process.kill(process.pid,'SIGKILL');}; const plan=await planReset({},${JSON.stringify(f.root)}); await applyReset(plan,plan.revision);`,

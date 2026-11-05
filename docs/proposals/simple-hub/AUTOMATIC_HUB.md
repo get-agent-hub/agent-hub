@@ -157,7 +157,7 @@ A native SQLite reader needs a consistent, side-effect-checked read/snapshot str
 | Quick collection skips existing definitions rather than reconciling all later edits                 | Add per-connection comparison and source-aware conflicts through existing planners                                     |
 | UI has eight resource/workflow destinations                                                         | Move everyday navigation to Overview, All data and Projects; preserve old actions through item details/advanced routes |
 
-Evidence: [adapter types](../../../src/core/types.ts), [Codex adapter](../../../src/adapters/codex.ts), [DSH adapter](../../../src/adapters/dsh.ts), [skill enumeration](../../../src/core/fs.ts), [status](../../../src/core/status.ts), [quick orchestration](../../../src/core/quick.ts), [current UI](../../../ui/app/app.js).
+Evidence: [adapter types](../../../src/contracts/clients.ts), [Codex adapter](../../../src/adapters/codex.ts), [DSH adapter](../../../src/adapters/dsh.ts), [skill enumeration](../../../src/shared/fs.ts), [status](../../../src/core/overview/status.ts), [quick orchestration](../../../src/core/setup/quick.ts), [current UI](../../../ui/app/app.js).
 
 ## Automation after connection
 

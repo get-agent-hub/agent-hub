@@ -1,26 +1,30 @@
-import test from 'node:test';
 import assert from 'node:assert/strict';
+import { execFile } from 'node:child_process';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { execFile } from 'node:child_process';
+import test from 'node:test';
 import { promisify } from 'node:util';
-import { planMemoryProject, memoryLocation } from '../dist/core/memory-projects.js';
-import { planAutomationSetup } from '../dist/core/memory-auto-setup.js';
-import { applyManagedPlan } from '../dist/core/managed-plan.js';
-import { syncNativeAutomatically } from '../dist/core/memory-auto-sync.js';
-import { queryMemory } from '../dist/core/memory-store.js';
-import { getMemory, planMemoryMutation } from '../dist/core/memory.js';
-import { planAutomationDisable } from '../dist/core/memory-auto-setup.js';
-import { autoStatus } from '../dist/core/memory-auto-status.js';
+import {
+  planAutomationDisable,
+  planAutomationSetup,
+} from '../dist/core/memory/automation/setup.js';
+import { memoryLocation, planMemoryProject } from '../dist/core/projects/memory-bindings.js';
+
+import { syncNativeAutomatically } from '../dist/core/memory/automation/sync.js';
+import { getMemory, planMemoryMutation } from '../dist/core/memory/records.js';
+import { queryMemory } from '../dist/core/memory/store.js';
+import { applyManagedPlan } from '../dist/core/recovery/managed-plan.js';
+
 import {
   getAutomaticConflict,
   planAutomaticResolution,
-} from '../dist/core/memory-auto-conflicts.js';
-import { createMemorySession } from '../dist/core/memory-session.js';
-import { automaticCheckpoint, memoryHook } from '../dist/core/memory-auto-runtime.js';
-import { startUiServer } from '../dist/ui/server.js';
+} from '../dist/core/memory/automation/conflicts.js';
+import { automaticCheckpoint, memoryHook } from '../dist/core/memory/automation/runtime.js';
+import { autoStatus } from '../dist/core/memory/automation/status.js';
+import { createMemorySession } from '../dist/core/memory/session.js';
 import { apply as dshMemory } from '../dist/integrations/dsh-memory.js';
+import { startUiServer } from '../dist/ui/server.js';
 
 const exec = promisify(execFile);
 async function apply(build) {

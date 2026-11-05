@@ -1,13 +1,13 @@
-import test from 'node:test';
 import assert from 'node:assert/strict';
+import { execFileSync, spawnSync } from 'node:child_process';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { execFileSync, spawnSync } from 'node:child_process';
-import { stringify as yaml } from 'yaml';
+import test from 'node:test';
 import { stringify as toml } from 'smol-toml';
-import { readDefinitions } from '../dist/core/config-edit.js';
-import { inspectArtifact } from '../dist/core/artifacts.js';
+import { stringify as yaml } from 'yaml';
+import { readDefinitions } from '../dist/core/mcp/config-edit.js';
+import { inspectArtifact } from '../dist/shared/artifacts.js';
 
 const cli = path.resolve('dist/cli.js');
 const secret = 'quick-fixture-private-token';

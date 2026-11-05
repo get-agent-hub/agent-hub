@@ -12,7 +12,7 @@
     "node": ">=22.13.0"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "node scripts/build.mjs",
     "dev": "tsx src/cli.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "npm run build && node scripts/test.mjs",
@@ -22,13 +22,14 @@
     "format": "prettier . --write",
     "format:check": "prettier . --check",
     "test:coverage": "npm run build && node scripts/test.mjs --coverage",
-    "check": "npm run format:check && npm run lint && npm run typecheck && npm test",
+    "check": "npm run format:check && npm run lint && npm run check:architecture && npm run typecheck && npm test",
     "prepack": "npm run build",
     "package:check": "npm run build && node scripts/check-package.mjs",
     "install:check": "npm run build && node scripts/check-global-install.mjs",
     "install:global": "npm run build && node scripts/install-global.mjs",
     "docs:commands": "npm run build && node scripts/write-command-reference.mjs",
-    "release:prepare": "npm run build && node scripts/prepare-release.mjs"
+    "release:prepare": "npm run build && node scripts/prepare-release.mjs",
+    "check:architecture": "node scripts/check-architecture.mjs"
   },
   "license": "MIT",
   "dependencies": {

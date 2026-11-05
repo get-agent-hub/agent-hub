@@ -1,21 +1,21 @@
-import { recoveryRoot } from '../dist/core/recovery-paths.js';
 import assert from 'node:assert/strict';
-import { test } from 'node:test';
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs/promises';
+import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
-import { execFileSync } from 'node:child_process';
+import { test } from 'node:test';
 import { stringify } from 'yaml';
-import http from 'node:http';
-import { runDoctor, cachedDoctor } from '../dist/core/doctor.js';
-import { checkService } from '../dist/core/doctor-service.js';
+import { cachedDoctor, runDoctor } from '../dist/core/diagnostics/doctor.js';
+import { checkService } from '../dist/core/diagnostics/service.js';
 import { n8nReadiness } from '../dist/integrations/health-checks.js';
-const checkN8nService = (env, timeout, signal) => checkService(n8nReadiness(env), timeout, signal);
+import { recoveryRoot } from '../dist/shared/recovery-paths.js';
 import { startUiServer } from '../dist/ui/server.js';
+const checkN8nService = (env, timeout, signal) => checkService(n8nReadiness(env), timeout, signal);
 
 const secret = 'doctor-test-super-private-session-value';
 const cli = path.resolve('dist/cli.js');
-const worker = path.resolve('dist/core/doctor-worker.js');
+const worker = path.resolve('dist/workers/doctor.js');
 const server = path.resolve('tests/fixtures/doctor-server.mjs');
 
 async function fixture(t, modes = { demo: 'healthy' }) {

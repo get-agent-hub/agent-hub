@@ -1,9 +1,9 @@
-import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { copyArtifact, inspectArtifact, sameArtifact } from '../dist/core/artifacts.js';
+import test from 'node:test';
+import { copyArtifact, inspectArtifact, sameArtifact } from '../dist/shared/artifacts.js';
 
 test('directory recovery copies preserve nested symlink modes under a restrictive umask without changing targets', async (t) => {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'ahub-link-modes-'));

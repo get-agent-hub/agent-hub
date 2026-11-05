@@ -2,7 +2,7 @@
 
 The live application is in `ui/app/`, served by `src/ui/server.ts` through `ahub ui`. The original `ui/mockups/` remains available as a visual reference; both use `ui/app/base.css`. Live assets are self-contained.
 
-The server calls the existing status collector and the shared `src/core/import-plan.ts` service. The CLI import command uses the same planner and writer. Internal plans contain secret values; only the explicit public plan projection is sent to the browser.
+The server calls the existing status collector and the shared `src/core/mcp/import-plan.ts` service. The CLI import command uses the same planner and writer. Internal plans contain secret values; only the explicit public plan projection is sent to the browser.
 
 ## Guided first run
 
@@ -32,11 +32,11 @@ The UI supports import, dry-run sync, guarded client MCP writes, filtering and d
 
 ## Next
 
-Run the personal workflow in [WORKING_GUIDE.md](WORKING_GUIDE.md), then complete release validation. Shared context delivery and repository templates are implemented; [CONTENT.md](CONTENT.md) defines their exact scope. Sync and restore are implemented in `src/core/sync.ts`, `config-edit.ts` and `restore.ts`; CLI and UI share the sync planner. Codex STDIO fields and local tool policies follow the [official OpenAI documentation](https://learn.chatgpt.com/docs/extend/mcp?surface=cli).
+Run the personal workflow in [WORKING_GUIDE.md](WORKING_GUIDE.md), then complete release validation. Shared context delivery and repository templates are implemented; [CONTENT.md](CONTENT.md) defines their exact scope. Sync and restore are implemented in `src/core/mcp/sync.ts`, `config-edit.ts` and `restore.ts`; CLI and UI share the sync planner. Codex STDIO fields and local tool policies follow the [official OpenAI documentation](https://learn.chatgpt.com/docs/extend/mcp?surface=cli).
 
 ## Doctor jobs
 
-`src/core/doctor.ts` schedules bounded probes and saves the last report. Each isolated worker uses the official SDK to connect through `ahub mcp run`, then lists tools without invoking any. The parent enforces an overall deadline and stops the process group on macOS/Linux, including descendants that ignore graceful termination. Errors are classified into fixed messages; raw logs never cross the worker boundary into reports.
+`src/core/diagnostics/doctor.ts` schedules bounded probes and saves the last report. Each isolated worker uses the official SDK to connect through `ahub mcp run`, then lists tools without invoking any. The parent enforces an overall deadline and stops the process group on macOS/Linux, including descendants that ignore graceful termination. Errors are classified into fixed messages; raw logs never cross the worker boundary into reports.
 
 HTTP jobs return immediately and can be polled; only one doctor job runs at a time in each UI server. Closing the server cancels its jobs and waits for cleanup. Jobs are bounded in memory. CLI and UI reports share `state/doctor.json`; a registry/credential revision marks old results stale. Check timestamps are always visible. This is connection/tool discovery evidence, separate from configuration drift and upstream API health.
 

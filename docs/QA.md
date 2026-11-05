@@ -2,6 +2,16 @@
 
 The implemented import → sync → doctor → restore flow was exercised through the live UI and production CLI on macOS. Client writes used temporary configurations. Production client configurations were not synchronized.
 
+## Structural refactor — 2026-11-05
+
+`npm run check` passes **243 tests**, formatting, lint, architecture checks and strict TypeScript. All **243** also pass on minimum Node **22.13.0**. Coverage on Node 25.2 is **93.07% lines**, **84.97% branches** and **90.91% functions**. Architecture checks inspect **137 modules and 720 imports**; negative fixtures cover prohibited dependencies, unresolved imports and runtime cycles. An isolated Git regression verifies that an explicitly selected Hub cannot mutate the unrelated default Hub.
+
+Package validation passes with **286 files** and **1,492,332 unpacked bytes**. The real installer passes in a temporary npm prefix, including both executable names, quick preview/apply, status, UI assets and a read-only discovery job from an unrelated directory. Clean builds remove stale output after source moves. The user's global installation is unchanged.
+
+A separate browser profile and synthetic 112-group fixture pass discovery progress, cancellation/retry, retained details/focus, 100-row pagination, cross-page search, stale results after failure, refresh, reload reattachment and source deselection. Desktop and 400px mobile screenshots were inspected; no runtime exceptions or horizontal overflow were found. Browser layout and behavior were retained, with the existing browser shell's size exception documented in [the code guide](CODE_GUIDE.md).
+
+These are local macOS checks, not a new remote CI run or real-client working trial. This refactor adds structure and guardrails; automatic inventory, all-area reconciliation and a full conversation archive remain implementation work described in [the proposal](proposals/simple-hub/README.md).
+
 ## Earlier MCP snapshot — 2026-11-02
 
 All **43 tests passed**, and JavaScript syntax and `git diff --check` passed.

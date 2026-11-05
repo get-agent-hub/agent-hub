@@ -3,25 +3,30 @@
 Use Node.js 22.13+ and install the locked dependencies with `npm ci`.
 
 ```sh
-npm run check          # Prettier, ESLint, typecheck, build and tests
+npm run check          # Prettier, ESLint, architecture, types, clean build and tests
+npm run check:architecture # Import boundaries and runtime cycles
 npm run test:coverage  # Runtime coverage; minimum 80% lines/functions, 75% branches
 npm run package:check  # Verify all required UI assets and the package allowlist
 npm run qa:ui          # Manual UI fixture; no production client writes
 ```
 
-`npm run format` applies the shared formatting rules. `npm run lint:fix` applies safe ESLint fixes. The flat ESLint configuration checks TypeScript and JavaScript, catches floating TypeScript promises, rejects explicit `any` and prevents core modules from importing CLI/UI code. `.editorconfig` and `.gitattributes` standardize whitespace and line endings. CI runs the same checks on macOS/Linux with Node 22.13 and 24. CI configuration is not evidence that those remote jobs have already passed.
+`npm run format` applies the shared formatting rules. `npm run lint:fix` applies safe ESLint fixes. The flat ESLint configuration checks TypeScript and JavaScript, catches floating TypeScript promises, rejects explicit `any`, duplicate imports and oversized runtime modules. The architecture check resolves real module paths to reject forbidden dependencies and runtime import cycles. `.editorconfig` and `.gitattributes` standardize whitespace and line endings. CI runs the same checks on macOS/Linux with Node 22.13 and 24. CI configuration is not evidence that those remote jobs have already passed.
 
 ## Structure
 
 The [simplification proposal](docs/proposals/simple-hub/README.md) records research on automatic project discovery, shared content and a smaller user-facing workflow. It separates proposed behavior from the released beta and includes source evidence and acceptance cases.
 
 - `src/commands`: thin CLI presentation and process lifecycle.
-- `src/core`: launch definitions, import/sync/restore planning, guarded file operations and domain services.
+- `src/core/<subsystem>`: configuration, MCP, skills, instructions, memory, projects, setup, recovery, diagnostics and overview operations.
+- `src/shared`: dependency-light filesystem, paths, locks and utility primitives; `src/contracts`: stable client/adapter contracts.
+- `src/workers`: isolated subprocess entry points.
 - `src/adapters`: client formats, client-local policy and location discovery.
 - `src/integrations`: optional provider presets; generic health transport stays in core.
-- `src/ui`: HTTP interface, safe public projections and document reading.
+- `src/ui`: HTTP lifecycle/protocol, operator session, focused route handlers and safe public queries.
 - `ui/app`: browser orchestration, HTML primitives and connection-status views; no bundler.
 - `tests`: Node's test runner with isolated temporary hubs and independent MCP fixtures.
+
+Read [the code guide](docs/CODE_GUIDE.md) for dependency rules, module ownership, enforced size limits and FSD principles for the future browser rebuild. [AGENTS.md](AGENTS.md) gives the same working rules to coding agents.
 
 Prefer small functions with one responsibility and explicit inputs over speculative interfaces or class hierarchies. Add shared helpers when two real callers need the same behavior. Keep runtime schema validation at file/HTTP boundaries. Do not let parser exceptions or server logs enter user-facing reports.
 

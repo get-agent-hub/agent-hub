@@ -1,11 +1,15 @@
-import { applyManagedPlan, publicManagedPlan, type ManagedPlan } from '../core/managed-plan.js';
+import { CLIENT_IDS, type ClientId } from '../contracts/clients.js';
+import {
+  applyManagedPlan,
+  publicManagedPlan,
+  type ManagedPlan,
+} from '../core/recovery/managed-plan.js';
+import { planRepoInit } from '../core/setup/repo-init.js';
+import { listHubSkills, planSkillAdd, planSkillRemove } from '../core/skills/skills.js';
+import { HubError } from '../shared/errors.js';
+import { printJson, table } from '../shared/output.js';
+import { hubRoot } from '../shared/paths.js';
 import { confirmReviewed, reviewMode } from './review.js';
-import { HubError } from '../core/errors.js';
-import { printJson, table } from '../core/output.js';
-import { hubRoot } from '../core/paths.js';
-import { listHubSkills, planSkillAdd, planSkillRemove } from '../core/skills.js';
-import { planRepoInit } from '../core/repo-init.js';
-import { CLIENT_IDS, type ClientId } from '../core/types.js';
 
 export interface ManagedOptions {
   terminalDefault?: boolean;

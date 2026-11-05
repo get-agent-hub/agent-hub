@@ -1,4 +1,4 @@
-import type { ClientId } from '../core/types.js';
+import type { ClientId } from '../contracts/clients.js';
 
 /** Client-local policy keys, never part of a shared MCP launch definition. */
 export const CODEX_POLICY_KEYS = [

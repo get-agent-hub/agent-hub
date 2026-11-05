@@ -1,29 +1,9 @@
-import { HubError } from '../core/errors.js';
-import { ensureBaseline, recordExpectedWrites } from '../core/baseline.js';
-import { withHubLock } from '../core/hub-lock.js';
-import { snapshot, writeChecked } from '../core/file-store.js';
-import fs from 'node:fs/promises';
-import path from 'node:path';
-import { stringify as stringifyYaml } from 'yaml';
 import { adapters } from '../adapters/index.js';
-import { exists } from '../core/fs.js';
-import { addRemote, commitPaths, initRepo, isOwnRepo } from '../core/git.js';
-import { c } from '../core/output.js';
-import { hubRoot, tildify } from '../core/paths.js';
-import { ask, confirm } from '../core/prompt.js';
-
-const DIRS = ['skills', 'mcp', 'instructions', 'memory', 'templates', 'backups', 'state'];
-
-const GITIGNORE = `# agent-hub — never commit secrets or machine-local state
-.env
-.env.*
-backups/
-legacy/
-state/
-*.log
-*.tmp
-.DS_Store
-`;
+import { initializeHub, type InitEvent } from '../core/setup/init.js';
+import { exists } from '../shared/fs.js';
+import { c } from '../shared/output.js';
+import { hubRoot, tildify } from '../shared/paths.js';
+import { ask, confirm } from '../shared/prompt.js';
 
 export async function initCommand(opts: {
   yes?: boolean;
@@ -40,7 +20,6 @@ export async function initCommand(opts: {
     ),
   );
 
-  // 1. clients
   const detected = await Promise.all(adapters.map(async (a) => ({ a, d: await a.detect() })));
   const enabled: Record<string, Record<string, unknown>> = {};
   for (const { a, d } of detected) {
@@ -60,90 +39,47 @@ export async function initCommand(opts: {
     };
   }
 
-  await withHubLock(root, async (origin) => {
-    await ensureBaseline(
-      root,
-      detected.flatMap(({ a, d }) => {
-        const file = d.paths.config ?? d.paths.profilePatch;
-        return typeof file === 'string' ? [{ file, client: a.id, installed: d.installed }] : [];
-      }),
-      origin,
-    );
-    if (opts.git !== false && (await exists(path.join(root, '.git')))) {
-      const metadata = await fs.lstat(path.join(root, '.git'));
-      if (!metadata.isDirectory() || metadata.isSymbolicLink())
-        throw new HubError(
-          'Git metadata outside the hub cannot be included in a complete reset. Use --no-git for an existing worktree or linked repository.',
-        );
-    }
-    // 2. layout
-    for (const d of DIRS) await fs.mkdir(path.join(root, d), { recursive: true });
-    await fs.chmod(root, 0o700).catch(() => undefined);
-
-    const hubYaml = path.join(root, 'hub.yaml');
-    if (!(await exists(hubYaml))) {
-      await fs.writeFile(
-        hubYaml,
-        `# agent-hub settings\n${stringifyYaml({ version: 1, clients: enabled })}`,
-        { flag: 'wx' },
-      );
-      console.log(`  ${c.green('+')} hub.yaml`);
-    }
-
-    const envFile = path.join(root, '.env');
-    const envBefore = await snapshot(envFile);
-    await recordExpectedWrites(root, [
-      {
-        before: { ...envBefore, mode: 0o600 },
-        after: envBefore.content ?? '# agent-hub secrets — git-ignored. KEY=value\n',
-      },
-    ]);
-    if (!(await exists(envFile))) {
-      await fs.writeFile(envFile, '# agent-hub secrets — git-ignored. KEY=value\n', {
-        mode: 0o600,
-        flag: 'wx',
-      });
-      console.log(`  ${c.green('+')} .env ${c.dim('(600)')}`);
-    } else {
-      await fs.chmod(envFile, 0o600);
-      console.log(`  ${c.dim('=')} .env ${c.dim('kept, permissions set to 600')}`);
-    }
-
-    const gi = path.join(root, '.gitignore');
-    const curGi = (await exists(gi)) ? await fs.readFile(gi, 'utf8') : '';
-    const missing = GITIGNORE.split('\n').filter(
-      (l) => l && !l.startsWith('#') && !curGi.split('\n').includes(l),
-    );
-    const giSnapshot = await snapshot(gi);
-    if (!curGi || missing.length) {
-      const after = !curGi ? GITIGNORE : `${curGi}\n${missing.join('\n')}\n`;
-      await recordExpectedWrites(root, [{ before: giSnapshot, after }]);
-      await writeChecked(giSnapshot, after);
-    }
-
-    // 4. git
-    const wantGit =
-      opts.git !== false && (opts.yes || (await confirm('  Track hub in git (local)?', true)));
-    if (wantGit) {
-      if (!isOwnRepo(root)) {
-        initRepo();
-        console.log(`  ${c.green('+')} git repo`);
-      }
-      const remote =
-        opts.remote ?? (opts.yes ? '' : await ask('  Remote URL (optional, Enter to skip):'));
-      if (remote) {
-        addRemote(remote);
-        console.log(`  ${c.green('+')} remote origin ${remote}`);
-      }
-      const sha = commitPaths(
-        ['hub.yaml', '.gitignore'],
-        fresh ? 'hub: init' : 'hub: init (adopt existing)',
-      );
-      if (sha) console.log(`  ${c.green('✓')} committed ${sha}`);
-    }
+  await initializeHub({
+    root,
+    fresh,
+    enabled,
+    targets: detected.flatMap(({ a, d }) => {
+      const file = d.paths.config ?? d.paths.profilePatch;
+      return typeof file === 'string' ? [{ file, client: a.id, installed: d.installed }] : [];
+    }),
+    gitAllowed: opts.git !== false,
+    configureGit: async () => {
+      const on =
+        opts.git !== false && (opts.yes || (await confirm('  Track hub in git (local)?', true)));
+      return {
+        enabled: !!on,
+        remote: on
+          ? (opts.remote ?? (opts.yes ? '' : await ask('  Remote URL (optional, Enter to skip):')))
+          : '',
+      };
+    },
+    report: reportInit,
   });
 
   console.log(
     `\nNext: ${c.cyan('ahub import --dry-run')} to pull MCP servers from your clients into the hub.`,
   );
+}
+
+function reportInit(event: InitEvent) {
+  if (event.type === 'file') {
+    const note =
+      event.name === '.env'
+        ? event.state === 'kept'
+          ? c.dim('kept, permissions set to 600')
+          : c.dim('(600)')
+        : '';
+    console.log(
+      event.state === 'kept'
+        ? `  ${c.dim('=')} ${event.name} ${note}`
+        : `  ${c.green('+')} ${event.name}${note ? ' ' + note : ''}`,
+    );
+  } else if (event.type === 'git-init') console.log(`  ${c.green('+')} git repo`);
+  else if (event.type === 'git-remote') console.log(`  ${c.green('+')} remote origin ${event.url}`);
+  else console.log(`  ${c.green('✓')} committed ${event.revision}`);
 }

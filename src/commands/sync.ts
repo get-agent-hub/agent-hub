@@ -1,13 +1,13 @@
-import { HubError } from '../core/errors.js';
-import { applySync, planSync, publicSyncPlan } from '../core/sync.js';
-import { applyRestore, planRestore, publicRestorePlan } from '../core/restore.js';
-import { printJson, table } from '../core/output.js';
-import type { ClientId } from '../core/types.js';
+import type { ClientId } from '../contracts/clients.js';
+import { planContextSync } from '../core/instructions/sync.js';
+import { applySync, planSync, publicSyncPlan } from '../core/mcp/sync.js';
+import { planManagedRestore } from '../core/recovery/managed-plan.js';
+import { applyRestore, planRestore, publicRestorePlan } from '../core/recovery/restore.js';
+import { planSkillSync } from '../core/skills/skills.js';
+import { HubError } from '../shared/errors.js';
+import { printJson, table } from '../shared/output.js';
+import { hubRoot } from '../shared/paths.js';
 import { runManaged } from './content.js';
-import { planSkillSync } from '../core/skills.js';
-import { hubRoot } from '../core/paths.js';
-import { planManagedRestore } from '../core/managed-plan.js';
-import { planContextSync } from '../core/context-sync.js';
 
 interface Options {
   area?: string;

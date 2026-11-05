@@ -16,6 +16,5 @@ coverage/
 
 # Local Agent Hub handoff and private research are not release source.
 /.agents/
-/AGENTS.md
 /CLAUDE.md
 /docs/research/

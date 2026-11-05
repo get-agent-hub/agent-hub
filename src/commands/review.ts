@@ -1,5 +1,5 @@
-import { confirm, interactive } from '../core/prompt.js';
-import { HubError } from '../core/errors.js';
+import { HubError } from '../shared/errors.js';
+import { confirm, interactive } from '../shared/prompt.js';
 
 export interface ReviewOptions {
   interactive?: boolean;

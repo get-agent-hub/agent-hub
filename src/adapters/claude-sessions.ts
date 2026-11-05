@@ -1,11 +1,11 @@
-import fs from 'node:fs/promises';
 import { constants } from 'node:fs';
+import fs from 'node:fs/promises';
 import path from 'node:path';
 import { StringDecoder } from 'node:string_decoder';
 import { setImmediate } from 'node:timers/promises';
-import type { SessionScan, SessionDiscoveryControl } from '../core/types.js';
-import { hash, isRecord } from '../core/values.js';
-import { isAbsoluteLocalPath } from '../core/paths.js';
+import type { SessionDiscoveryControl, SessionScan } from '../contracts/clients.js';
+import { isAbsoluteLocalPath } from '../shared/paths.js';
+import { hash, isRecord } from '../shared/values.js';
 
 // Per-job safety ceilings, separate from small batches used for progress and continuation.
 const defaults = {

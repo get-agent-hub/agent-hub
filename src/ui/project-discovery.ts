@@ -1,10 +1,10 @@
-import fs from 'node:fs/promises';
-import { randomBytes } from 'node:crypto';
 import { execFile } from 'node:child_process';
+import { randomBytes } from 'node:crypto';
+import fs from 'node:fs/promises';
 import { promisify } from 'node:util';
-import type { ClientId } from '../core/types.js';
-import type { DiscoveryControl, DiscoveryReport } from '../core/project-discovery.js';
-import { HubError } from '../core/errors.js';
+import type { ClientId } from '../contracts/clients.js';
+import type { DiscoveryControl, DiscoveryReport } from '../core/projects/discovery.js';
+import { HubError } from '../shared/errors.js';
 
 const exec = promisify(execFile);
 const empty = (): DiscoveryReport => ({

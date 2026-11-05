@@ -43,8 +43,8 @@ P1 blocks reliable discovery across supported sources. P2 affects truthful statu
 ## Evidence in the originally reviewed code (`7c6e650`)
 
 - [Claude reader](../../../src/adapters/claude-sessions.ts): fixed prefix/file/entry/byte budgets, complete-line parsing and no continuation. The terminal limit check explains R02.
-- [Project grouping](../../../src/core/project-discovery.ts): Git exit classification, source-only aggregate coverage and a verification limit that does not cap output cardinality.
-- [UI state](../../../src/ui/data.ts) and [status collection](../../../src/core/status.ts): bootstrap depends on multiple reads through `Promise.all`; a malformed unrelated client can reject the request.
+- [Project grouping](../../../src/core/projects/discovery.ts): Git exit classification, source-only aggregate coverage and a verification limit that does not cap output cardinality.
+- [UI state](../../../src/ui/data.ts) and [status collection](../../../src/core/overview/status.ts): bootstrap depends on multiple reads through `Promise.all`; a malformed unrelated client can reject the request.
 - [Discovery endpoint](../../../src/ui/server.ts): one active-request flag, without cancellation propagated to the reader.
 - [Projects UI](../../../ui/app/projects.js) and [app refresh](../../../ui/app/app.js): transient browser report, generic status and existing Refresh behavior.
 

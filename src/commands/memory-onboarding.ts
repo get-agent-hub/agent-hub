@@ -1,10 +1,10 @@
 import path from 'node:path';
-import { discoverMemory } from '../core/memory-discovery.js';
-import { planMemoryOnboarding } from '../core/memory-onboarding.js';
-import { hubRoot } from '../core/paths.js';
-import { printJson, table } from '../core/output.js';
+import { autoClient } from '../core/memory/automation/config.js';
+import { discoverMemory } from '../core/memory/discovery.js';
+import { planMemoryOnboarding } from '../core/memory/onboarding.js';
+import { printJson, table } from '../shared/output.js';
+import { hubRoot } from '../shared/paths.js';
 import { runManaged, type ManagedOptions } from './content.js';
-import { autoClient } from '../core/memory-auto-config.js';
 
 interface Options extends ManagedOptions {
   workspace?: string;

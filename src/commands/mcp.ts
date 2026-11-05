@@ -1,9 +1,9 @@
 import { spawn } from 'node:child_process';
-import { readEnvFile } from '../core/env.js';
-import { c, printJson, table } from '../core/output.js';
-import { envPath, inferTransport, readRegistry } from '../core/registry.js';
+import { readEnvFile } from '../core/configuration/env.js';
+import { envPath, inferTransport, readRegistry } from '../core/configuration/registry.js';
+import { c, printJson, table } from '../shared/output.js';
 
-import { buildLaunch } from '../core/launch.js';
+import { buildLaunch } from '../core/mcp/launch.js';
 const REF = /\$\{([A-Za-z_][A-Za-z0-9_]*)\}/g;
 
 /** stderr only — stdout belongs to the MCP JSON-RPC stream. */

@@ -36,4 +36,4 @@ Client formats and hook APIs can change. Adapter fixtures and a real working tri
 
 Popularity counts and a few forum threads do not establish product demand. The original research had gaps: inaccessible Reddit discussions, incomplete reviews of several memory systems, unverified third-party popularity figures and no systematic package-download analysis. Those gaps remain research tasks, not release evidence.
 
-Archived-session ingestion, cross-machine configuration policy and structured memory interchange should be driven by concrete user cases and their recovery boundaries. See [Use cases and demand](usecases-and-demand.md) for the original problem categories and [Design](DESIGN.md) for implemented versus planned behavior.
+Archived-session ingestion, cross-machine configuration policy and structured memory interchange should be driven by concrete user cases and their recovery boundaries. See the [current opportunity review](proposals/simple-hub/OPPORTUNITIES.md) for product priorities and [Design](DESIGN.md) for implemented versus planned behavior.

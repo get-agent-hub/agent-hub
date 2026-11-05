@@ -7,11 +7,11 @@ import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { planMemoryProject } from '../dist/core/memory-projects.js';
-import { planAutomationSetup } from '../dist/core/memory-auto-setup.js';
-import { applyManagedPlan } from '../dist/core/managed-plan.js';
-import { automaticCheckpoint } from '../dist/core/memory-auto-runtime.js';
-import { createMemorySession } from '../dist/core/memory-session.js';
+import { planMemoryProject } from '../dist/core/projects/memory-bindings.js';
+import { planAutomationSetup } from '../dist/core/memory/automation/setup.js';
+import { applyManagedPlan } from '../dist/core/recovery/managed-plan.js';
+import { automaticCheckpoint } from '../dist/core/memory/automation/runtime.js';
+import { createMemorySession } from '../dist/core/memory/session.js';
 import * as adapter from '../dist/integrations/dsh-memory.js';
 
 const packageDirectory = process.argv[2];

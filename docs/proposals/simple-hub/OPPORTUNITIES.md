@@ -53,7 +53,7 @@ These priorities rank experiments and development dependencies. They do not mark
 
 The desired result is concrete: edit one managed MCP definition in Codex, run Sync, and see that edit in Hub and an otherwise unchanged Claude connection. Keep Codex-only approval settings local. If Claude independently changed the same shared definition, preserve both versions and ask once for that item. An unrelated skill can still synchronize.
 
-Our current MCP sync primarily projects Hub definitions into native launchers; it is not this general bidirectional engine. Native-memory reconciliation already provides a narrower example. See [sync implementation](../../../src/core/sync.ts), [native memory reconciliation](../../../src/core/memory-auto-sync.ts) and [existing policies](POLICIES.md).
+Our current MCP sync primarily projects Hub definitions into native launchers; it is not this general bidirectional engine. Native-memory reconciliation already provides a narrower example. See [sync implementation](../../../src/core/mcp/sync.ts), [native memory reconciliation](../../../src/core/memory/automation/sync.ts) and [existing policies](POLICIES.md).
 
 Use the existing planners and writers, with a small per-connection record of the last acknowledged shared meaning and projection. Compare Hub, observed client and that base. Preserve client-only fields through the adapter, rather than inferring portability from matching names. A generated Hub launcher must never be imported as a new server that launches itself.
 
@@ -71,7 +71,7 @@ Hansard already handles integration name collisions, preserves unrelated setting
 
 Its documented reset clears Hansard data rather than restoring the machine's pre-install state; uninstall and archive-update recovery serve different scopes. This is a useful scope distinction for comparison, not evidence that Hansard lacks recovery. [Maintenance](https://www.hansard.dev/reference/maintenance/).
 
-Our baseline/reset, workflow undo and stage restore already distinguish several recovery scopes. Surface those accurately before adding another command. Later independent edits should block an unsafe whole-file undo; retain current data and give a narrow reviewed route forward. Do not promise a merge-preserving universal undo or a power-loss-safe transaction. [Recovery contract](../../RECOVERY.md), [guarded transaction writer](../../../src/core/file-transaction.ts).
+Our baseline/reset, workflow undo and stage restore already distinguish several recovery scopes. Surface those accurately before adding another command. Later independent edits should block an unsafe whole-file undo; retain current data and give a narrow reviewed route forward. Do not promise a merge-preserving universal undo or a power-loss-safe transaction. [Recovery contract](../../RECOVERY.md), [guarded transaction writer](../../../src/shared/file-transaction.ts).
 
 The potential advantage is the complete understandable lifecycle across selected resources, not the mere presence of backups. AgentSync already has a strong conditional MCP restore contract.
 
@@ -79,7 +79,7 @@ The potential advantage is the complete understandable lifecycle across selected
 
 Hansard's documented recall searches memories across projects unless filters narrow it. Filters are a retrieval choice, not necessarily an access boundary. That does not prove the absence of permissions in other Hansard subsystems. [Recall tools](https://www.hansard.dev/reference/provider-support/).
 
-Hub already binds its memory MCP session to one workspace; request arguments cannot select another project. Shared reading and writing require separate server options, and writes use expiring previews plus revision checks. This is a concrete current API property. It does not isolate an agent that can independently read all local files. [Memory session](../../../src/core/memory-session.ts), [MCP surface](../../../src/mcp/memory.ts).
+Hub already binds its memory MCP session to one workspace; request arguments cannot select another project. Shared reading and writing require separate server options, and writes use expiring previews plus revision checks. This is a concrete current API property. It does not isolate an agent that can independently read all local files. [Memory session](../../../src/core/memory/session.ts), [MCP surface](../../../src/mcp/memory.ts).
 
 Develop this as a useful collection of decisions and facts: provenance, updates, disagreements and deliberate promotion to Shared. Keep native memory intact and account for its format. Do not turn every transcript into permanent truth or automatically merge differently worded facts with a model. Hansard already offers reviewed memory workflows, so extraction and review alone are not a distinction.
 
@@ -89,7 +89,7 @@ Validate usefulness with real tasks: can Claude retrieve and use a decision save
 
 Hansard explicitly says its skills/MCP inventory does not test server responses or sign-ins. It also has diagnostics and activity evidence elsewhere; the inventory limitation is not a product-wide absence of diagnostics. [Inventory](https://www.hansard.dev/guides/skills-and-mcps/).
 
-Our current doctor separates process/protocol phases from optional backend readiness. Make those distinctions useful in one item: configured; client activation unknown or observed; MCP responded; service unavailable or unknown. The user's intentionally stopped n8n service is a representative scenario. Missing readiness support must remain unknown, not healthy. [Doctor types](../../../src/core/doctor-types.ts), [service checks](../../../src/core/doctor-service.ts).
+Our current doctor separates process/protocol phases from optional backend readiness. Make those distinctions useful in one item: configured; client activation unknown or observed; MCP responded; service unavailable or unknown. The user's intentionally stopped n8n service is a representative scenario. Missing readiness support must remain unknown, not healthy. [Doctor types](../../../src/core/diagnostics/types.ts), [service checks](../../../src/core/diagnostics/service.ts).
 
 Favor declared readiness capabilities and a small extensible adapter boundary over a growing set of brand-name checks. Run only authorized diagnostics; tool enumeration is different from invoking a tool. Do not promise that a successful tools/list response proves every operation works.
 

@@ -1,34 +1,34 @@
-import test from 'node:test';
 import assert from 'node:assert/strict';
+import { execFile } from 'node:child_process';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import test from 'node:test';
+import { fileURLToPath } from 'node:url';
+import { promisify } from 'node:util';
+import { planContextSync } from '../dist/core/instructions/sync.js';
 import {
+  applyManagedPlan,
+  planManagedRestore,
+  prepareArtifacts,
+  publicManagedPlan,
+} from '../dist/core/recovery/managed-plan.js';
+import { applyReset, planReset } from '../dist/core/recovery/reset.js';
+import { planContent } from '../dist/core/setup/content.js';
+import { planRepoInit } from '../dist/core/setup/repo-init.js';
+import {
+  planSkillAdd,
+  planSkillImport,
+  planSkillRemove,
+  planSkillSync,
+} from '../dist/core/skills/skills.js';
+import {
+  copyArtifact,
   inspectArtifact,
   replaceArtifact,
   writeArtifactTransaction,
-  copyArtifact,
-} from '../dist/core/artifacts.js';
-import {
-  planSkillAdd,
-  planSkillRemove,
-  planSkillImport,
-  planSkillSync,
-} from '../dist/core/skills.js';
-import {
-  applyManagedPlan,
-  publicManagedPlan,
-  planManagedRestore,
-  prepareArtifacts,
-} from '../dist/core/managed-plan.js';
-import { planReset, applyReset } from '../dist/core/reset.js';
-import { planContextSync } from '../dist/core/context-sync.js';
-import { planRepoInit } from '../dist/core/repo-init.js';
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
+} from '../dist/shared/artifacts.js';
 import { startUiServer } from '../dist/ui/server.js';
-import { planContent } from '../dist/ui/content.js';
-import { fileURLToPath } from 'node:url';
 
 const exec = promisify(execFile);
 

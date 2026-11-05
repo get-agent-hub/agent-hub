@@ -1,18 +1,18 @@
-import { recoveryRoot } from '../dist/core/recovery-paths.js';
 import assert from 'node:assert/strict';
-import { test } from 'node:test';
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { execFileSync } from 'node:child_process';
-import { parseEnvText, renderEnvAppend } from '../dist/core/env.js';
-import { snapshot, writeChecked } from '../dist/core/file-store.js';
-import { writeTransaction } from '../dist/core/file-transaction.js';
-import { withHubLock } from '../dist/core/hub-lock.js';
-import { planImport, applyImport } from '../dist/core/import-plan.js';
-import { parseRegistry } from '../dist/core/registry.js';
-import { formatCommand } from '../dist/core/shell.js';
+import { test } from 'node:test';
+import { parseEnvText, renderEnvAppend } from '../dist/core/configuration/env.js';
+import { parseRegistry } from '../dist/core/configuration/registry.js';
+import { applyImport, planImport } from '../dist/core/mcp/import-plan.js';
 import { serviceHealthCheck } from '../dist/integrations/health-checks.js';
+import { snapshot, writeChecked } from '../dist/shared/file-store.js';
+import { writeTransaction } from '../dist/shared/file-transaction.js';
+import { withHubLock } from '../dist/shared/hub-lock.js';
+import { recoveryRoot } from '../dist/shared/recovery-paths.js';
+import { formatCommand } from '../dist/shared/shell.js';
 import { healthPill, serviceDetails } from '../ui/app/health.js';
 
 async function fixture(t) {
@@ -241,7 +241,7 @@ test('CLI initialization and import leave unrelated staged work untouched', asyn
 });
 
 test('URL credentials are extracted before a registry can be committed', async () => {
-  const { extractSecrets, findLeftoverSecrets } = await import('../dist/core/importer.js');
+  const { extractSecrets, findLeftoverSecrets } = await import('../dist/core/mcp/importer.js');
   const url = 'https://user:fixture-password@example.com/mcp?token=fixture-query-token';
   const extracted = extractSecrets('demo', { url, args: [url, '--endpoint=' + url] }, new Map());
   assert.ok(!JSON.stringify(extracted.server).includes('fixture-password'));
@@ -329,7 +329,7 @@ test('production CLI completes import, copied sync, discovery and copied restore
 });
 
 test('remote launch preserves proxy routing without copying unrelated hub credentials into the process environment', async () => {
-  const { buildLaunch } = await import('../dist/core/launch.js');
+  const { buildLaunch } = await import('../dist/core/mcp/launch.js');
   const variables = new Map([
     ['HTTP_PROXY', 'http://proxy.example:8080'],
     ['HTTPS_PROXY', 'http://proxy.example:8080'],
@@ -349,7 +349,7 @@ test('remote launch preserves proxy routing without copying unrelated hub creden
 });
 
 test('re-import recognizes marked launchers from an earlier package path instead of nesting them', async () => {
-  const { collectCandidates } = await import('../dist/core/importer.js');
+  const { collectCandidates } = await import('../dist/core/mcp/importer.js');
   const raw = {
     command: '/old/runtime/node',
     args: ['/old/package/dist/cli.js', 'mcp', 'run', 'demo'],

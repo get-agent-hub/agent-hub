@@ -1,18 +1,18 @@
-import test from 'node:test';
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { execFileSync } from 'node:child_process';
+import test from 'node:test';
 import { confirmReviewed, reviewMode } from '../dist/commands/review.js';
-import { readiness } from '../dist/core/readiness.js';
+import { readiness } from '../dist/core/overview/readiness.js';
 import {
   memoryOverview,
   projectCatalog,
   registeredWorkspace,
-} from '../dist/core/project-catalog.js';
-import { planMemoryProject } from '../dist/core/memory-projects.js';
-import { applyManagedPlan } from '../dist/core/managed-plan.js';
+} from '../dist/core/projects/catalog.js';
+import { planMemoryProject } from '../dist/core/projects/memory-bindings.js';
+import { applyManagedPlan } from '../dist/core/recovery/managed-plan.js';
 import { startUiServer } from '../dist/ui/server.js';
 
 test('interactive confirmation is explicit, terminal-only and accepts only a reviewed unblocked plan', async () => {
@@ -108,7 +108,7 @@ test('readiness distinguishes untested, stale and verified connections, document
   assert.equal(untested.memory.state, 'not-connected');
   assert.equal(untested.memory.defaultScope, 'shared');
   assert.equal(untested.memory.sharedRecords, 0);
-  const { planMemoryMutation } = await import('../dist/core/memory.js');
+  const { planMemoryMutation } = await import('../dist/core/memory/records.js');
   for (const selector of [{ shared: true }, { workspace: f.projects[0] }]) {
     const build = () =>
       planMemoryMutation(
@@ -205,8 +205,8 @@ test('UI project selection validates registered identities and expires plans acr
 
 test('disconnect gates all checkouts and pending sessions while preserving knowledge and reconnect identity', async (t) => {
   const f = await fixture(t);
-  const { planProjectDisconnect } = await import('../dist/core/project-disconnect.js');
-  const { memoryLocation } = await import('../dist/core/memory-projects.js');
+  const { planProjectDisconnect } = await import('../dist/core/projects/disconnect.js');
+  const { memoryLocation } = await import('../dist/core/projects/memory-bindings.js');
   const directory = path.join(f.root, 'memory/projects/first');
   await fs.mkdir(path.join(directory, 'automation/sessions'), { recursive: true });
   await fs.writeFile(path.join(directory, 'retained.md'), 'User knowledge');
@@ -238,9 +238,9 @@ test('disconnect gates all checkouts and pending sessions while preserving knowl
 test('partially failed workflows can undo completed stages without replacing the first baseline', async (t) => {
   const f = await fixture(t);
   const { withWorkflowRecovery, planUndo, applyUndo } =
-    await import('../dist/core/workflow-recovery.js');
-  const { planReset, applyReset } = await import('../dist/core/reset.js');
-  const { inspectTree } = await import('../dist/core/recovery-tree.js');
+    await import('../dist/core/recovery/workflow-recovery.js');
+  const { planReset, applyReset } = await import('../dist/core/recovery/reset.js');
+  const { inspectTree } = await import('../dist/shared/recovery-tree.js');
   const before = (await inspectTree(f.root)).fingerprint;
   await assert.rejects(
     withWorkflowRecovery(
@@ -248,7 +248,7 @@ test('partially failed workflows can undo completed stages without replacing the
       'project',
       async () => {},
       async () => {
-        const { planProjectDisconnect } = await import('../dist/core/project-disconnect.js');
+        const { planProjectDisconnect } = await import('../dist/core/projects/disconnect.js');
         const build = () => planProjectDisconnect(f.root, 'first');
         const plan = await build();
         await applyManagedPlan(plan, build, plan.revision);

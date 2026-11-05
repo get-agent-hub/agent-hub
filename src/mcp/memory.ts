@@ -1,11 +1,11 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { ListToolsRequestSchema, CallToolRequestSchema } from '@modelcontextprotocol/sdk/types.js';
-import { createMemorySession, type MemorySessionOptions } from '../core/memory-session.js';
-import { memoryLocation } from '../core/memory-projects.js';
-import { packageVersion } from '../core/package.js';
-import { HubError } from '../core/errors.js';
-import { automaticCheckpoint } from '../core/memory-auto-runtime.js';
+import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import { automaticCheckpoint } from '../core/memory/automation/runtime.js';
+import { createMemorySession, type MemorySessionOptions } from '../core/memory/session.js';
+import { memoryLocation } from '../core/projects/memory-bindings.js';
+import { HubError } from '../shared/errors.js';
+import { packageVersion } from '../shared/package.js';
 
 export function createMemoryServer(options: MemorySessionOptions) {
   const session = createMemorySession(options);

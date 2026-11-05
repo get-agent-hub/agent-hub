@@ -1,12 +1,12 @@
-import { applyImport, planImport, publicImportPlan } from '../core/import-plan.js';
-import { c, printJson, table } from '../core/output.js';
-import { tildify } from '../core/paths.js';
-import { envPath } from '../core/registry.js';
+import type { ClientId } from '../contracts/clients.js';
+import { envPath } from '../core/configuration/registry.js';
+import { applyImport, planImport, publicImportPlan } from '../core/mcp/import-plan.js';
+import { planSkillImport } from '../core/skills/skills.js';
+import { HubError } from '../shared/errors.js';
+import { c, printJson, table } from '../shared/output.js';
+import { tildify } from '../shared/paths.js';
 import { runManaged } from './content.js';
-import { planSkillImport } from '../core/skills.js';
 import { confirmReviewed, reviewMode } from './review.js';
-import type { ClientId } from '../core/types.js';
-import { HubError } from '../core/errors.js';
 
 interface Opts {
   source?: ClientId;

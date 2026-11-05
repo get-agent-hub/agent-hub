@@ -1,8 +1,13 @@
-import { planQuick, applyQuick, planProjectConnect, applyProjectConnect } from '../core/quick.js';
-import { printJson, table } from '../core/output.js';
+import type { ClientId } from '../contracts/clients.js';
+import {
+  applyProjectConnect,
+  applyQuick,
+  planProjectConnect,
+  planQuick,
+} from '../core/setup/quick.js';
+import { HubError } from '../shared/errors.js';
+import { printJson, table } from '../shared/output.js';
 import { confirmReviewed, reviewMode } from './review.js';
-import { HubError } from '../core/errors.js';
-import type { ClientId } from '../core/types.js';
 
 interface Options {
   advanced?: boolean;

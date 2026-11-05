@@ -1,6 +1,6 @@
-import readline from 'node:readline';
-import fs from 'node:fs';
 import { spawn } from 'node:child_process';
+import fs from 'node:fs';
+import readline from 'node:readline';
 
 const mode = process.env.FIXTURE_MODE || 'healthy';
 const record = (file, value) => {

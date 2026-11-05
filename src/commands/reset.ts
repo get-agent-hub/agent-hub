@@ -1,6 +1,6 @@
-import { planReset, publicResetPlan, applyReset } from '../core/reset.js';
-import { HubError } from '../core/errors.js';
-import { printJson, table } from '../core/output.js';
+import { applyReset, planReset, publicResetPlan } from '../core/recovery/reset.js';
+import { HubError } from '../shared/errors.js';
+import { printJson, table } from '../shared/output.js';
 
 interface Options {
   apply?: boolean;

@@ -1,17 +1,16 @@
-import { readDefinitions } from '../core/config-edit.js';
-import { readSettings, dshProfile } from '../core/settings.js';
-import { hubRoot } from '../core/paths.js';
 import path from 'node:path';
-import { clientPaths } from '../core/paths.js';
-import { exists, listSkills, readText } from '../core/fs.js';
-import { toMcpEntry } from '../core/mcp.js';
 import type {
   ClientAdapter,
   ClientSnapshot,
   DetectResult,
   RawMcp,
   SkillEntry,
-} from '../core/types.js';
+} from '../contracts/clients.js';
+import { dshProfile, readSettings } from '../core/configuration/settings.js';
+import { readDefinitions } from '../core/mcp/config-edit.js';
+import { toMcpEntry } from '../core/mcp/mcp.js';
+import { exists, listSkills, readText } from '../shared/fs.js';
+import { clientPaths, hubRoot } from '../shared/paths.js';
 
 async function patchPath(): Promise<string> {
   return path.join(

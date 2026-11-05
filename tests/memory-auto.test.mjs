@@ -1,27 +1,30 @@
-import test from 'node:test';
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import assert from 'node:assert/strict';
+import { execFile, spawn } from 'node:child_process';
+import { once } from 'node:events';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { execFile, spawn } from 'node:child_process';
-import { promisify } from 'node:util';
-import { once } from 'node:events';
+import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import { promisify } from 'node:util';
+import { automaticCheckpoint, memoryHook } from '../dist/core/memory/automation/runtime.js';
+import {
+  planAutomationDisable,
+  planAutomationSetup,
+} from '../dist/core/memory/automation/setup.js';
+import { autoStatus } from '../dist/core/memory/automation/status.js';
+import { planNativeSync, syncNativeAutomatically } from '../dist/core/memory/automation/sync.js';
+import { getMemory, planMemoryMutation } from '../dist/core/memory/records.js';
+import { queryMemory } from '../dist/core/memory/store.js';
+import { memoryLocation, planMemoryProject } from '../dist/core/projects/memory-bindings.js';
 import {
   applyManagedPlan,
   planManagedRestore,
   publicManagedPlan,
-} from '../dist/core/managed-plan.js';
-import { planMemoryProject, memoryLocation } from '../dist/core/memory-projects.js';
-import { queryMemory } from '../dist/core/memory-store.js';
-import { planMemoryMutation, getMemory } from '../dist/core/memory.js';
-import { planAutomationSetup, planAutomationDisable } from '../dist/core/memory-auto-setup.js';
-import { planNativeSync, syncNativeAutomatically } from '../dist/core/memory-auto-sync.js';
-import { memoryHook, automaticCheckpoint } from '../dist/core/memory-auto-runtime.js';
-import { autoStatus } from '../dist/core/memory-auto-status.js';
-import { hash } from '../dist/core/values.js';
+} from '../dist/core/recovery/managed-plan.js';
+import { hash } from '../dist/shared/values.js';
 
 const exec = promisify(execFile);
 const cli = fileURLToPath(new URL('../dist/cli.js', import.meta.url));

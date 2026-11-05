@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
-import { test, before, after } from 'node:test';
 import fs from 'node:fs/promises';
+import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
-import http from 'node:http';
-import { startUiServer } from '../dist/ui/server.js';
+import { after, before, test } from 'node:test';
+import { planImport } from '../dist/core/mcp/import-plan.js';
 import { displayServer, documentAt, skillDocument } from '../dist/ui/data.js';
-import { planImport } from '../dist/core/import-plan.js';
+import { startUiServer } from '../dist/ui/server.js';
 
 const fixture = await fs.mkdtemp(path.join(os.tmpdir(), 'agent-hub-ui-'));
 const previousRoot = process.env.AGENT_HUB_HOME;

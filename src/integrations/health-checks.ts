@@ -1,4 +1,4 @@
-import type { HealthCheck, HubServer } from '../core/registry.js';
+import type { HealthCheck, HubServer } from '../core/configuration/registry.js';
 
 /** Compatibility preset; all transport, timeout and error handling lives in the generic probe. */
 export function n8nReadiness(env: Record<string, string>): HealthCheck | undefined {

@@ -1,6 +1,6 @@
-import { runDoctor } from '../core/doctor.js';
-import { c, printJson, table } from '../core/output.js';
-import type { ClientId } from '../core/types.js';
+import type { ClientId } from '../contracts/clients.js';
+import { runDoctor } from '../core/diagnostics/doctor.js';
+import { c, printJson, table } from '../shared/output.js';
 
 export async function doctorCommand(
   name: string | undefined,

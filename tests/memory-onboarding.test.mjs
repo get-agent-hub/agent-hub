@@ -1,25 +1,26 @@
-import test from 'node:test';
 import assert from 'node:assert/strict';
+import { execFile } from 'node:child_process';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
+import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { discoverMemory } from '../dist/core/memory-discovery.js';
-import { planMemoryOnboarding } from '../dist/core/memory-onboarding.js';
-import { planMemoryProject } from '../dist/core/memory-projects.js';
+import { promisify } from 'node:util';
+import { discoverMemory } from '../dist/core/memory/discovery.js';
+import { planMemoryOnboarding } from '../dist/core/memory/onboarding.js';
+import { memoryLocation, planMemoryProject } from '../dist/core/projects/memory-bindings.js';
+
+import { queryMemory } from '../dist/core/memory/store.js';
 import {
   applyManagedPlan,
   planManagedRestore,
   publicManagedPlan,
-} from '../dist/core/managed-plan.js';
-import { queryMemory } from '../dist/core/memory-store.js';
-import { memoryLocation } from '../dist/core/memory-projects.js';
-import { getMemory } from '../dist/core/memory.js';
-import { readAutomation } from '../dist/core/memory-auto-config.js';
-import { syncNativeAutomatically } from '../dist/core/memory-auto-sync.js';
-import { createMemorySession } from '../dist/core/memory-session.js';
+} from '../dist/core/recovery/managed-plan.js';
+
+import { readAutomation } from '../dist/core/memory/automation/config.js';
+import { syncNativeAutomatically } from '../dist/core/memory/automation/sync.js';
+import { getMemory } from '../dist/core/memory/records.js';
+import { createMemorySession } from '../dist/core/memory/session.js';
 import { startUiServer } from '../dist/ui/server.js';
 
 const exec = promisify(execFile);

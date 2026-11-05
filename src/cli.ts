@@ -1,47 +1,47 @@
 #!/usr/bin/env node
-import { configureCliHelp } from './commands/catalog.js';
-import { quickCommand, projectConnectCommand } from './commands/quick.js';
-import { planProjectDisconnect } from './core/project-disconnect.js';
-import { runManaged } from './commands/content.js';
-import { undoCommand } from './commands/undo.js';
-import { resetCommand } from './commands/reset.js';
 import { Command, Option } from 'commander';
-import { packageVersion } from './core/package.js';
+import { configureCliHelp } from './commands/catalog.js';
+import {
+  repoInitCommand,
+  runManaged,
+  skillAddCommand,
+  skillListCommand,
+  skillRemoveCommand,
+} from './commands/content.js';
+import { doctorCommand } from './commands/doctor.js';
 import { importCommand } from './commands/import.js';
 import { initCommand } from './commands/init.js';
 import { mcpLsCommand, mcpRunCommand } from './commands/mcp.js';
-import { statusCommand } from './commands/status.js';
-import { uiCommand } from './commands/ui.js';
-import { syncCommand, restoreCommand } from './commands/sync.js';
-import { doctorCommand } from './commands/doctor.js';
-import { notImplemented } from './commands/stub.js';
+import {
+  autoCheckpointCommand,
+  autoConflictGetCommand,
+  autoConflictResolveCommand,
+  autoDisableCommand,
+  autoEnableCommand,
+  autoHookCommand,
+  autoStatusCommand,
+  autoSyncCommand,
+  autoWatchCommand,
+} from './commands/memory-auto.js';
+import { memoryDiscoverCommand, memoryOnboardCommand } from './commands/memory-onboarding.js';
 import {
   memoryGetCommand,
   memoryListCommand,
-  memoryWriteCommand,
   memoryProjectCommand,
   memoryProjectsCommand,
+  memoryWriteCommand,
 } from './commands/memory.js';
+import { projectConnectCommand, quickCommand } from './commands/quick.js';
+import { resetCommand } from './commands/reset.js';
+import { statusCommand } from './commands/status.js';
+import { notImplemented } from './commands/stub.js';
+import { restoreCommand, syncCommand } from './commands/sync.js';
+import { uiCommand } from './commands/ui.js';
+import { undoCommand } from './commands/undo.js';
+import { planProjectDisconnect } from './core/projects/disconnect.js';
 import { serveMemory } from './mcp/memory.js';
-import { hubRoot } from './core/paths.js';
-import { memoryDiscoverCommand, memoryOnboardCommand } from './commands/memory-onboarding.js';
-import {
-  autoEnableCommand,
-  autoDisableCommand,
-  autoSyncCommand,
-  autoHookCommand,
-  autoCheckpointCommand,
-  autoStatusCommand,
-  autoWatchCommand,
-  autoConflictGetCommand,
-  autoConflictResolveCommand,
-} from './commands/memory-auto.js';
-import {
-  skillListCommand,
-  skillAddCommand,
-  skillRemoveCommand,
-  repoInitCommand,
-} from './commands/content.js';
+import { packageVersion } from './shared/package.js';
+import { hubRoot } from './shared/paths.js';
 
 const program = new Command();
 

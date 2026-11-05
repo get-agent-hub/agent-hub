@@ -1,24 +1,24 @@
-import test from 'node:test';
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import assert from 'node:assert/strict';
+import { execFile } from 'node:child_process';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
+import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
-import { memoryLocation, planMemoryProject } from '../dist/core/memory-projects.js';
-import { decodeMemory, encodeMemory, queryMemory } from '../dist/core/memory-store.js';
-import { getMemory, planMemoryMutation } from '../dist/core/memory.js';
-import { createMemorySession } from '../dist/core/memory-session.js';
-import { startUiServer } from '../dist/ui/server.js';
-import { planReset, applyReset } from '../dist/core/reset.js';
+import { promisify } from 'node:util';
+import { getMemory, planMemoryMutation } from '../dist/core/memory/records.js';
+import { createMemorySession } from '../dist/core/memory/session.js';
+import { decodeMemory, encodeMemory, queryMemory } from '../dist/core/memory/store.js';
+import { memoryLocation, planMemoryProject } from '../dist/core/projects/memory-bindings.js';
 import {
   applyManagedPlan,
-  publicManagedPlan,
   planManagedRestore,
-} from '../dist/core/managed-plan.js';
+  publicManagedPlan,
+} from '../dist/core/recovery/managed-plan.js';
+import { applyReset, planReset } from '../dist/core/recovery/reset.js';
+import { startUiServer } from '../dist/ui/server.js';
 
 const exec = promisify(execFile);
 const cli = fileURLToPath(new URL('../dist/cli.js', import.meta.url));

@@ -1,7 +1,7 @@
-import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
+import test from 'node:test';
 import { format } from 'prettier';
 import { commandGuide, commandReference } from '../dist/commands/catalog.js';
 

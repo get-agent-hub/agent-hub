@@ -8,17 +8,17 @@ Firecrawl was unavailable with HTTP 402; official pages and public source were r
 
 ## What the current beta already provides
 
-| Area             | Evidence in the reviewed source                                                                  | Consequence                                                                      |
-| ---------------- | ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
-| Setup            | `src/core/quick.ts` composes collection/delivery                                                 | Extend it; do not build another wizard engine                                    |
-| Client support   | Closed IDs in `src/core/types.ts`, fixed `src/adapters/index.ts`; client checks outside adapters | Centralize formats/capabilities; custom paths alone cannot parse unknown formats |
-| Sharing          | `skill-sync.ts`, `skill-bundle.ts`, `sync.ts`                                                    | Keep individual bundle links and Hub launchers                                   |
-| Repeat import    | `import-plan.ts` skips existing Hub MCP definitions without overwrite                            | Repeat quick is not automatic three-way reconciliation                           |
-| Project evidence | `memory-discovery.ts` reads bounded Claude metadata for a selected Git workspace                 | Reuse evidence handling, but it is not a global project/chat catalog             |
-| Project identity | `memory-projects.ts` includes path/filesystem data in bindings                                   | Folder moves are not already transparent                                         |
-| Notes            | `memory-store.ts` requires structured metadata; native import converts text                      | Native Markdown cannot simply replace the records directory                      |
-| Recovery         | `managed-plan.ts`, guarded writes and workflow recovery                                          | Preserve stale-plan/later-edit checks and partial-operation reporting            |
-| Chats            | Sessions view in `ui/app/app.js` is a placeholder                                                | Archive/search/families are new functionality                                    |
+| Area             | Evidence in the reviewed source                                                                         | Consequence                                                                      |
+| ---------------- | ------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| Setup            | `src/core/setup/quick.ts` composes collection/delivery                                                  | Extend it; do not build another wizard engine                                    |
+| Client support   | Closed IDs in `src/contracts/clients.ts`, fixed `src/adapters/index.ts`; client checks outside adapters | Centralize formats/capabilities; custom paths alone cannot parse unknown formats |
+| Sharing          | `skill-sync.ts`, `skill-bundle.ts`, `sync.ts`                                                           | Keep individual bundle links and Hub launchers                                   |
+| Repeat import    | `import-plan.ts` skips existing Hub MCP definitions without overwrite                                   | Repeat quick is not automatic three-way reconciliation                           |
+| Project evidence | `memory-discovery.ts` reads bounded Claude metadata for a selected Git workspace                        | Reuse evidence handling, but it is not a global project/chat catalog             |
+| Project identity | `memory-projects.ts` includes path/filesystem data in bindings                                          | Folder moves are not already transparent                                         |
+| Notes            | `memory-store.ts` requires structured metadata; native import converts text                             | Native Markdown cannot simply replace the records directory                      |
+| Recovery         | `managed-plan.ts`, guarded writes and workflow recovery                                                 | Preserve stale-plan/later-edit checks and partial-operation reporting            |
+| Chats            | Sessions view in `ui/app/app.js` is a placeholder                                                       | Archive/search/families are new functionality                                    |
 
 The earlier review counted 46 CLI guide entries including groups/callbacks, 24 landing command cards and 17 documentation pages per locale. These describe information volume, not proof that a particular module or command is unnecessary. A client registry should remove repeated format knowledge; a smaller file count is not a goal.
 

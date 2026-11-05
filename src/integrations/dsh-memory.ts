@@ -1,8 +1,8 @@
-import path from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { memoryHook } from '../core/memory-auto-runtime.js';
-import { isRecord } from '../core/values.js';
-import { HubError } from '../core/errors.js';
+import path from 'node:path';
+import { memoryHook } from '../core/memory/automation/runtime.js';
+import { HubError } from '../shared/errors.js';
+import { isRecord } from '../shared/values.js';
 
 interface Message {
   readonly id: string;

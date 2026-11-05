@@ -1,4 +1,4 @@
-import { c } from '../core/output.js';
+import { c } from '../shared/output.js';
 
 /** Placeholder for commands planned in docs/DESIGN.md but not implemented yet. */
 export function notImplemented(name: string) {

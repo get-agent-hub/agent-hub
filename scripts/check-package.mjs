@@ -11,10 +11,17 @@ const [archive] = JSON.parse(
 const files = new Set(archive.files.map((file) => file.path));
 for (const required of [
   'dist/cli.js',
+  'dist/shared/runtime.js',
+  'dist/workers/doctor.js',
+  'dist/core/mcp/sync/plan.js',
+  'dist/core/setup/quick/apply.js',
+  'dist/ui/routes/discovery.js',
+  'dist/ui/routes/memory.js',
+  'dist/ui/session.js',
   'npm-shrinkwrap.json',
-  'dist/core/workflow-recovery.js',
-  'dist/core/project-disconnect.js',
-  'dist/core/quick.js',
+  'dist/core/recovery/workflow-recovery.js',
+  'dist/core/projects/disconnect.js',
+  'dist/core/setup/quick.js',
   'dist/commands/quick.js',
   'ui/app/quick.js',
   'docs/README.md',
@@ -22,8 +29,8 @@ for (const required of [
   'docs/CLI.md',
   'docs/RELEASE.md',
   'dist/integrations/dsh-memory.js',
-  'dist/core/memory-discovery.js',
-  'dist/core/memory-onboarding.js',
+  'dist/core/memory/discovery.js',
+  'dist/core/memory/onboarding.js',
   'dist/commands/memory-onboarding.js',
   'ui/app/index.html',
   'ui/app/app.js',
@@ -32,7 +39,7 @@ for (const required of [
   'ui/app/content.js',
   'ui/app/memory.js',
   'ui/app/projects.js',
-  'dist/core/project-discovery.js',
+  'dist/core/projects/discovery.js',
   'dist/ui/project-discovery.js',
   'dist/adapters/claude-sessions.js',
   'ui/app/base.css',
@@ -48,13 +55,15 @@ for (const required of [
 ]) {
   assert.ok(files.has(required), `Package is missing ${required}`);
 }
-for (const file of files)
+for (const file of files) {
+  assert.ok(!/^dist\/core\/[^/]+\.js(?:\.map)?$/.test(file), `Stale flat core module: ${file}`);
   assert.ok(
     /^(dist\/|ui\/app\/|docs\/(README|CLI|RELEASE|QUICKSTART|CONTENT|MEMORY|AUTOMATION|WORKING_GUIDE|RECOVERY|DESIGN)\.md$|README\.md$|CHANGELOG\.md$|SECURITY\.md$|LICENSE$|package\.json$|npm-shrinkwrap\.json$)/.test(
       file,
     ),
     `Unexpected package file: ${file}`,
   );
+}
 console.log(
   `Package verified: ${files.size} files, ${archive.unpackedSize} bytes unpacked; source tests, local state and fixtures excluded.`,
 );
