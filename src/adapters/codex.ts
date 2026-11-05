@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { discoverNativeHistory } from './history/discovery.js';
 import type {
   ClientAdapter,
   ClientSnapshot,
@@ -12,6 +13,7 @@ import { exists, listSkills, readText } from '../shared/fs.js';
 import { clientPaths } from '../shared/paths.js';
 
 export const codexAdapter: ClientAdapter = {
+  discoverSessions: (control) => discoverNativeHistory('codex', control),
   id: 'codex',
   label: 'Codex CLI',
 

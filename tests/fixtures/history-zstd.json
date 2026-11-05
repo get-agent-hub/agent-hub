@@ -1,0 +1,25 @@
+{
+  "plain": [
+    {
+      "type": "session",
+      "version": 4,
+      "id": "compressed-session",
+      "cwd": "/fixture/project",
+      "createdAt": 1,
+      "isSeeded": false,
+      "delegationDepth": 0
+    },
+    {
+      "type": "user/message",
+      "message": { "role": "user", "content": [{ "type": "text", "text": "Compressed sentinel" }] }
+    },
+    {
+      "type": "assistant/message",
+      "message": {
+        "role": "assistant",
+        "content": [{ "type": "text", "text": "Compressed answer" }]
+      }
+    }
+  ],
+  "base64": "KLUv/SSFTQMAIgcXGoBL2mBis50cwlbM7O+EvA6dYC6Ciks3qOLqSSRwRqx6oUm553DmaLsyZznj8Tdo2gTnJeD3fCGbFz2RllK+FuvIRWkgAF71SykS8hnTNrh1hs1NStWrz1ePNSQDAD4DltQybUsTdhB52Ci1L/0ka4UCAMIEEBaQOwdcuRUbmyTcJs3PPjqioYzIOJwLQGtF83kqm9cAueqXQmkwnpf5EujNb6bD55OWGfr8xFA9EtZ1MfqqWbMEACqj8Kp8okihRBkDe262FCi1L/0kc60CAMLEEBiQtzm0WKvs7ZUNoUpUdMymQzuQJ6oTdQHEWslqcuF4RcC/EzLnqBmciDXRiQfQUsJJVdZSC+63MRIvP/ivVqNDVgUFACoCesKA4OIndUolihOJWW1z"
+}

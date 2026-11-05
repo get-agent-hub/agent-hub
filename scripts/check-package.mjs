@@ -11,6 +11,13 @@ const [archive] = JSON.parse(
 const files = new Set(archive.files.map((file) => file.path));
 for (const required of [
   'dist/cli.js',
+  'dist/core/history/ingest.js',
+  'dist/core/history/raw.js',
+  'dist/core/history/connection.js',
+  'dist/mcp/history.js',
+  'dist/ui/routes/history.js',
+  'ui/app/history.js',
+  'docs/HISTORY.md',
   'dist/shared/runtime.js',
   'dist/workers/doctor.js',
   'dist/core/mcp/sync/plan.js',
@@ -58,7 +65,7 @@ for (const required of [
 for (const file of files) {
   assert.ok(!/^dist\/core\/[^/]+\.js(?:\.map)?$/.test(file), `Stale flat core module: ${file}`);
   assert.ok(
-    /^(dist\/|ui\/app\/|docs\/(README|CLI|RELEASE|QUICKSTART|CONTENT|MEMORY|AUTOMATION|WORKING_GUIDE|RECOVERY|DESIGN)\.md$|README\.md$|CHANGELOG\.md$|SECURITY\.md$|LICENSE$|package\.json$|npm-shrinkwrap\.json$)/.test(
+    /^(dist\/|ui\/app\/|docs\/(README|CLI|RELEASE|QUICKSTART|CONTENT|MEMORY|AUTOMATION|WORKING_GUIDE|RECOVERY|DESIGN|HISTORY)\.md$|README\.md$|CHANGELOG\.md$|SECURITY\.md$|LICENSE$|package\.json$|npm-shrinkwrap\.json$)/.test(
       file,
     ),
     `Unexpected package file: ${file}`,

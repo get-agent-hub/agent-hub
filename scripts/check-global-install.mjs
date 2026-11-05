@@ -21,7 +21,12 @@ try {
   await fs.mkdir(collection, { recursive: true });
   await fs.writeFile(
     path.join(collection, 'fixture.jsonl'),
-    JSON.stringify({ sessionId: 'installed-fixture', cwd: workspace }) + '\n',
+    JSON.stringify({
+      type: 'user',
+      sessionId: 'installed-fixture',
+      cwd: workspace,
+      message: { role: 'user', content: 'Installed history sentinel' },
+    }) + '\n',
   );
   const env = {
     ...process.env,
@@ -80,6 +85,30 @@ try {
   assert.equal(project.scope, 'project');
   assert.equal(project.workspace, await fs.realpath(workspace));
   assert.equal(JSON.parse(run(['status', '--json'])).hub.root, home);
+  assert.equal(JSON.parse(run(['history', 'scan', '--client', 'claude-code'])).chats, 1);
+  const history = JSON.parse(run(['history', 'ls']));
+  assert.equal(history.chats[0].events, 1);
+  assert.equal(JSON.parse(run(['history', 'search', 'Installed history sentinel'])).total, 1);
+  assert.equal(
+    JSON.parse(run(['history', 'show', history.chats[0].id])).events[0].text,
+    'Installed history sentinel',
+  );
+  const connection = JSON.parse(
+    run(['history', 'connect', history.chats[0].projects[0], '--client', 'codex']),
+  );
+  const connected = JSON.parse(
+    run([
+      'history',
+      'connect',
+      history.chats[0].projects[0],
+      '--client',
+      'codex',
+      '--apply',
+      '--expect',
+      connection.revision,
+    ]),
+  );
+  assert.equal(connected.status, 'complete');
 
   ui = spawn('ahub', ['ui', '--no-open', '--port', '0'], {
     cwd: workspace,
@@ -103,7 +132,7 @@ try {
       }
     });
   });
-  for (const asset of ['/', '/quick.js', '/projects.js'])
+  for (const asset of ['/', '/quick.js', '/projects.js', '/history.js'])
     assert.equal((await fetch(`${url}${asset}`)).status, 200);
   const state = await (await fetch(`${url}/api/state`)).json();
   assert.equal(state.status.hub.root, home);
@@ -126,7 +155,7 @@ try {
   assert.equal(scan.projects.length, 1);
   assert.equal(scan.projects[0].locations[0], await fs.realpath(workspace));
   console.log(
-    'Real installer verified in a temporary prefix after its source archive cleanup: ahub + agent-hub version, quick preview/apply, status, UI assets and a read-only discovery job from an unrelated directory.',
+    'Real installer verified in a temporary prefix: both binaries, quick preview/apply, status, full history capture/search/read and reviewed Codex history connection, UI assets and read-only project discovery from an unrelated directory.',
   );
 } finally {
   if (ui && ui.exitCode === null) {

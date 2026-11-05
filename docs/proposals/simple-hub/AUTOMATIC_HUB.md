@@ -2,6 +2,8 @@
 
 Implementation proposal · 2026-11-05 · reviewed source `f6d21e4`
 
+Source update: the [history implementation](../../HISTORY.md) now supplies supported full-event capture, durable projects, read/search, scoped MCP connections and optional refresh. The broader inventory/interface/reconciliation design below remains a proposal. Published beta capabilities are unchanged until a separate release.
+
 Agent Hub should show the data already available in a person's coding clients and keep selected data consistent between them. The person continues working in their own clients. Hub opens to an inventory and synchronization state, without a coordinator, chat composer, code editor or agent launcher.
 
 The normal setup is **open Hub → see discovered data → review Create Hub once**. Projects appear automatically. A later ordinary edit in a connected client needs no import command. Genuine conflicts remain visible instead of being resolved by client order.

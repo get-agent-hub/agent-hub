@@ -475,7 +475,7 @@ The real working trial passes when selected clients discover the intended skill/
 
 The lab must demonstrate stale-plan rejection, malformed-source diagnostics, ownership/binding protection, deletion retention, token one-use/recovery invalidation and reset with archives. Run automated tests for concurrency, clock expiry, crash recovery and injected write failures.
 
-Not implemented: graph-memory interchange, archived-session indexing, MCP add/rm, automatic task-state extraction or an installed background service. Remote CI, npm release identity/version and website deployment are later work.
+For full conversation capture, search and scoped client retrieval, follow [Chats and projects](HISTORY.md). Not implemented: graph-memory interchange, MCP add/rm, automatic task-state extraction or an installed background service. Remote CI, npm release identity/version and website deployment are later work.
 
 References: [MEMORY.md](MEMORY.md), [AUTOMATION.md](AUTOMATION.md), [CONTENT.md](CONTENT.md), [RECOVERY.md](RECOVERY.md), [QA.md](QA.md).
 

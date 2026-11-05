@@ -4,6 +4,8 @@
 
 This is an implementation plan, not completed work. Each slice should leave a usable product. Preserve current supported behavior and recovery throughout; keep the published beta tag immutable.
 
+Current source follow-up: [Chats and projects](../../HISTORY.md) implements private full-event capture for supported Claude/Codex/DSH files, a persistent project catalog, search/windowed retrieval, source generations, explicit attachment coverage, exclusions/deletion markers and scoped history MCP delivery. `tests/history*.test.mjs` contains its isolated acceptance evidence. This supersedes the earlier metadata-only capability notes below, which remain historical. It does not complete native project APIs, arbitrary external attachment grants, all-area resource reconciliation, native continuation, every platform or all C01–C47 requirements. The published beta remains unchanged until a separate release.
+
 The latest [automatic Hub plan](AUTOMATIC_HUB.md) orders the next increments: independent automatic inventory, three-destination interface, complete conversation messages, broader readers, connection/reconciliation and automatic memory/history refresh. Full message contents are a core requirement; titles and metadata alone do not complete the chat feature. Source selection remains available as a filter; ordinary first launch should not require client paths, project registration or an explicit Find projects action. Current explicit discovery and CLI scopes remain compatible until the new flow is implemented.
 
 ## What is covered, and what has actually been verified

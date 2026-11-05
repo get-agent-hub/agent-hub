@@ -22,6 +22,7 @@ src/
     instructions/           scoped instruction projection
     memory/                 records, scoped sessions, discovery and automation
     projects/               discovery, registered memory bindings and views
+    history/                native archive capture, persistent catalog and scoped retrieval
     setup/                  initialization and shared/project workflows
     recovery/               baselines, guarded plans, restore, reset and undo
     diagnostics/            checks, probes and classified results

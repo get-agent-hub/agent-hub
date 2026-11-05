@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Preserve supported Claude, Codex and DSH conversations in a private, versioned local archive with complete-event search, project associations, attachment coverage and scoped read-only MCP connections. Add automatic metadata discovery, the Chats page, reviewed access/deletion policies and optional foreground refresh.
 - Organize backend modules by subsystem, split HTTP routing and sync/setup operations, and enforce dependency boundaries, runtime-cycle checks and module-size limits. Clean builds remove stale compiled modules; existing CLI and HTTP behavior is retained.
 
 - Find projects from selected local Claude Code chat metadata in the UI, including ordinary folders, missing locations and grouped Git worktrees. Discovery is read-only and reports incomplete coverage; it does not archive chats or connect project memory. Codex and DSH readers remain planned.

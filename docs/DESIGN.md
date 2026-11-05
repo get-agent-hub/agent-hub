@@ -46,7 +46,7 @@ hub.recovery/
 | Shared memory   | memory/MEMORY.md and fact files    | Index and directory reference in the instruction block                |
 | Project handoff | Hub templates or built-in defaults | AGENTS.md, PROJECT.md, NOW.md and Claude import in one Git repository |
 
-Project-matched native Markdown notes can be imported into Hub; original stores remain in place. Archived conversation ingestion and native SQLite interchange are not implemented. Shared facts are read on demand. Custom DSH profiles can disable their instruction/skill plugins; delivery does not change plugin activation.
+Project-matched native Markdown notes can be imported into Hub; original stores remain in place. Supported Claude/Codex/DSH conversation files can be preserved and searched through the private [history archive](HISTORY.md). Native SQLite interchange remains unsupported. Shared facts are read on demand. Custom DSH profiles can disable their instruction/skill plugins; delivery does not change plugin activation.
 
 ## Quick workflow
 

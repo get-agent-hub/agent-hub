@@ -2,6 +2,18 @@
 
 The implemented import → sync → doctor → restore flow was exercised through the live UI and production CLI on macOS. Client writes used temporary configurations. Production client configurations were not synchronized.
 
+## History archive — 2026-11-05
+
+The final `npm run check` passes **269 tests**, formatting, lint, strict TypeScript and architecture checks (**165 modules / 842 imports**). All **269** also pass on minimum Node **22.13.0**. The final standalone coverage run passes with **92.60% lines**, **84.34% branches** and **90.64% functions**. One earlier coverage run overlapped a complete minimum-runtime suite and failed the existing short-contention automatic-writer test; the standalone retry passed without changing retry code or thresholds. Production dependency audit reports **zero vulnerabilities**.
+
+The 26 new scenarios cover exact original bytes and unknown events, end-of-message search and complete windows, native edits/truncation/torn tails, old revision pagination, source disappearance, asset boundaries, checked Zstandard frames/checksums, durable unit cancellation, shared-block deduplication/integrity, grants/revocation/exclusions/deletion markers, reused native paths and replaced project identities. They also exercise HTTP protections, CLI from an unrelated directory, MCP retrieval and actual generated launcher execution, three-client reviewed delivery, stale connection rejection and memory-project disconnection revoking archive access. Literal and cyclic DSH YAML profile fixtures never execute plugins. These are isolated supported-format fixtures, not a claim that every native version or all proposal cases passed.
+
+Package validation passes with **342 files / 1,746,636 unpacked bytes**. It used a disposable npm cache after the sandbox blocked the default cache. The actual standalone installer passes in a temporary prefix, including both binary names, quick setup, complete history capture/search/read, reviewed Codex history connection, UI assets and read-only project discovery. No normal global CLI installation was changed. The archive adds the small `fzstd` decoder and explicitly declares the already installed Zod schema dependency; other locked package versions are unchanged.
+
+Browser QA used a separate temporary profile and **112 synthetic conversations**. Automatic metadata discovery, capture, pagination, full-event search, search pagination/reload, original-event reading, persisted project cards, reviewed client connection and revocation all passed. Desktop and 400px mobile screenshots were inspected; no horizontal overflow or runtime exception was found. Native client configurations in that run belonged only to the fixture.
+
+Full supported-file capture is now implemented; [HISTORY.md](HISTORY.md) defines its limits. External attachment grants, arbitrary runtime-template/back-end resolution, native project APIs, native cross-client continuation, an installed background service, multi-device replication and a complete UI redesign remain separate work. No real private transcript archive or new remote CI/release/deployment was performed by this verification.
+
 ## Structural refactor — 2026-11-05
 
 `npm run check` passes **243 tests**, formatting, lint, architecture checks and strict TypeScript. All **243** also pass on minimum Node **22.13.0**. Coverage on Node 25.2 is **93.07% lines**, **84.97% branches** and **90.91% functions**. Architecture checks inspect **137 modules and 720 imports**; negative fixtures cover prohibited dependencies, unresolved imports and runtime cycles. An isolated Git regression verifies that an explicitly selected Hub cannot mutate the unrelated default Hub.

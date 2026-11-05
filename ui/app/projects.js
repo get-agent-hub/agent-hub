@@ -41,7 +41,7 @@ export function projectDiscoveryView({
       'Find working locations from your local chats. No registration is needed.',
       `<button class="btn primary" data-discover-projects ${busy || !selected.length ? 'disabled' : ''}>${busy ? 'Finding projects…' : 'Find projects'}</button>${busy || running(report) ? '<button class="btn" data-discovery-stop>Stop</button>' : ''}`,
     ) +
-    `<div class="card card-b"><b>Read initial chat context from</b><div>${clients.map((client) => `<label class="checkbox"><input type="checkbox" data-discovery-client value="${escape(client.id)}" ${selected.includes(client.id) ? 'checked' : ''} ${busy || running(report) || !client.supported ? 'disabled' : ''}> ${escape(client.label)}${client.supported ? '' : ' (not supported yet)'}</label>`).join(' ')}</div><p class="small-note">Chats and client settings stay in place. Conversation archiving and search come later.</p></div>` +
+    `<div class="card card-b"><b>Read initial chat context from</b><div>${clients.map((client) => `<label class="checkbox"><input type="checkbox" data-discovery-client value="${escape(client.id)}" ${selected.includes(client.id) ? 'checked' : ''} ${busy || running(report) || !client.supported ? 'disabled' : ''}> ${escape(client.label)}${client.supported ? '' : ' (not supported yet)'}</label>`).join(' ')}</div><p class="small-note">Chats and client settings stay in place. Open Chats to preserve complete history and search its messages.</p></div>` +
     (error
       ? `<div class="banner"><p>${escape(error)} Previous results have not been confirmed by this attempt.</p></div>`
       : '') +
@@ -111,7 +111,11 @@ export function setupProjectDiscoveryUi({ api, getState, render, notice }) {
         offset,
         query,
       });
-      if (version !== requestVersion || result.job === null) return;
+      if (version !== requestVersion) return;
+      if (result.job === null) {
+        if (selected === undefined && !report) await start();
+        return;
+      }
       report = result;
       if (selected === undefined) selected = result.clients;
       busy = running(result);
@@ -206,6 +210,12 @@ export function setupProjectDiscoveryUi({ api, getState, render, notice }) {
     }
   });
   return {
+    initialize() {
+      if (!recovering) {
+        recovering = true;
+        void page();
+      }
+    },
     refresh: start,
     view(value = '') {
       if (query !== value) {

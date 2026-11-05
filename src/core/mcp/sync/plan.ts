@@ -13,6 +13,7 @@ import { planTarget } from './target.js';
 export async function planSync(
   options: SyncOptions = {},
   supplied?: SyncContext,
+  proposedRegistryText?: string,
 ): Promise<SyncPlan> {
   if (options.client && !CLIENTS.includes(options.client))
     throw new HubError('Unknown client. Choose dsh, codex or claude-code.');
@@ -40,7 +41,9 @@ export async function planSync(
   }
   const context = supplied ?? (await defaultSyncContext());
   const settings = await settingsAt(context.root);
-  const registryText = await readOptionalText(path.join(context.root, 'mcp', 'servers.yaml'));
+  const registryText =
+    proposedRegistryText ??
+    (await readOptionalText(path.join(context.root, 'mcp', 'servers.yaml')));
   if (registryText === null)
     throw new HubError('No MCP registry. Run ahub import mcp before sync.');
   const registry = parseRegistry(registryText);

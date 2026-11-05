@@ -145,3 +145,7 @@ Undo restores the state immediately before a recorded quick/project-connect run,
 ## Help without overload
 
 Run `ahub` for six everyday groups and two starting routes: quick or ui. Use `ahub --advanced --help` for specialized operations, and `ahub --advanced quick --help` for technical flags used by generated script commands. Hidden help entries remain callable. [The command reference](CLI.md) explains who uses each command and why; runtime launchers and callbacks are separate from ordinary setup.
+
+## Preserve and search conversations
+
+Open `ahub ui` → **Chats** → **Capture selected history**, or run `ahub history scan`. Projects are found automatically from known local metadata. Capture preserves supported native events and source bytes; it does not replace active client session files. Use a saved project's **Connect clients…** action to review scoped read-only MCP access. See [Chats and projects](HISTORY.md) for source coverage, terminal commands, optional refresh, attachments and removal.

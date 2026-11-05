@@ -14,6 +14,8 @@ import {
 import { hubRoot } from '../shared/paths.js';
 import { skillDocument, uiState } from './data.js';
 import { revealDirectory } from './project-discovery.js';
+import type { HistorySource } from '../contracts/history.js';
+import type { SyncContext } from '../core/mcp/sync.js';
 export type UiOptions = {
   port?: number;
   cwd?: string;
@@ -33,6 +35,8 @@ export type UiOptions = {
     memory?: MemorySession;
     discoverProjects?: typeof discoverProjects;
     revealDirectory?: typeof revealDirectory;
+    historySources?: () => Promise<HistorySource[]>;
+    historySyncContext?: () => Promise<SyncContext>;
   };
 };
 export function createUiSession(options: UiOptions) {

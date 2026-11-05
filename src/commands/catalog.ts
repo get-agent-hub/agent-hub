@@ -1,4 +1,5 @@
 import { Help, type Command } from 'commander';
+import { historyGuide } from './history-guide.js';
 
 export type CommandLevel = 'everyday' | 'advanced' | 'integration';
 export interface CommandGuide {
@@ -16,6 +17,7 @@ const entry = (
 
 /** Human-facing purpose and caller, shared by CLI help and the generated reference. */
 export const commandGuide: CommandGuide[] = [
+  ...historyGuide,
   entry(
     'quick',
     'everyday',

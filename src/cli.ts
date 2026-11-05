@@ -11,6 +11,7 @@ import {
 import { doctorCommand } from './commands/doctor.js';
 import { importCommand } from './commands/import.js';
 import { initCommand } from './commands/init.js';
+import { registerHistoryCommands } from './commands/history.js';
 import { mcpLsCommand, mcpRunCommand } from './commands/mcp.js';
 import {
   autoCheckpointCommand,
@@ -40,6 +41,7 @@ import { uiCommand } from './commands/ui.js';
 import { undoCommand } from './commands/undo.js';
 import { planProjectDisconnect } from './core/projects/disconnect.js';
 import { serveMemory } from './mcp/memory.js';
+import { serveHistory } from './mcp/history.js';
 import { packageVersion } from './shared/package.js';
 import { hubRoot } from './shared/paths.js';
 
@@ -354,6 +356,7 @@ program
   .option('--no-open', 'do not open a browser automatically')
   .action(uiCommand);
 
+registerHistoryCommands(program, serveHistory);
 configureCliHelp(program);
 program.action(() => program.outputHelp());
 

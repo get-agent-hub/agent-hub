@@ -6,16 +6,17 @@ Start with the quick start. Use the working guide for a complete personal trial,
 
 ## Use Agent Hub
 
-| Guide                             | What it explains                                                            |
-| --------------------------------- | --------------------------------------------------------------------------- |
-| [Quick start](QUICKSTART.md)      | Install once, set up shared tools and optionally connect a project.         |
-| [CLI reference](CLI.md)           | Who uses each command, why it exists and what it changes.                   |
-| [Content and sync](CONTENT.md)    | Skill bundles, shared instructions, imports and guarded delivery.           |
-| [Memory](MEMORY.md)               | Knowledge scopes, existing client notes and the optional Memory MCP server. |
-| [Automation](AUTOMATION.md)       | Project policies, lifecycle checkpoints, note imports and conflicts.        |
-| [Working guide](WORKING_GUIDE.md) | Run the main scenarios manually and inspect the results.                    |
-| [Recovery](RECOVERY.md)           | Per-run undo, individual backups, first-baseline reset and external edits.  |
-| [Release guide](RELEASE.md)       | Candidate archives, installation, checksums and publication gates.          |
+| Guide                             | What it explains                                                                       |
+| --------------------------------- | -------------------------------------------------------------------------------------- |
+| [Quick start](QUICKSTART.md)      | Install once, set up shared tools and optionally connect a project.                    |
+| [CLI reference](CLI.md)           | Who uses each command, why it exists and what it changes.                              |
+| [Content and sync](CONTENT.md)    | Skill bundles, shared instructions, imports and guarded delivery.                      |
+| [Memory](MEMORY.md)               | Knowledge scopes, existing client notes and the optional Memory MCP server.            |
+| [Automation](AUTOMATION.md)       | Project policies, lifecycle checkpoints, note imports and conflicts.                   |
+| [Chats and projects](HISTORY.md)  | Complete native-event archives, search, project associations and scoped client access. |
+| [Working guide](WORKING_GUIDE.md) | Run the main scenarios manually and inspect the results.                               |
+| [Recovery](RECOVERY.md)           | Per-run undo, individual backups, first-baseline reset and external edits.             |
+| [Release guide](RELEASE.md)       | Candidate archives, installation, checksums and publication gates.                     |
 
 ## Understand and contribute
 

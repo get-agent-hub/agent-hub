@@ -3,6 +3,7 @@ import { setupContentUi } from './content.js';
 import { setupMemoryUi } from './memory.js';
 import { setupQuickUi } from './quick.js';
 import { setupProjectDiscoveryUi } from './projects.js';
+import { setupHistoryUi } from './history.js';
 import {
   doctorResultText,
   serviceDetails,
@@ -20,7 +21,7 @@ const pages = {
   memory: 'Memory',
   projects: 'Projects',
   repos: 'Repos & tasks',
-  sessions: 'Sessions',
+  sessions: 'Chats',
 };
 const icon = (body) => `<svg viewBox="0 0 24 24" aria-hidden="true">${body}</svg>`;
 const icons = {
@@ -103,7 +104,7 @@ function sidebar(page) {
     <div class="nav-label">Hub</div><nav class="nav">${Object.entries(pages)
       .map(
         ([id, title]) =>
-          `<a href="${link(id)}" class="${page === id ? 'active' : ''}" ${page === id ? 'aria-current="page"' : ''}>${icons[id]}${title}${id === 'sessions' ? '<span class="soon">later</span>' : counts[id] !== undefined ? `<span class="count ${id === 'overview' && counts[id] ? 'warn' : ''}">${counts[id]}</span>` : ''}</a>`,
+          `<a href="${link(id)}" class="${page === id ? 'active' : ''}" ${page === id ? 'aria-current="page"' : ''}>${icons[id]}${title}${counts[id] !== undefined ? `<span class="count ${id === 'overview' && counts[id] ? 'warn' : ''}">${counts[id]}</span>` : ''}</a>`,
       )
       .join('')}</nav>
     <div class="nav-label">Clients</div><nav class="nav client-nav">${state.status.clients.map((c) => `<a href="${link('overview', { section: 'clients' })}"><span class="dot ${c.installed ? 'connected' : ''}"></span>${escape(c.label)}${!c.installed ? '<span class="soon">not found</span>' : ''}</a>`).join('')}</nav>
@@ -277,17 +278,6 @@ function reposPage(params) {
   );
 }
 
-function sessionsPage() {
-  return (
-    intro(
-      'Sessions',
-      'Search past conversations and carry decisions into the next agent.',
-      pill('Planned'),
-    ) +
-    `<div class="card roadmap">${empty('Keep the thread, across agents', 'Open Projects to find working folders from local Claude chat metadata. Conversation archiving and search are not available yet.')}<ul class="list timeline"><li><span class="num">1</span><div class="copy"><b>Shared configurations</b><div class="sub">Skills and MCP, with import and drift detection.</div></div>${pill('Available', 'ok')}</li><li><span class="num">2</span><div class="copy"><b>Project context & handoff</b><div class="sub">AGENTS.md, PROJECT.md and NOW.md travel with your code.</div></div>${pill('Available', 'ok')}</li><li><span class="num">3</span><div class="copy"><b>Conversation search</b><div class="sub">A shared archive with declared source coverage; reading and search are not available yet.</div></div>${pill('Later')}</li></ul></div>`
-  );
-}
-
 function searchResults() {
   const skills = state.status.skills.filter((s) => matches(s.name));
   const servers = state.status.mcp.filter((s) => matches(s.name));
@@ -311,6 +301,12 @@ function render() {
   if (!state) return;
   const { page, params } = route();
   $('#page-title').textContent = pages[page];
+  $('#search').placeholder =
+    page === 'sessions'
+      ? 'Search all archived messages…'
+      : page === 'projects'
+        ? 'Find projects…'
+        : 'Search skills, MCP, memory…';
   document.title = `${pages[page]} — Agent Hub`;
   sidebar(page);
   const views = {
@@ -319,29 +315,31 @@ function render() {
     mcp: mcpPage,
     instructions: instructionsPage,
     memory: memoryPage,
-    projects: () => projectDiscovery.view(query),
+    projects: () => projectDiscovery.view(query) + historyUi.projectsView(query),
     repos: reposPage,
-    sessions: sessionsPage,
+    sessions: (params) => historyUi.view(query, params),
   };
   $('#content').innerHTML =
-    state.stateUnavailable && page !== 'projects'
+    state.stateUnavailable && !['projects', 'sessions'].includes(page)
       ? intro(
           'Settings could not be read',
           state.stateIssue,
           `<a class="btn primary" href="${link('projects')}">Find projects independently</a>`,
         )
-      : query && !['skills', 'mcp', 'memory', 'projects'].includes(page)
+      : query && !['skills', 'mcp', 'memory', 'projects', 'sessions'].includes(page)
         ? searchResults()
         : views[page](params);
 }
 
 setupQuickUi({ api, load, notice, getState: () => state });
 const projectDiscovery = setupProjectDiscoveryUi({ api, getState: () => state, render, notice });
+const historyUi = setupHistoryUi({ api, render, notice });
 
 async function load() {
   $('#refresh').disabled = true;
   try {
     state = await api('/api/state');
+    projectDiscovery.initialize();
     skillCache = new Map();
     const picker = $('#project-picker');
     picker.innerHTML =
@@ -725,7 +723,8 @@ $('#search').addEventListener('input', (event) => {
 });
 $('#refresh').addEventListener('click', () => {
   notice('');
-  if (route().page === 'projects') void projectDiscovery.refresh();
+  if (route().page === 'sessions') void historyUi.refresh();
+  else if (route().page === 'projects') void projectDiscovery.refresh();
   else load();
 });
 document.addEventListener('keydown', (event) => {

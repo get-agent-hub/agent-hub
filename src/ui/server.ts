@@ -6,6 +6,7 @@ import { createContentRoutes } from './routes/content.js';
 import { createDiscoveryRoutes } from './routes/discovery.js';
 import { createDoctorRoutes } from './routes/doctor.js';
 import { createImportRoutes } from './routes/import.js';
+import { createHistoryRoutes } from './routes/history.js';
 import { createMemoryRoutes } from './routes/memory.js';
 import { createSetupRoutes } from './routes/setup.js';
 import { createStateRoutes } from './routes/state.js';
@@ -17,9 +18,11 @@ export async function startUiServer(options: UiOptions = {}) {
   let origin = '';
   const discovery = createDiscoveryRoutes(session);
   const doctor = createDoctorRoutes(session);
+  const history = createHistoryRoutes(session);
   const routes = [
     createStateRoutes(session),
     discovery.handle,
+    history.handle,
     createSetupRoutes(session),
     createMemoryRoutes(session),
     doctor.handle,
@@ -82,6 +85,7 @@ export async function startUiServer(options: UiOptions = {}) {
     url: origin,
     close: async () => {
       discovery.close();
+      await history.close();
       await doctor.close();
       await new Promise<void>((resolve, reject) => {
         server.close((e) => (e ? reject(e) : resolve()));

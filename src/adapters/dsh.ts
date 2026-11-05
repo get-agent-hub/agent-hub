@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { discoverNativeHistory } from './history/discovery.js';
 import type {
   ClientAdapter,
   ClientSnapshot,
@@ -31,6 +32,7 @@ async function readRaw(): Promise<RawMcp[]> {
 }
 
 export const dshAdapter: ClientAdapter = {
+  discoverSessions: (control) => discoverNativeHistory('dsh', control),
   id: 'dsh',
   label: 'DeepSeek Harness',
 
