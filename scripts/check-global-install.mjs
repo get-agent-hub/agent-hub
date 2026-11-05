@@ -151,6 +151,7 @@ try {
     '/features/memory.js',
     '/entities/health.js',
     '/entities/resource.js',
+    '/entities/history-project.js',
     '/entities/history-conversation.js',
     '/app.css',
     '/base.css',

@@ -97,3 +97,26 @@
   font-size: 13px;
   max-height: 200px;
 }
+
+.recent-row .copy b {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.saved-projects .project-location {
+  margin: 16px 0;
+  overflow-wrap: anywhere;
+}
+.saved-projects .related-folders {
+  margin: 12px 0 20px;
+}
+.location-list {
+  max-height: 280px;
+  overflow-y: auto;
+}
+.project-group > summary {
+  color: var(--muted);
+  font-size: 13px;
+}

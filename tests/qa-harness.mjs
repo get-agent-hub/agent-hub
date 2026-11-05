@@ -90,6 +90,45 @@ for (const [id, cwd] of [
       message: { content: 'Synthetic QA conversation; not returned by project discovery.' },
     }) + '\n',
   );
+if (process.argv.includes('--history-titles')) {
+  const dependency = path.join(repo, 'node_modules', 'fixture-package');
+  await fs.mkdir(dependency, { recursive: true });
+  const user = (text) => ({
+    type: 'user',
+    sessionId: 'qa-title-noise',
+    cwd: repo,
+    message: { role: 'user', content: text },
+  });
+  const rows = [
+    {
+      ...user('<local-command-caveat>TERMINAL_NOTICE_SENTINEL</local-command-caveat>'),
+      cwd: dependency,
+    },
+    user('<command-name>/example</command-name>'),
+    user('hi'),
+    user('<pasted_content id="fixture">Clarify cache invalidation</pasted_content>'),
+  ];
+  await fs.writeFile(
+    path.join(sessionCollection, 'qa-title-noise.jsonl'),
+    rows.map((row) => JSON.stringify(row)).join('\n') + '\n',
+  );
+  await fs.writeFile(
+    path.join(sessionCollection, 'qa-command-only.jsonl'),
+    JSON.stringify({
+      ...user('<local-command-stdout>OUTPUT_ONLY_SENTINEL</local-command-stdout>'),
+      sessionId: 'qa-command-only',
+    }) + '\n',
+  );
+  await fs.writeFile(
+    path.join(sessionCollection, 'qa-unavailable-folder.jsonl'),
+    JSON.stringify({
+      type: 'user',
+      sessionId: 'qa-unavailable-folder',
+      cwd: path.join(repo, 'build', 'old-location'),
+      message: { role: 'user', content: 'Inspect a historical folder' },
+    }) + '\n',
+  );
+}
 if (process.argv.includes('--many-projects')) {
   for (let index = 0; index < 110; index++) {
     const id = `qa-extra-${String(index).padStart(3, '0')}`;

@@ -12,6 +12,7 @@ const files = new Set(archive.files.map((file) => file.path));
 for (const required of [
   'dist/cli.js',
   'dist/core/history/ingest.js',
+  'dist/adapters/history/titles.js',
   'dist/core/history/raw.js',
   'dist/core/history/connection.js',
   'dist/mcp/history.js',
@@ -46,6 +47,7 @@ for (const required of [
   'ui/app/shared/html.js',
   'ui/app/entities/health.js',
   'ui/app/entities/resource.js',
+  'ui/app/entities/history-project.js',
   'ui/app/features/content.js',
   'ui/app/features/memory.js',
   'ui/app/features/projects.js',

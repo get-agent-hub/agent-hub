@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Show one recorded root per project, with related folders in details and separate groups for ordinary or unavailable historical locations. Retain all associations, identities and client grants.
+
+- Use substantive chat titles instead of Claude terminal notices, greeting-only excerpts and pasted-content wrapper tags, including in existing archives without reimport. Keep list rows readable and archive metadata in conversation details.
+
 - Rebuild the local interface around Overview, All data and Projects. Add light/dark themes, a responsive layout and quieter resource/conversation views. Move setup and diagnostics to Sources & settings while retaining reviewed writes, full-event access and old bookmarks. Split browser code into bounded slices with enforced dependency rules.
 
 - Correct item-level MCP delivery from the interface by passing its validated preview revision to the existing replacement guard. Unreviewed, expired and externally changed plans remain blocked.

@@ -1,6 +1,7 @@
 import type { HistoryEvent } from '../../contracts/history.js';
 import { isAbsoluteLocalPath } from '../../shared/paths.js';
 import { historyParts } from './content.js';
+import { localCommandNotice, messageTitle } from './titles.js';
 
 export const object = (value: unknown): Record<string, unknown> =>
   value && typeof value === 'object' && !Array.isArray(value)
@@ -55,8 +56,19 @@ export function historyEvent(raw: unknown, ordinal: number): HistoryEvent {
     role = 'assistant';
   }
   const source = object(message.source ?? data.source ?? row.source);
+  const localCommand =
+    type === 'user' &&
+    role === 'user' &&
+    localCommandNotice(
+      parts
+        .filter((part) => part.kind === 'text')
+        .map((part) => part.text)
+        .join('\n'),
+    );
   const category =
-    ['system', 'developer'].includes(role) || contextSources.has(String(source.kind))
+    localCommand ||
+    ['system', 'developer'].includes(role) ||
+    contextSources.has(String(source.kind))
       ? 'context'
       : role === 'tool' || type === 'tool/call'
         ? 'tool'
@@ -99,6 +111,7 @@ export function historyEvent(raw: unknown, ordinal: number): HistoryEvent {
 export interface NativeContext {
   id?: string;
   title?: string;
+  titleOrigin?: 'native' | 'message';
   parent?: string;
   subagent: boolean;
   locations: Set<string>;
@@ -120,13 +133,21 @@ export function observeHistory(context: NativeContext, raw: unknown) {
   context.id ??= string(row.sessionId) ?? undefined;
   context.subagent ||= row.isSidechain === true;
   const event = historyEvent(raw, 0);
-  if (!context.title && event.category === 'message' && event.role === 'user') {
-    const first = event.parts?.find((part) => part.kind === 'text')?.text;
-    if (first) context.title = first.replace(/\s+/g, ' ').slice(0, 160);
+  if (!context.title && context.titleOrigin !== 'native') {
+    const title = messageTitle(event);
+    if (title) {
+      context.title = title;
+      context.titleOrigin = 'message';
+    }
   }
-  if (row.type === 'session/title' && typeof data.title === 'string')
+  if (row.type === 'session/title' && typeof data.title === 'string' && data.title.trim()) {
     context.title = data.title.slice(0, 200);
-  if (typeof row.customTitle === 'string') context.title = row.customTitle.slice(0, 200);
+    context.titleOrigin = 'native';
+  }
+  if (typeof row.customTitle === 'string' && row.customTitle.trim()) {
+    context.title = row.customTitle.slice(0, 200);
+    context.titleOrigin = 'native';
+  }
   for (const cwd of [row.cwd, payload.cwd])
     if (isAbsoluteLocalPath(cwd)) context.locations.add(cwd);
   const pending: unknown[] = [raw];

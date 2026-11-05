@@ -3,7 +3,7 @@ import test from 'node:test';
 import { readRoute } from '../ui/app/shared/navigation.js';
 import { link } from '../ui/app/shared/html.js';
 import { overviewPage } from '../ui/app/pages/overview.js';
-import { historyConversation } from '../ui/app/entities/history-conversation.js';
+import { historyConversation, chatSummary } from '../ui/app/entities/history-conversation.js';
 
 test('old chat bookmarks keep the exact message window, revision and search after the UI rebuild', () => {
   const route = readRoute('#/sessions?chat=abc&revision=old&offset=50&q=cache+keys&view=events');
@@ -85,4 +85,32 @@ test('conversation presentation keeps native markup inert and preserves technica
   assert.match(html, /All events/);
   assert.match(html, /Read original event/);
   assert.match(html, /Download preserved source/);
+});
+
+test('chat list rows show human labels and project context while technical counters stay inside details', () => {
+  const chat = {
+    id: 'chat-id',
+    nativeId: 'native-id',
+    title: 'Conversation native-id',
+    client: 'claude-code',
+    kind: 'chat',
+    events: 57,
+    content: 'complete',
+    revisions: ['revision'],
+    projects: ['project'],
+  };
+  const html = chatSummary(chat, [{ id: 'project', label: 'Example project' }]);
+  assert.match(html, /Untitled conversation/);
+  assert.match(html, /Claude Code · Example project/);
+  for (const technical of ['native-id', '57 events', 'complete', 'version(s)', '↳', '↗'])
+    assert.ok(!html.includes(technical));
+  const partial = chatSummary({
+    ...chat,
+    title: '<script>inert</script>',
+    kind: 'subagent',
+    content: 'partial',
+  });
+  assert.match(partial, /Subagent/);
+  assert.match(partial, /Incomplete archive/);
+  assert.ok(!partial.includes('<script>'));
 });

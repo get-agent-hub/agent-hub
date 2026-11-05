@@ -6,13 +6,15 @@ Run `ahub ui` to open Agent Hub on your computer. The interface uses the same co
 
 - **Overview** shows inventory counts, conversations from your archive and detected clients. Skill and MCP totals count items found across clients; memory counts include shared records and the selected project. A failed archive read is shown as unavailable, never as zero conversations. The conversation selection follows archive order, not native activity time.
 - **All data** has five categories: Chats, Skills, MCP servers, Instructions and Memory. Search applies to the selected category. Chats searches preserved messages; it also offers project and client filters. Overview search covers skill names, MCP definitions and shared index documents; it does not search archived messages.
-- **Projects** shows saved associations from captured chats. Open a project's chats, or expand **Access & project settings** to connect clients, revoke access, rename or exclude a project. **Find more projects & inspect source coverage** opens metadata discovery. Finding a folder does not connect project memory.
+- **Projects** shows verified repositories from captured chats. Each card shows one recorded root or representative path. Related working folders, including build/dependency directories and worktrees, are available in an expandable list. Ordinary folders and unavailable/unverified historical locations have separate expandable groups. Search covers all recorded locations. This presentation does not merge projects, discard paths or widen grants. Open a project's chats, or expand **Access & project settings** to connect clients, revoke access, rename or exclude a project. **Find more projects & inspect source coverage** opens metadata discovery. Finding a folder does not connect project memory.
 
 Existing bookmarks such as `#/sessions?chat=...` and `#/skills?name=...` still work. New resource links use `#/data?type=chats` and the other categories. **Current folder context** keeps access to repository instructions, project notes and handoff setup.
 
 ## Read conversations
 
 In **All data → Chats**, expand **Native history sources** or use **Manage history sources**. Select supported local stores and choose **Capture selected history**. This preserves available messages and events in the Hub; native stores stay in place. Source coverage and incomplete attachments remain visible.
+
+The chat list shows a readable title, client and project. Technical counts and preserved-version information live in conversation details. Native titles take priority; derived titles skip terminal notices and simple greetings, and remove pasted-content wrapper tags. Existing archives gain this presentation without another capture.
 
 A conversation opens with readable messages. Reasoning and tool output can be expanded. **All events** also includes runtime context and technical records. **Conversation details & preserved versions** contains revision selection, native identity, project associations, preserved-source download and removal from the archive. **Read original event** is available on each message. Archived content is displayed as text, never executed.
 

@@ -1,6 +1,11 @@
+import { savedProjectsView } from '../entities/history-project.js';
 import { escape, empty, intro, link, pill } from '../shared/html.js';
-import { readRoute } from '../shared/navigation.js';
-import { historyConversation, historyViewPicker } from '../entities/history-conversation.js';
+import { clientLabels, readRoute } from '../shared/navigation.js';
+import {
+  historyConversation,
+  historyViewPicker,
+  chatSummary,
+} from '../entities/history-conversation.js';
 
 /** Archive pages own their query state; existing configuration and memory pages stay independent. */
 export function setupHistoryUi({ api, render, notice }) {
@@ -81,7 +86,7 @@ export function setupHistoryUi({ api, render, notice }) {
       })
       .join(
         '',
-      )}<p class="small-note">Capture reads all available events in the selected supported stores. Native files stay in place. History may include private messages and tool output; Hub stores it locally.</p><label><input type="checkbox" id="history-auto" ${automatic ? 'checked' : ''}> Keep updated every 30 seconds while this page is open</label><p><button class="btn primary" data-history-action="scan" ${pending || !selectedSources.size || status.job?.state === 'running' ? 'disabled' : ''}>Capture selected history</button> <button class="btn" data-history-action="rebuild">Rebuild search index</button></p></div></details>`;
+      )}<p class="small-note">${status.events} stored events · ${(status.bytes / 1048576).toFixed(1)} MiB</p><p class="small-note">Capture reads all available events in the selected supported stores. Native files stay in place. History may include private messages and tool output; Hub stores it locally.</p><label><input type="checkbox" id="history-auto" ${automatic ? 'checked' : ''}> Keep updated every 30 seconds while this page is open</label><p><button class="btn primary" data-history-action="scan" ${pending || !selectedSources.size || status.job?.state === 'running' ? 'disabled' : ''}>Capture selected history</button> <button class="btn" data-history-action="rebuild">Rebuild search index</button></p></div></details>`;
   }
   function progress() {
     const job = status.job;
@@ -105,20 +110,17 @@ export function setupHistoryUi({ api, render, notice }) {
       return empty('Reading local history…', 'Native clients are not being changed.');
     if (params.get('chat') && result?.chat)
       return historyConversation({ result, status, params, pager });
-    const filters = `<div class="tags"><select class="input" id="history-project"><option value="">All projects</option>${status.projects.map((project) => `<option value="${project.id}" ${params.get('project') === project.id ? 'selected' : ''}>${escape(project.label)} · ${project.chats}</option>`).join('')}</select><select class="input" id="history-client"><option value="">All clients</option>${['claude-code', 'codex', 'dsh'].map((client) => `<option ${params.get('client') === client ? 'selected' : ''}>${client}</option>`).join('')}</select></div>`;
+    const filters = `<div class="tags"><select class="input" id="history-project"><option value="">All projects</option>${status.projects.map((project) => `<option value="${project.id}" ${params.get('project') === project.id ? 'selected' : ''}>${escape(project.label)} · ${project.chats}</option>`).join('')}</select><select class="input" id="history-client"><option value="">All clients</option>${['claude-code', 'codex', 'dsh'].map((client) => `<option value="${client}" ${params.get('client') === client ? 'selected' : ''}>${escape(clientLabels[client] || client)}</option>`).join('')}</select></div>`;
     const rows = result?.matches
       ? result.matches.map(
           (match) =>
             `<li><a class="row-link" href="${link('sessions', { chat: match.chat, offset: match.ordinal, revision: match.revision, view: params.get('view') || 'conversation' })}">${escape(match.role)} · event ${match.ordinal}</a><pre class="document-view search-snippet">${escape(match.snippet)}</pre></li>`,
         )
-      : (result?.chats || []).map(
-          (chat) =>
-            `<li><a class="recent-row" href="${link('sessions', { chat: chat.id })}"><span class="chat-glyph" aria-hidden="true">↳</span><span class="copy"><b>${escape(chat.title)}</b><span class="sub">${escape(chat.client)} · ${chat.kind} · ${chat.events} events · ${escape(chat.content)} · ${chat.revisions.length} version(s)</span></span><span class="row-arrow" aria-hidden="true">↗</span></a></li>`,
-        );
+      : (result?.chats || []).map((chat) => chatSummary(chat, status.projects));
     return (
       intro(
         'Chats',
-        `${status.chats} preserved conversations · ${status.events} events · ${(status.bytes / 1048576).toFixed(1)} MiB`,
+        `${status.chats} conversations`,
         '<button class="btn" data-history-action="sources">Manage history sources</button>',
       ) +
       (status.incomplete || status.assetsMissing
@@ -144,11 +146,9 @@ export function setupHistoryUi({ api, render, notice }) {
         'Reading saved projects…',
         'Working locations are found from your conversations.',
       );
-    const projects = status.projects.filter((project) =>
-      project.label.toLowerCase().includes(query.toLowerCase()),
-    );
-    return `<section class="saved-projects"><p class="small-note">${projects.length} saved projects · Client access is configured separately.</p><div class="grid section-gap">${projects.map((project) => `<article class="card"><div class="card-b"><div class="project-kind">${pill(project.kind)}</div><h3>${escape(project.label)}</h3><p class="small-note">${project.chats} preserved conversations</p>${project.locations.map((directory) => `<p class="minor mono">${escape(directory)}</p>`).join('')}<a class="btn" href="${link('sessions', { project: project.id })}">Read chats ↗</a><details data-ui-key="project-${project.id}"><summary>Access & project settings</summary><div class="page-actions"><button class="btn sm" data-history-connect="${project.id}">Connect clients…</button> <button class="btn sm" data-history-revoke="history-${project.id.slice(0, 20)}">Revoke access…</button> <button class="btn sm" data-history-label="${project.id}">Rename</button> <button class="btn sm" data-history-exclude="${project.id}" data-excluded="${project.excluded}">${project.excluded ? 'Include again' : 'Exclude'}</button></div></details></div></article>`).join('') || empty('No saved projects yet', 'Capture history in Chats to save project associations.')}</div></section>`;
+    return savedProjectsView(status.projects, query);
   }
+
   async function refresh() {
     requested = '';
     render();

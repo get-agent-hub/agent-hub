@@ -1,5 +1,6 @@
 import type { HistoryChat, HistoryEvent, HistoryPart } from '../../contracts/history.js';
 import { object } from '../../adapters/history/events.js';
+import { messageTitle, titleNeedsRepair } from '../../adapters/history/titles.js';
 
 export type HistoryView = 'events' | 'conversation';
 
@@ -42,22 +43,36 @@ export function publicHistoryEvent(event: HistoryEvent) {
 }
 
 /** Older catalogs keep their source bytes; derive a readable title without rewriting their data. */
-export async function titledHistoryChat(chat: HistoryChat, events: AsyncIterable<HistoryEvent>) {
-  if (chat.title !== `Conversation ${chat.nativeId}`) return chat;
+export async function titledHistoryChat(
+  chat: HistoryChat,
+  events: AsyncIterable<HistoryEvent>,
+  signal?: AbortSignal,
+) {
+  signal?.throwIfAborted();
+  if (!titleNeedsRepair(chat.title, chat.nativeId)) return chat;
   let title: string | undefined;
   let bytes = 0;
-  for await (const event of events) {
-    const row = object(event.raw),
-      data = object(row.data);
-    const native = event.type === 'session/title' ? data.title : row.customTitle;
-    if (typeof native === 'string' && native.trim())
-      return { ...chat, title: native.slice(0, 200) };
-    if (!title && event.category === 'message' && event.role === 'user') {
-      const text = event.parts?.find((part) => part.kind === 'text')?.text;
-      if (text?.trim()) title = text.replace(/\s+/g, ' ').slice(0, 160);
+  try {
+    for await (const event of events) {
+      const row = object(event.raw),
+        data = object(row.data);
+      const native = event.type === 'session/title' ? data.title : row.customTitle;
+      if (typeof native === 'string' && native.trim())
+        return { ...chat, title: native.slice(0, 200) };
+      title ??= messageTitle(event);
+      bytes += event.text.length;
+      if (event.ordinal >= 255 || bytes >= 1024 * 1024) break;
     }
-    bytes += event.text.length;
-    if (event.ordinal >= 255 || bytes >= 1024 * 1024) break;
+  } catch {
+    signal?.throwIfAborted();
+    return {
+      ...chat,
+      title: title ?? `Conversation ${chat.nativeId}`,
+      issues: [
+        ...chat.issues,
+        'The conversation title could not be fully checked because its saved event index is unavailable.',
+      ],
+    };
   }
-  return title ? { ...chat, title } : chat;
+  return { ...chat, title: title ?? `Conversation ${chat.nativeId}` };
 }

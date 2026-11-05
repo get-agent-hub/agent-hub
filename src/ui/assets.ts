@@ -10,6 +10,7 @@ const staticFiles: Record<string, [string, string]> = {
   '/shared/view.js': ['shared/view.js', 'text/javascript; charset=utf-8'],
   '/shared/en.js': ['shared/en.js', 'text/javascript; charset=utf-8'],
   '/entities/resource.js': ['entities/resource.js', 'text/javascript; charset=utf-8'],
+  '/entities/history-project.js': ['entities/history-project.js', 'text/javascript; charset=utf-8'],
   '/entities/health.js': ['entities/health.js', 'text/javascript; charset=utf-8'],
   '/entities/history-conversation.js': [
     'entities/history-conversation.js',

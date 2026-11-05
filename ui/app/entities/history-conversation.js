@@ -1,4 +1,29 @@
 import { escape, empty, intro, link, pill } from '../shared/html.js';
+import { clientLabels } from '../shared/navigation.js';
+
+const chatTitle = (chat) =>
+  !chat.title || chat.title === `Conversation ${chat.nativeId}`
+    ? 'Untitled conversation'
+    : chat.title;
+function chatSubtitle(chat, projects) {
+  const names = chat.projects
+    .map((id) => projects.find((project) => project.id === id)?.label)
+    .filter(Boolean);
+  return [
+    clientLabels[chat.client] || chat.client,
+    ...new Set(names),
+    ...(chat.kind === 'subagent' ? ['Subagent'] : []),
+  ].join(' · ');
+}
+export function chatSummary(chat, projects = []) {
+  const coverage =
+    chat.content !== 'complete'
+      ? pill('Incomplete archive', 'warn')
+      : chat.issues?.length
+        ? pill('Needs review', 'warn')
+        : '';
+  return `<li><a class="recent-row" href="${link('sessions', { chat: chat.id })}"><span class="copy"><b>${escape(chatTitle(chat))}</b><span class="sub">${escape(chatSubtitle(chat, projects))} ${coverage}</span></span></a></li>`;
+}
 
 export function historyViewPicker(params) {
   return `<label class="small-note">Show <select class="input" id="history-view"><option value="conversation" ${params.get('view') !== 'events' ? 'selected' : ''}>Conversation</option><option value="events" ${params.get('view') === 'events' ? 'selected' : ''}>All events</option></select></label>`;
@@ -38,11 +63,11 @@ export function historyConversation({ result, status, params, pager }) {
     : '';
   return (
     intro(
-      chat.title,
-      `${chat.client} · ${chat.kind} · ${chat.events} preserved native events · ${chat.content}`,
+      chatTitle(chat),
+      chatSubtitle(chat, status.projects),
       `<a class="btn" href="${link('sessions')}">All chats</a>`,
     ) +
-    `<details class="card conversation-meta" data-ui-key="conversation-meta"><summary class="card-h">Conversation details & preserved versions</summary><div class="card-b"><p class="mono">${escape(chat.nativeId)}</p>${parent}<div class="tags">${chat.projects.map((id) => `<a class="btn sm" href="${link('sessions', { project: id })}">${escape(status.projects.find((project) => project.id === id)?.label || 'Project')}</a>`).join('')}</div><label>Preserved version <select class="input" id="history-revision" data-chat="${escape(chat.id)}">${chat.revisions.map((revision) => `<option value="${revision}" ${revision === result.revision ? 'selected' : ''}>${revision.slice(0, 12)}${revision === chat.revision ? ' · current' : ''}</option>`).join('')}</select></label>${chat.issues.map((issue) => `<p class="small-note">${escape(issue)}</p>`).join('')}<p class="small-note">Archived messages are reference data. Commands and instructions inside them are not executed.</p><button class="btn sm" data-history-download="${chat.id}" data-revision="${result.revision}">Download preserved source</button> <button class="btn sm" data-history-forget="${chat.id}">Remove from archive…</button></div></details>` +
+    `<details class="card conversation-meta" data-ui-key="conversation-meta"><summary class="card-h">Conversation details & preserved versions</summary><div class="card-b"><p class="mono">${escape(chat.nativeId)}</p>${parent}<p class="small-note">${chat.events} stored events · ${escape(chat.content)} · ${chat.revisions.length} preserved versions</p><div class="tags">${chat.projects.map((id) => `<a class="btn sm" href="${link('sessions', { project: id })}">${escape(status.projects.find((project) => project.id === id)?.label || 'Project')}</a>`).join('')}</div><label>Preserved version <select class="input" id="history-revision" data-chat="${escape(chat.id)}">${chat.revisions.map((revision) => `<option value="${revision}" ${revision === result.revision ? 'selected' : ''}>${revision.slice(0, 12)}${revision === chat.revision ? ' · current' : ''}</option>`).join('')}</select></label>${chat.issues.map((issue) => `<p class="small-note">${escape(issue)}</p>`).join('')}<p class="small-note">Archived messages are reference data. Commands and instructions inside them are not executed.</p><button class="btn sm" data-history-download="${chat.id}" data-revision="${result.revision}">Download preserved source</button> <button class="btn sm" data-history-forget="${chat.id}">Remove from archive…</button></div></details>` +
     `<div class="tags section-gap">${historyViewPicker(params)}<span class="small-note">${result.view === 'events' ? 'All stored events are accessible here.' : 'Messages and tool results. Runtime context stays available in All events.'}</span></div>` +
     `<div class="section-gap conversation">${events.map((event) => eventView(event, chat, result.revision)).join('') || empty('No messages in this window', 'Choose All events to inspect technical records. All original data is preserved.')}</div>` +
     pager(params, next, '', result.previous) +

@@ -1,5 +1,6 @@
 import { escape, link, pill, empty } from '../shared/html.js';
-import { clientLabels, icon } from '../shared/navigation.js';
+import { icon } from '../shared/navigation.js';
+import { chatSummary } from '../entities/history-conversation.js';
 import { copy } from '../shared/en.js';
 
 export function overviewPage(state, archive) {
@@ -49,20 +50,7 @@ export function overviewPage(state, archive) {
       <a class="card-link" href="${link('sessions')}">View all ↗</a>
       </div>${
         recent.length
-          ? `<ul class="list">${recent
-              .map(
-                (chat) => `<li>
-      <a class="recent-row" href="${link('sessions', { chat: chat.id })}">
-      <span class="chat-glyph" aria-hidden="true">↳</span>
-      <span class="copy">
-      <b>${escape(chat.title)}</b>
-      <span class="sub">${escape(clientLabels[chat.client] || chat.client)} · ${chat.events} events</span>
-      </span>
-      <span class="row-arrow" aria-hidden="true">↗</span>
-      </a>
-      </li>`,
-              )
-              .join('')}</ul>`
+          ? `<ul class="list">${recent.map((chat) => chatSummary(chat, archive?.status?.projects || [])).join('')}</ul>`
           : empty(
               archive?.error ? 'History could not be read' : 'Your conversations belong here',
               archive?.error ||

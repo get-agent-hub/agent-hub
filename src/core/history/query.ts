@@ -124,6 +124,7 @@ export async function readConversation(
   const displayChat = await titledHistoryChat(
     versionChat,
     historyEvents(root, id, revision, signal),
+    signal,
   );
   selectHistoryChat(await readHistory(root), access, id);
   const next = events.length ? events.at(-1)!.ordinal + 1 : offset;

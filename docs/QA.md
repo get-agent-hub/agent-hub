@@ -2,6 +2,16 @@
 
 The implemented import → sync → doctor → restore flow was exercised through the live UI and production CLI on macOS. Client writes used temporary configurations. Production client configurations were not synchronized.
 
+## Readable lists and project locations — 2026-11-06
+
+`npm run check` and standalone coverage pass **290 tests**. Coverage is **92.61% lines**, **84.35% branches** and **90.74% functions**; architecture verifies **180 modules / 884 imports**. A targeted **19-test** title/presentation/navigation/project-view suite also passes on Node **22.13**. Package validation passes **369 files / 1,814,793 unpacked bytes** and the actual temporary-prefix installer passes all existing workflows and the new project asset.
+
+New regressions cover standalone Claude terminal notices, multiple command wrappers, greeting-only prefixes, pasted-content title wrappers, explicit native-title precedence, literal quoted/mixed-content requests, old catalog repair after native-source removal and exact original event/byte preservation. A missing derived index leaves its row visible with a review warning; actual unreadable event access still fails, cancellation still propagates and catalog bytes are unchanged. A read-only check of the first 50 existing archived chats found no remaining technical title prefixes, one title-index warning and approximately 250 ms list time. No private titles or bodies were printed, copied to fixtures or rewritten.
+
+Project cards show one recorded representative/root path. Child locations, worktrees and dependency directories stay in expandable details; ordinary and unavailable/unverified folders have separate groups. Pure view tests cover Git roots, custom metadata directories, linked worktrees, path boundaries, Windows separator syntax, clone/nested-project separation, search and unchanged inputs. This display change does not alter backend identities, bindings, grants or catalog associations.
+
+A separate temporary-browser run passed six synthetic chats, normal/all-event visibility, details, client filtering/reload, shared overview rows, project folder disclosures, missing-folder separation, search through hidden child paths and a 400px viewport without overflow or runtime exceptions. Desktop/mobile screenshots were inspected. Real client settings and archive/index files were not changed. No normal global reinstall, push, release or deployment was performed.
+
 ## Local interface rebuild — 2026-11-06
 
 `npm run check` passes **279 tests**, formatting, lint, strict types and architecture checks (**178 modules / 877 imports**). Standalone coverage passes all 279 with **92.76% lines**, **84.18% branches** and **90.68% functions**. A targeted **36-test** navigation/architecture/sync run also passes on Node **22.13**; this is not a fresh full-suite minimum-runtime claim.
