@@ -14,6 +14,8 @@ During implementation, record each case as required, implemented, automated-test
 
 ## First working increment: local Claude project discovery
 
+**Follow-up gate:** the first real-data trial exposed incomplete enumeration, and additional probes found open reader/status/UI issues. [DISCOVERY_REVIEW.md](DISCOVERY_REVIEW.md) records R01–R11, evidence and implementation order. Do not call discovery comprehensive or mark slice 1 complete until these gates are resolved. The earlier passing checks remain evidence only for their tested subsets.
+
 Implemented in `src/adapters/claude-sessions.ts`, `src/core/project-discovery.ts` and the UI Projects page. An explicit token-protected request reads only selected configured sources, returns metadata/counts, groups verified worktrees and keeps ordinary/missing folders. It writes no catalog, settings, native history or project binding. No automatic scan on page load; no new CLI command or runtime dependency.
 
 The metadata scan has fixed production budgets: 2,048 directory entries, 256 files, 4 MiB total reads and a 64 KiB prefix per file. At most 32 distinct locations receive verification, with a five-second cooperative verification budget and a one-second timeout per Git process. Filesystem calls themselves are not guaranteed to finish within that budget. Limits, unsafe/unreadable files and absent metadata produce explicit partial coverage. Complete coverage refers only to this selected metadata scope, not all conversations or later cwd changes.
