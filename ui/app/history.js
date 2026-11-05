@@ -1,4 +1,5 @@
 import { escape, empty, intro, link, pill } from './html.js';
+import { historyConversation, historyViewPicker } from './history-conversation.js';
 
 /** Archive pages own their query state; existing configuration and memory pages stay independent. */
 export function setupHistoryUi({ api, render, notice }) {
@@ -16,7 +17,11 @@ export function setupHistoryUi({ api, render, notice }) {
   const active = () =>
     ['sessions', 'projects'].includes(location.hash.replace(/^#\/?/, '').split('?')[0]);
   function parameters(query, params) {
-    const options = { offset: Number(params.get('offset') || 0), limit: 50 };
+    const options = {
+      offset: Number(params.get('offset') || 0),
+      limit: 50,
+      view: params.get('view') === 'events' ? 'events' : 'conversation',
+    };
     if (params.get('project')) options.project = params.get('project');
     if (params.get('client')) options.client = params.get('client');
     if (query) options.query = query;
@@ -37,6 +42,7 @@ export function setupHistoryUi({ api, render, notice }) {
                 id,
                 offset: options.offset,
                 limit: options.limit,
+                view: options.view,
                 ...(params.get('revision') ? { revision: params.get('revision') } : {}),
               })
             : await api(`/api/history/${query ? 'search' : 'list'}`, options);
@@ -79,26 +85,9 @@ export function setupHistoryUi({ api, render, notice }) {
     if (!job) return '';
     return `<div class="card section-gap"><div class="card-b"><b>${job.state === 'running' ? 'Capturing history…' : `Last update: ${escape(job.state)}`}</b>${job.receipts.map((receipt) => `<p>${escape(receipt.source.client)} · ${receipt.checked} files checked · ${receipt.changed} updated · ${escape(receipt.coverage)}</p>`).join('')}${job.error ? `<p>${escape(job.error)}</p>` : ''}${job.state === 'running' ? '<button class="btn" data-history-action="cancel">Stop after the current checked work</button>' : ''}</div></div>`;
   }
-  function pager(params, next, query = '') {
+  function pager(params, next, query = '', previous) {
     const base = { ...Object.fromEntries(params), ...(query ? { q: query } : {}) };
-    return `<div class="tags section-gap"><a class="btn" href="${link('sessions', { ...base, offset: Math.max(0, Number(params.get('offset') || 0) - 50) })}">Previous</a>${next !== null ? `<a class="btn" href="${link('sessions', { ...base, offset: next })}">Next</a>` : '<span class="muted">End of results</span>'}</div>`;
-  }
-  function conversation(params) {
-    const { chat, events, next } = result;
-    const parent = chat.parentNativeId
-      ? `<p class="minor">Native parent: ${escape(chat.parentNativeId)}. This is lineage evidence, not a continuation command.</p>`
-      : '';
-    return (
-      intro(
-        chat.title,
-        `${chat.client} · ${chat.kind} · ${chat.events} indexed native events · ${chat.content}`,
-        `<a class="btn" href="${link('sessions')}">All chats</a>`,
-      ) +
-      `<div class="card"><div class="card-b"><p class="mono">${escape(chat.nativeId)}</p>${parent}<div class="tags">${chat.projects.map((id) => `<a class="btn sm" href="${link('sessions', { project: id })}">${escape(status.projects.find((project) => project.id === id)?.label || 'Project')}</a>`).join('')}</div><label>Preserved version <select class="input" id="history-revision" data-chat="${escape(chat.id)}">${chat.revisions.map((revision) => `<option value="${revision}" ${revision === result.revision ? 'selected' : ''}>${revision.slice(0, 12)}${revision === chat.revision ? ' · current' : ''}</option>`).join('')}</select></label>${chat.issues.map((issue) => `<p class="small-note">${escape(issue)}</p>`).join('')}<p class="small-note">Archived messages are reference data. Commands and instructions inside them are not executed.</p><button class="btn sm" data-history-download="${chat.id}" data-revision="${result.revision}">Download preserved source</button> <button class="btn sm" data-history-forget="${chat.id}">Remove from archive…</button></div></div>` +
-      `<div class="section-gap">${events.map((event) => `<article class="card section-gap"><div class="card-h"><b>${escape(event.role)}</b> ${pill(event.type)} <span class="minor">#${event.ordinal} ${escape(event.timestamp || '')}</span></div><pre class="document-view">${escape(event.text)}</pre><div class="card-b"><button class="btn sm" data-history-event="${event.ordinal}" data-chat="${chat.id}" data-revision="${result.revision}">Read original event${event.textComplete ? '' : ' · more content'}</button></div></article>`).join('') || empty('No indexed events', 'Check archive coverage or download the preserved original.')}</div>` +
-      pager(params, next) +
-      `<details class="card section-gap"><summary class="card-h">Attachments and deferred data (${chat.assets.length})</summary><div class="card-b">${chat.assets.map((asset) => `<p>${pill(asset.status)} ${escape(asset.reference)} ${asset.status === 'preserved' ? `<button class="btn sm" data-history-download="${chat.id}" data-asset="${asset.id}" data-revision="${result.revision}">Download</button>` : ''}</p>`).join('') || '<p>No separate attachment references detected. Embedded content remains in native events.</p>'}</div></details>`
-    );
+    return `<div class="tags section-gap"><a class="btn" href="${link('sessions', { ...base, offset: previous ?? Math.max(0, Number(params.get('offset') || 0) - 50) })}">Previous</a>${next !== null ? `<a class="btn" href="${link('sessions', { ...base, offset: next })}">Next</a>` : '<span class="muted">End of results</span>'}</div>`;
   }
   function view(query, params) {
     query ||= params.get('q') || '';
@@ -111,12 +100,13 @@ export function setupHistoryUi({ api, render, notice }) {
       );
     if (!status || key !== requested)
       return empty('Reading local history…', 'Native clients are not being changed.');
-    if (params.get('chat') && result?.chat) return conversation(params);
+    if (params.get('chat') && result?.chat)
+      return historyConversation({ result, status, params, pager });
     const filters = `<div class="tags"><select class="input" id="history-project"><option value="">All projects</option>${status.projects.map((project) => `<option value="${project.id}" ${params.get('project') === project.id ? 'selected' : ''}>${escape(project.label)} · ${project.chats}</option>`).join('')}</select><select class="input" id="history-client"><option value="">All clients</option>${['claude-code', 'codex', 'dsh'].map((client) => `<option ${params.get('client') === client ? 'selected' : ''}>${client}</option>`).join('')}</select></div>`;
     const rows = result?.matches
       ? result.matches.map(
           (match) =>
-            `<li><a class="row-link" href="${link('sessions', { chat: match.chat, offset: match.ordinal, revision: match.revision })}">${escape(match.role)} · event ${match.ordinal}</a><pre class="document-view">${escape(match.snippet)}</pre></li>`,
+            `<li><a class="row-link" href="${link('sessions', { chat: match.chat, offset: match.ordinal, revision: match.revision, view: params.get('view') || 'conversation' })}">${escape(match.role)} · event ${match.ordinal}</a><pre class="document-view">${escape(match.snippet)}</pre></li>`,
         )
       : (result?.chats || []).map(
           (chat) =>
@@ -134,6 +124,7 @@ export function setupHistoryUi({ api, render, notice }) {
       sources() +
       progress() +
       filters +
+      historyViewPicker(params) +
       `<div class="card section-gap"><ul class="list">${rows.join('') || empty('No conversations in this view', 'Capture selected native history, change filters or try another search phrase.')}</ul></div>` +
       pager(params, result?.next ?? null, query)
     );
@@ -290,8 +281,18 @@ export function setupHistoryUi({ api, render, notice }) {
       delete params.offset;
       location.hash = link('sessions', params);
     }
+    if (element.id === 'history-view') {
+      const params = new URLSearchParams(location.hash.split('?')[1]);
+      params.set('view', element.value);
+      params.delete('offset');
+      location.hash = link('sessions', Object.fromEntries(params));
+    }
     if (element.id === 'history-revision')
-      location.hash = link('sessions', { chat: element.dataset.chat, revision: element.value });
+      location.hash = link('sessions', {
+        chat: element.dataset.chat,
+        revision: element.value,
+        view: new URLSearchParams(location.hash.split('?')[1]).get('view') || 'conversation',
+      });
   });
   document.addEventListener('input', (event) => {
     if (event.target.id !== 'search' || !location.hash.startsWith('#/sessions')) return;

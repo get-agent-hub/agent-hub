@@ -12,6 +12,7 @@ const staticFiles: Record<string, [string, string]> = {
   '/memory.js': ['memory.js', 'text/javascript; charset=utf-8'],
   '/projects.js': ['projects.js', 'text/javascript; charset=utf-8'],
   '/history.js': ['history.js', 'text/javascript; charset=utf-8'],
+  '/history-conversation.js': ['history-conversation.js', 'text/javascript; charset=utf-8'],
   '/app.css': ['app.css', 'text/css; charset=utf-8'],
   '/base.css': ['base.css', 'text/css; charset=utf-8'],
 };

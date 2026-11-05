@@ -95,9 +95,98 @@ if (process.argv.includes('--many-projects')) {
     const id = `qa-extra-${String(index).padStart(3, '0')}`;
     await fs.writeFile(
       path.join(sessionCollection, `${id}.jsonl`),
-      JSON.stringify({ type: 'user', sessionId: id, cwd: path.join(root, id) }) + '\n',
+      JSON.stringify({
+        type: 'user',
+        sessionId: id,
+        cwd: path.join(root, id),
+        message: { role: 'user', content: `Synthetic conversation ${id}` },
+      }) + '\n',
     );
   }
+}
+if (process.argv.includes('--history-presentation')) {
+  const file = path.join(
+    process.env.DSH_HOME,
+    'sessions',
+    '--qa-project--',
+    'qa-dsh-chat',
+    'session.v4.jsonl',
+  );
+  const rows = [
+    {
+      type: 'session',
+      version: 4,
+      id: 'qa-dsh-chat',
+      cwd: repo,
+      parentSession: 'qa-parent',
+      origin: 'subagent',
+    },
+    {
+      type: 'system/message',
+      seq: 0,
+      data: {
+        message: {
+          role: 'system',
+          content: [{ type: 'text', text: 'TECHNICAL_CONTEXT_SENTINEL' }],
+        },
+      },
+    },
+    {
+      type: 'user/message',
+      seq: 1,
+      data: {
+        content: [{ type: 'text', text: 'Readable DSH question' }],
+        role: 'user',
+        source: { kind: 'user' },
+        id: 'qa-user',
+      },
+    },
+    {
+      type: 'user/message',
+      seq: 2,
+      data: {
+        content: [{ type: 'text', text: 'RUNTIME_CONTEXT_SENTINEL' }],
+        role: 'user',
+        source: { kind: 'runtime-context' },
+      },
+    },
+    {
+      type: 'assistant/message',
+      seq: 3,
+      data: {
+        message: {
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: 'Readable DSH answer <script>window.__historyInjected=true</script>',
+            },
+            { type: 'reasoning', text: 'Reasoning remains collapsed' },
+            { type: 'tool-call', id: 'qa-call', name: 'example', arguments: '{"input":"fixture"}' },
+          ],
+        },
+      },
+    },
+    {
+      type: 'tool/call',
+      seq: 4,
+      data: { callId: 'qa-call', name: 'example', arguments: '{"input":"fixture"}' },
+    },
+    {
+      type: 'tool/result',
+      seq: 5,
+      data: {
+        message: {
+          role: 'tool',
+          id: 'qa-result',
+          content: [{ type: 'text', text: 'Readable DSH tool output' }],
+        },
+      },
+    },
+    { type: 'session/title', seq: 6, data: { title: 'QA DSH conversation' } },
+  ];
+  await fs.mkdir(path.dirname(file), { recursive: true });
+  await fs.writeFile(file, rows.map((row) => JSON.stringify(row)).join('\n') + '\n');
 }
 execFileSync('git', ['init', '-q', '-b', 'main'], { cwd: repo });
 await fs.writeFile(

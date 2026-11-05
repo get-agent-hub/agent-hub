@@ -2,6 +2,14 @@
 
 The implemented import → sync → doctor → restore flow was exercised through the live UI and production CLI on macOS. Client writes used temporary configurations. Production client configurations were not synchronized.
 
+## Readable DSH conversations — 2026-11-05
+
+A user trial exposed a missing native envelope: DSH stores message bodies in `data.message.content` or `data.content`. The initial fixtures proved preservation but missed this display shape. The corrected projection extracts message text, parts, IDs, numeric timestamps and native titles. Conversation mode hides explicit runtime context/lifecycle events and duplicate tool transport echoes; All events retains access to every indexed record. Reasoning, tool arguments/results and unknown blocks are expandable. Old generic indexes are interpreted from their preserved raw records at read time, without native reads, reimport or archive writes.
+
+`npm run check` and coverage pass **273 tests** with **92.81% lines**, **84.42% branches** and **90.68% functions**. Architecture checks pass **168 modules / 852 imports**. Four new presentation regressions also pass on Node **22.13**: real DSH envelope shapes, filtered native-ordinal windows/tool echoes, old-index compatibility after removing the source, and Claude/Codex content blocks. A read-only check of the reported existing archive confirmed readable user/assistant/tool projections and a resolved title; private contents were not added to fixtures or reports.
+
+Browser checks on an independent synthetic DSH fixture pass conversation/all-events switching, reload, scoped search views, initially collapsed reasoning/results, inert escaped HTML, desktop and 400px mobile layout, with no runtime exceptions. Screenshots were inspected. Package validation and the real temporary-prefix installer pass, including the new renderer asset and existing history capture/read/client connection flow. No new dependency, production client apply, global user installation, release or deployment was performed.
+
 ## History archive — 2026-11-05
 
 The final `npm run check` passes **269 tests**, formatting, lint, strict TypeScript and architecture checks (**165 modules / 842 imports**). All **269** also pass on minimum Node **22.13.0**. The final standalone coverage run passes with **92.60% lines**, **84.34% branches** and **90.64% functions**. One earlier coverage run overlapped a complete minimum-runtime suite and failed the existing short-contention automatic-writer test; the standalone retry passed without changing retry code or thresholds. Production dependency audit reports **zero vulnerabilities**.

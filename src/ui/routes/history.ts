@@ -25,6 +25,7 @@ const query = z
     project: z.string().optional(),
     offset: z.number().int().nonnegative().optional(),
     limit: z.number().int().min(1).max(100).optional(),
+    view: z.enum(['events', 'conversation']).optional(),
   })
   .strict();
 const conversation = query.extend({ id: z.string(), revision: z.string().optional() });

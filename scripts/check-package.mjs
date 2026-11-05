@@ -17,6 +17,7 @@ for (const required of [
   'dist/mcp/history.js',
   'dist/ui/routes/history.js',
   'ui/app/history.js',
+  'ui/app/history-conversation.js',
   'docs/HISTORY.md',
   'dist/shared/runtime.js',
   'dist/workers/doctor.js',

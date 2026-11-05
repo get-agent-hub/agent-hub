@@ -22,6 +22,14 @@ export interface HistoryEvent {
   timestamp: string | null;
   text: string;
   raw: unknown;
+  category?: 'message' | 'context' | 'tool' | 'activity';
+  parts?: HistoryPart[];
+}
+export interface HistoryPart {
+  kind: 'text' | 'reasoning' | 'tool-call' | 'tool-result' | 'attachment' | 'unknown';
+  text: string;
+  name?: string;
+  id?: string;
 }
 export interface HistoryAsset {
   id: string;

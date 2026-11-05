@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Read DSH nested message envelopes as conversations, collapse tool/reasoning details and separate technical context with an All events view. Correct old archived projections and fallback titles at read time without reimport.
 - Preserve supported Claude, Codex and DSH conversations in a private, versioned local archive with complete-event search, project associations, attachment coverage and scoped read-only MCP connections. Add automatic metadata discovery, the Chats page, reviewed access/deletion policies and optional foreground refresh.
 - Organize backend modules by subsystem, split HTTP routing and sync/setup operations, and enforce dependency boundaries, runtime-cycle checks and module-size limits. Clean builds remove stale compiled modules; existing CLI and HTTP behavior is retained.
 

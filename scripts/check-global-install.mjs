@@ -132,7 +132,7 @@ try {
       }
     });
   });
-  for (const asset of ['/', '/quick.js', '/projects.js', '/history.js'])
+  for (const asset of ['/', '/quick.js', '/projects.js', '/history.js', '/history-conversation.js'])
     assert.equal((await fetch(`${url}${asset}`)).status, 200);
   const state = await (await fetch(`${url}/api/state`)).json();
   assert.equal(state.status.hub.root, home);

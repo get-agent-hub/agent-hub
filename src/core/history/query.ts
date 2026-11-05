@@ -6,6 +6,13 @@ import { HubError } from '../../shared/errors.js';
 import { selectHistoryChat, visibleHistory, type HistoryAccess } from './access.js';
 import { ownedHistoryPath, readHistory, readHistoryVersion } from './storage.js';
 import { rawHistory, rawWindow } from './raw.js';
+import { historyEvent } from '../../adapters/history/events.js';
+import {
+  conversationFilter,
+  publicHistoryEvent,
+  titledHistoryChat,
+  type HistoryView,
+} from './presentation.js';
 
 export interface HistoryQuery {
   query?: string;
@@ -13,6 +20,7 @@ export interface HistoryQuery {
   project?: string;
   offset?: number;
   limit?: number;
+  view?: HistoryView;
 }
 export function pageOptions(options: HistoryQuery) {
   const offset = options.offset ?? 0,
@@ -23,7 +31,8 @@ export function pageOptions(options: HistoryQuery) {
     !Number.isSafeInteger(limit) ||
     limit < 1 ||
     limit > 100 ||
-    (options.query?.length ?? 0) > 500
+    (options.query?.length ?? 0) > 500 ||
+    (options.view !== undefined && !['events', 'conversation'].includes(options.view))
   )
     throw new HubError(
       'Choose a nonnegative offset, a limit of 1–100 and a query of at most 500 characters.',
@@ -40,11 +49,19 @@ export async function listHistory(root: string, access: HistoryAccess, options: 
       (!options.query ||
         `${chat.title} ${chat.nativeId}`.toLowerCase().includes(options.query.toLowerCase())),
   );
+  const chats = await Promise.all(
+    all
+      .slice(offset, offset + limit)
+      .map((chat) => titledHistoryChat(chat, historyEvents(root, chat.id, chat.revision))),
+  );
+  const permitted = new Set(visibleHistory(await readHistory(root), access).map((chat) => chat.id));
+  if (chats.some((chat) => !permitted.has(chat.id)))
+    throw new HubError('History access changed. Refresh the current scope.');
   return {
     total: all.length,
     offset,
     next: offset + limit < all.length ? offset + limit : null,
-    chats: all.slice(offset, offset + limit),
+    chats,
   };
 }
 export async function* historyEvents(
@@ -58,7 +75,8 @@ export async function* historyEvents(
   try {
     for await (const line of lines) {
       signal?.throwIfAborted();
-      yield JSON.parse(line) as HistoryEvent;
+      const stored = JSON.parse(line) as HistoryEvent;
+      yield historyEvent(stored.raw, stored.ordinal);
     }
   } catch {
     signal?.throwIfAborted();
@@ -79,14 +97,19 @@ export async function readConversation(
   const chat = selectHistoryChat(await readHistory(root), access, id);
   const revision = options.revision ?? chat.revision;
   if (!chat.revisions.includes(revision)) throw new HubError('Unknown conversation revision.');
-  const events: (Omit<HistoryEvent, 'raw'> & { textComplete: boolean })[] = [];
+  const events: ReturnType<typeof publicHistoryEvent>[] = [];
+  const visible = conversationFilter();
+  const before: number[] = [];
   let budget = 0;
   let more = false;
   for await (const event of historyEvents(root, id, revision, signal)) {
-    if (event.ordinal < offset) continue;
-    const text = event.text.slice(0, 8192);
-    const { raw: _raw, ...metadata } = event;
-    const item = { ...metadata, text, textComplete: text.length === event.text.length };
+    if (options.view === 'conversation' && !visible(event)) continue;
+    if (event.ordinal < offset) {
+      before.push(event.ordinal);
+      if (before.length > limit) before.shift();
+      continue;
+    }
+    const item = publicHistoryEvent(event);
     const bytes = Buffer.byteLength(JSON.stringify(item));
     if (events.length && (events.length >= limit || budget + bytes > 120 * 1024)) {
       more = true;
@@ -96,13 +119,21 @@ export async function readConversation(
     budget += bytes;
   }
   // Recheck current grants/exclusions after work; an in-flight read cannot retain revoked authority.
+  const versionChat =
+    revision === chat.revision ? chat : await readHistoryVersion(root, id, revision);
+  const displayChat = await titledHistoryChat(
+    versionChat,
+    historyEvents(root, id, revision, signal),
+  );
   selectHistoryChat(await readHistory(root), access, id);
   const next = events.length ? events.at(-1)!.ordinal + 1 : offset;
   return {
-    chat: revision === chat.revision ? chat : await readHistoryVersion(root, id, revision),
+    chat: displayChat,
     revision,
     events,
     next: more ? next : null,
+    previous: before[0] ?? null,
+    view: options.view ?? 'events',
     referenceData: true,
   };
 }
@@ -160,17 +191,25 @@ export async function searchHistory(
       (!options.client || chat.client === options.client),
   );
   for (const chat of chats) {
+    const visible = conversationFilter();
     for await (const event of historyEvents(root, chat.id, chat.revision, signal)) {
+      if (options.view === 'conversation' && !visible(event)) continue;
       const text = JSON.stringify(event.raw);
       const position = text.toLowerCase().indexOf(needle);
       if (position < 0) continue;
+      const readable = event.text.toLowerCase().indexOf(needle);
+      const displayText = readable >= 0 ? event.text : text;
+      const displayPosition = readable >= 0 ? readable : position;
       if (total++ >= offset && matches.length < limit)
         matches.push({
           chat: chat.id,
           revision: chat.revision,
           ordinal: event.ordinal,
           role: event.role,
-          snippet: text.slice(Math.max(0, position - 80), position + needle.length + 180),
+          snippet: displayText.slice(
+            Math.max(0, displayPosition - 80),
+            displayPosition + needle.length + 180,
+          ),
         });
     }
   }
