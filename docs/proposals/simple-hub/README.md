@@ -10,8 +10,9 @@ Agent Hub should find your clients, collect the content you choose, and keep it 
 - [Evidence: client contracts, limitations and implementation costs](EVIDENCE.md)
 - [Delivery plan and acceptance cases](DELIVERY.md)
 - [Decided policies for access, conflicts, archives and recovery](POLICIES.md)
-- [Open discovery findings after the real-data trial](DISCOVERY_REVIEW.md)
+- [Discovery findings, fixes and remaining boundaries](DISCOVERY_REVIEW.md)
 - [Hansard comparison and proposed product focus](HANSARD_COMPARISON.md)
+- [Competitive opportunities and validation priorities](OPPORTUNITIES.md)
 
 ## One ordinary workflow
 

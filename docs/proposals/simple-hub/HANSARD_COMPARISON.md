@@ -62,7 +62,7 @@ Competing with Hansard by copying its complete feature list would conflict with 
 
 This is a candidate focus, not an established unique selling point. Local storage, MIT licensing, shared skills/MCP and a common memory archive are already offered elsewhere. We need an unassisted task comparison and reliable external-edit reconciliation before advertising superior simplicity.
 
-Keep the current discovery fixes first. Do not expand into account routing, agent orchestration, team collaboration, phone access or graph UI merely because Hansard offers them. These can remain outside the near-term product without compromising the original Hub workflow.
+The discovery fixes have now passed their supported-scope checks. Next, validate the existing configuration workflow and the proposed reconciliation slice; see [competitive opportunities](OPPORTUNITIES.md). Do not expand into account routing, agent orchestration, team collaboration, phone access or graph UI merely because Hansard offers them. These can remain outside the near-term product without compromising the original Hub workflow.
 
 For conversation history, evaluate two explicit options after that workflow works: our own minimal archive, or an optional adapter that retrieves an existing archive such as Hansard through supported interfaces. The latter could reduce duplicated work, but must preserve project access policy, version compatibility and source identity. It must not become a mandatory dependency or silently change who owns canonical data. Avoid bridging generated tool entries back into themselves.
 
