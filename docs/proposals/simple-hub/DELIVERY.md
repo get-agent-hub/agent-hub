@@ -4,6 +4,8 @@
 
 This is an implementation plan, not completed work. Each slice should leave a usable product. Preserve current supported behavior and recovery throughout; keep the published beta tag immutable.
 
+The latest [automatic Hub plan](AUTOMATIC_HUB.md) orders the next increments: independent automatic inventory, three-destination interface, broader readers, connection/reconciliation, memory refresh and selected full history. Source selection remains available as a filter; ordinary first launch should not require client paths, project registration or an explicit Find projects action. Current explicit discovery and CLI scopes remain compatible until the new flow is implemented.
+
 ## What is covered, and what has actually been verified
 
 The matrices below describe required outcomes. A listed case is not a passing test. The first read-only metadata discovery slice has isolated implementation tests; all-content reconciliation and chat archive still await implementation. [POLICIES.md](POLICIES.md) defines the decisions each slice must enforce.

@@ -2,6 +2,8 @@
 
 Research and design proposal · 2026-11-05 · reviewed core: `06c4960`.
 
+**Current product direction:** automatically discover existing clients and data, then present a shared inventory and reviewed synchronization through Overview, All data and Projects. The person keeps working in native clients. [Automatic discovery and implementation plan](AUTOMATIC_HUB.md) specifies the first-launch flow, source coverage and delivery order; it supersedes earlier mandatory discovery clicks and source-by-source setup suggestions.
+
 **Status: design target with a first implementation slice.** This consolidates the earlier simplification and relationship reviews. The working source now has explicit read-only project discovery from local Claude chat metadata in the UI. The released beta still has MCP-only `sync`, setup-run recovery and no shared chat archive. This proposal does not change that release contract.
 
 Agent Hub should find your clients, collect the content you choose, and keep it available across those clients. Projects should appear from existing chat and client metadata. Users should not have to build a catalog before receiving useful results.
