@@ -6,6 +6,8 @@ Agent Hub should show the data already available in a person's coding clients an
 
 The normal setup is **open Hub → see discovered data → review Create Hub once**. Projects appear automatically. A later ordinary edit in a connected client needs no import command. Genuine conflicts remain visible instead of being resolved by client order.
 
+**Full conversations are a core requirement.** Every available message and event in the selected supported sources must be preserved and accessible. Titles, summaries and project associations alone do not fulfill the chat feature. The first complete chat reader follows the initial catalog/interface work, before expanding the roster of inventory-only adapters.
+
 This specifies the next implementation, not current beta behavior. Existing [policies](POLICIES.md), [relationships](RELATIONSHIPS.md) and [47 acceptance cases](DELIVERY.md) still apply. This proposal takes precedence over earlier suggestions to require source selection or Find projects before showing the first inventory. Explicit legacy commands retain their documented scopes.
 
 ## What the interface shows
@@ -76,6 +78,16 @@ After setup, the saved policy permits unchanged connections to synchronize witho
 Agent Skills are bundles, not just one Markdown file. [Specification](https://agentskills.io/specification). Claude's custom subagents can also declare tools, skills, hooks and persistent memory; preset definitions and actual runs must remain distinct. [Subagent reference](https://code.claude.com/docs/en/sub-agents).
 
 Do not import sign-ins, cookies, API credentials or OS keychain data as shared resources. MCP configuration may contain inline secrets: use the existing private credential extraction path during approved collection and show only references. Raw chat and recovery copies can still contain sensitive text; retain them privately and explain their storage scope. Redacted display is not redaction of preserved originals.
+
+## Complete conversations
+
+Preserve every source-available user message, assistant response, tool call and tool result, including errors and interrupted turns. Retain stored system/developer/context and reasoning blocks when the source exposes them; never reconstruct unavailable internal context. Keep native IDs, ordering, timestamps, edits, regenerations, forks and child-session references where recorded. Preserve original event types even if the first viewer cannot interpret them.
+
+Keep attachment references and original accessible files, with unavailable content explicitly identified. Import complete selected conversations rather than recent-message windows or summaries. Continue incrementally as clients append new messages; partial final records remain pending. Native cleanup does not erase an already preserved Hub conversation.
+
+Offer full conversation reading in All data → Chats and within its project, plus keyword search and scoped client retrieval. Page large conversations for display and model context, while retaining the full underlying contents. A client can request another window; Hub does not push every archived message into every prompt. Native clients keep owning their active session files.
+
+Acceptance requires comparing preserved source bytes and available message/event identities against the fixture source, finding distinctive text in the middle and end of large conversations, and reading it without silent truncation. Include archived/forked/subagent histories, attachment gaps, concurrent appends, interruption/restart and later edits. The current initial-context discovery reader cannot satisfy this gate; it needs a separate full-content read/archive capability.
 
 ## Source coverage and reader order
 
@@ -157,14 +169,14 @@ Resource audience and native scope survive collection: a project-only tool does 
 
 ## Delivery order and completion gates
 
-| Increment                                  | Reviewable result                                                                                                                 | Completion gate                                                                                                                          |
-| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| 1 · Automatic inventory                    | Open an uninitialized Hub and see three existing adapter families, source errors, all observed variants and auto-derived projects | No client writes/launches; no source/path wizard; a broken unrelated source does not block results; every count has coverage             |
-| 2 · Simple interface                       | Overview, unified data list and project page share the same catalog                                                               | Search/filter across pages; correct unique/occurrence counts; details explain scope/copies; usable without registration                  |
-| 3 · Broader readers                        | Add Cursor, OpenCode and Gemini inventory, then verified VS Code surfaces                                                         | Per-client fixtures and version receipts; unsupported chat/memory formats remain explicit; shared physical stores not double-counted     |
-| 4 · One connection and reconciliation flow | Review Create Hub, then propagate an approved native MCP edit through Hub to an unchanged peer                                    | Preserve client-only fields, divergent edits, later-work-safe recovery and idempotence; existing CLI callers remain compatible           |
-| 5 · Memory and automatic refresh           | Source-aware project memory appears and updates across connected clients under saved policy                                       | Scoped access, concurrent/stale writes, source changes, missed watcher events, restart and disconnect pass                               |
-| 6 · Complete selected history              | Supported sources' history is preserved, searchable and retrievable from clients                                                  | Original/event/attachment fidelity, source generation coverage, grants, interruption/restart and retention gates pass before “backed up” |
+| Increment                                  | Reviewable result                                                                                                                 | Completion gate                                                                                                                                                |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1 · Automatic inventory                    | Open an uninitialized Hub and see three existing adapter families, source errors, all observed variants and auto-derived projects | No client writes/launches; no source/path wizard; a broken unrelated source does not block results; every count has coverage                                   |
+| 2 · Simple interface                       | Overview, unified data list and project page share the same catalog                                                               | Search/filter across pages; correct unique/occurrence counts; details explain scope/copies; usable without registration                                        |
+| 3 · Full conversations                     | Preserve, read and search all available messages from the first supported source, then Codex/DSH                                  | Complete-content fidelity, branches/events/attachments, source generations, scoped retrieval, incremental updates and restart pass; no summary-only completion |
+| 4 · Broader readers                        | Add Cursor, OpenCode and Gemini inventory and verified full-content readers, then VS Code surfaces                                | Per-client fixtures and version receipts; unsupported chat/memory formats remain explicit; shared physical stores not double-counted                           |
+| 5 · One connection and reconciliation flow | Review Create Hub, then propagate an approved native MCP edit through Hub to an unchanged peer                                    | Preserve client-only fields, divergent edits, later-work-safe recovery and idempotence; existing CLI callers remain compatible                                 |
+| 6 · Memory and automatic refresh           | Source-aware project memory and selected history stay current under saved policy                                                  | Scoped access, concurrent/stale writes, source changes, missed watcher events, retention, restart and disconnect pass                                          |
 
 Increment 1 is narrow enough to implement next. Broader detection and read support must not imply broader write support. Full history is a real requirement with its own gate; it is neither hidden behind a finished metadata screen nor expanded into an IDE.
 

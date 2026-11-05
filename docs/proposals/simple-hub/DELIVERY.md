@@ -4,7 +4,7 @@
 
 This is an implementation plan, not completed work. Each slice should leave a usable product. Preserve current supported behavior and recovery throughout; keep the published beta tag immutable.
 
-The latest [automatic Hub plan](AUTOMATIC_HUB.md) orders the next increments: independent automatic inventory, three-destination interface, broader readers, connection/reconciliation, memory refresh and selected full history. Source selection remains available as a filter; ordinary first launch should not require client paths, project registration or an explicit Find projects action. Current explicit discovery and CLI scopes remain compatible until the new flow is implemented.
+The latest [automatic Hub plan](AUTOMATIC_HUB.md) orders the next increments: independent automatic inventory, three-destination interface, complete conversation messages, broader readers, connection/reconciliation and automatic memory/history refresh. Full message contents are a core requirement; titles and metadata alone do not complete the chat feature. Source selection remains available as a filter; ordinary first launch should not require client paths, project registration or an explicit Find projects action. Current explicit discovery and CLI scopes remain compatible until the new flow is implemented.
 
 ## What is covered, and what has actually been verified
 
