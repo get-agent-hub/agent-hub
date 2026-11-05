@@ -13,6 +13,8 @@ npm run qa:ui          # Manual UI fixture; no production client writes
 
 ## Structure
 
+The [simplification proposal](docs/proposals/simple-hub/README.md) records research on automatic project discovery, shared content and a smaller user-facing workflow. It separates proposed behavior from the released beta and includes source evidence and acceptance cases.
+
 - `src/commands`: thin CLI presentation and process lifecycle.
 - `src/core`: launch definitions, import/sync/restore planning, guarded file operations and domain services.
 - `src/adapters`: client formats, client-local policy and location discovery.
