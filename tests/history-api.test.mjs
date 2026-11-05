@@ -84,7 +84,7 @@ test('HTTP history requires operator token, rejects path injection and preserves
     200,
   );
   assert.equal((await (await post('list')).json()).total, 0);
-  const scripts = await fetch(ui.url + '/history.js');
+  const scripts = await fetch(ui.url + '/features/history.js');
   assert.equal(scripts.status, 200);
   assert.match(await scripts.text(), /Capture selected history/);
 });

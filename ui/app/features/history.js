@@ -1,5 +1,6 @@
-import { escape, empty, intro, link, pill } from './html.js';
-import { historyConversation, historyViewPicker } from './history-conversation.js';
+import { escape, empty, intro, link, pill } from '../shared/html.js';
+import { readRoute } from '../shared/navigation.js';
+import { historyConversation, historyViewPicker } from '../entities/history-conversation.js';
 
 /** Archive pages own their query state; existing configuration and memory pages stay independent. */
 export function setupHistoryUi({ api, render, notice }) {
@@ -10,12 +11,12 @@ export function setupHistoryUi({ api, render, notice }) {
   let version = 0;
   let error = '';
   let selectedSources = new Set();
+  let sourcesInitialized = false;
   let automatic = false;
   let lastCapture = 0;
   let pending = false;
   let lastView = 'sessions';
-  const active = () =>
-    ['sessions', 'projects'].includes(location.hash.replace(/^#\/?/, '').split('?')[0]);
+  const active = () => readRoute().resource === 'chats' || readRoute().page === 'projects';
   function parameters(query, params) {
     const options = {
       offset: Number(params.get('offset') || 0),
@@ -51,10 +52,12 @@ export function setupHistoryUi({ api, render, notice }) {
       result = next;
       key = nextKey;
       error = '';
-      if (!selectedSources.size)
+      if (!sourcesInitialized) {
+        sourcesInitialized = true;
         selectedSources = new Set(
           status.sources.map((source) => source.id).filter((id) => !status.excluded.includes(id)),
         );
+      }
       render();
       if (lastView === 'sessions' && params.get('q') && !document.querySelector('#search').value)
         document.querySelector('#search').value = query;
@@ -71,19 +74,19 @@ export function setupHistoryUi({ api, render, notice }) {
     if (requested !== nextKey) void fetchView(query, params, nextKey);
   }
   function sources() {
-    return `<details class="card section-gap" ${status.chats ? '' : 'open'}><summary class="card-h">Native history sources</summary><div class="card-b">${status.sources
+    return `<details class="card section-gap" id="history-sources" data-ui-key="history-sources" ${status.chats ? '' : 'open'}><summary class="card-h">Native history sources</summary><div class="card-b">${status.sources
       .map((source) => {
         const receipt = status.receipts.find((item) => item.source.id === source.id);
         return `<label class="tags"><input type="checkbox" data-history-source="${escape(source.id)}" ${selectedSources.has(source.id) ? 'checked' : ''}>${escape(source.client)} ${pill(receipt?.coverage || 'Not captured')}<span class="minor mono">${escape(source.root)}</span></label>`;
       })
       .join(
         '',
-      )}<p class="small-note">Capture reads all available events in the selected supported stores. Native files stay in place. History may include private messages and tool output; Hub stores it locally.</p><label><input type="checkbox" id="history-auto" ${automatic ? 'checked' : ''}> Keep updated every 30 seconds while this page is open</label><p><button class="btn primary" data-history-action="scan" ${pending || status.job?.state === 'running' ? 'disabled' : ''}>Capture selected history</button> <button class="btn" data-history-action="rebuild">Rebuild search index</button></p></div></details>`;
+      )}<p class="small-note">Capture reads all available events in the selected supported stores. Native files stay in place. History may include private messages and tool output; Hub stores it locally.</p><label><input type="checkbox" id="history-auto" ${automatic ? 'checked' : ''}> Keep updated every 30 seconds while this page is open</label><p><button class="btn primary" data-history-action="scan" ${pending || !selectedSources.size || status.job?.state === 'running' ? 'disabled' : ''}>Capture selected history</button> <button class="btn" data-history-action="rebuild">Rebuild search index</button></p></div></details>`;
   }
   function progress() {
     const job = status.job;
     if (!job) return '';
-    return `<div class="card section-gap"><div class="card-b"><b>${job.state === 'running' ? 'Capturing history…' : `Last update: ${escape(job.state)}`}</b>${job.receipts.map((receipt) => `<p>${escape(receipt.source.client)} · ${receipt.checked} files checked · ${receipt.changed} updated · ${escape(receipt.coverage)}</p>`).join('')}${job.error ? `<p>${escape(job.error)}</p>` : ''}${job.state === 'running' ? '<button class="btn" data-history-action="cancel">Stop after the current checked work</button>' : ''}</div></div>`;
+    return `<details class="card section-gap" data-ui-key="history-job-${escape(job.id)}" ${job.state === 'running' || job.error ? 'open' : ''}><summary class="card-h">History update · ${escape(job.state)}</summary><div class="card-b"><b>${job.state === 'running' ? 'Capturing history…' : `Last update: ${escape(job.state)}`}</b>${job.receipts.map((receipt) => `<p>${escape(receipt.source.client)} · ${receipt.checked} files checked · ${receipt.changed} updated · ${escape(receipt.coverage)}</p>`).join('')}${job.error ? `<p>${escape(job.error)}</p>` : ''}${job.state === 'running' ? '<button class="btn" data-history-action="cancel">Stop after the current checked work</button>' : ''}</div></details>`;
   }
   function pager(params, next, query = '', previous) {
     const base = { ...Object.fromEntries(params), ...(query ? { q: query } : {}) };
@@ -106,36 +109,45 @@ export function setupHistoryUi({ api, render, notice }) {
     const rows = result?.matches
       ? result.matches.map(
           (match) =>
-            `<li><a class="row-link" href="${link('sessions', { chat: match.chat, offset: match.ordinal, revision: match.revision, view: params.get('view') || 'conversation' })}">${escape(match.role)} · event ${match.ordinal}</a><pre class="document-view">${escape(match.snippet)}</pre></li>`,
+            `<li><a class="row-link" href="${link('sessions', { chat: match.chat, offset: match.ordinal, revision: match.revision, view: params.get('view') || 'conversation' })}">${escape(match.role)} · event ${match.ordinal}</a><pre class="document-view search-snippet">${escape(match.snippet)}</pre></li>`,
         )
       : (result?.chats || []).map(
           (chat) =>
-            `<li><a class="row-link" href="${link('sessions', { chat: chat.id })}">${escape(chat.title)}</a><div class="minor">${escape(chat.client)} · ${chat.kind} · ${chat.events} events · ${escape(chat.content)} · ${chat.revisions.length} version(s)</div></li>`,
+            `<li><a class="recent-row" href="${link('sessions', { chat: chat.id })}"><span class="chat-glyph" aria-hidden="true">↳</span><span class="copy"><b>${escape(chat.title)}</b><span class="sub">${escape(chat.client)} · ${chat.kind} · ${chat.events} events · ${escape(chat.content)} · ${chat.revisions.length} version(s)</span></span><span class="row-arrow" aria-hidden="true">↗</span></a></li>`,
         );
     return (
       intro(
         'Chats',
         `${status.chats} preserved conversations · ${status.events} events · ${(status.bytes / 1048576).toFixed(1)} MiB`,
-        '<button class="btn" data-history-action="refresh">Refresh view</button>',
+        '<button class="btn" data-history-action="sources">Manage history sources</button>',
       ) +
       (status.incomplete || status.assetsMissing
         ? `<p class="small-note">${status.incomplete} conversations have incomplete or unsupported event coverage. ${status.assetsMissing} attachment references are not locally preserved. See each chat for details.</p>`
         : '') +
       sources() +
       progress() +
-      filters +
-      historyViewPicker(params) +
-      `<div class="card section-gap"><ul class="list">${rows.join('') || empty('No conversations in this view', 'Capture selected native history, change filters or try another search phrase.')}</ul></div>` +
+      `<div class="history-toolbar">${filters}${historyViewPicker(params)}</div>` +
+      `<div class="card section-gap chat-list"><ul class="list">${rows.join('') || empty('No conversations in this view', 'Capture selected native history, change filters or try another search phrase.')}</ul></div>` +
       pager(params, result?.next ?? null, query)
     );
   }
   function projectsView(query) {
     ensure('', new URLSearchParams(), 'projects');
-    if (!status) return '';
+    if (error)
+      return empty(
+        'Projects could not be read',
+        error,
+        '<button class="btn" data-history-action="refresh">Retry</button>',
+      );
+    if (!status)
+      return empty(
+        'Reading saved projects…',
+        'Working locations are found from your conversations.',
+      );
     const projects = status.projects.filter((project) =>
       project.label.toLowerCase().includes(query.toLowerCase()),
     );
-    return `<section class="section-gap"><h2>Saved projects and conversations</h2><p class="small-note">These associations survive restarts. Finding a project does not connect its memory or grant clients access.</p><div class="grid">${projects.map((project) => `<article class="card"><div class="card-b"><h3>${escape(project.label)}</h3><p>${project.chats} preserved chats · ${escape(project.kind)}</p>${project.locations.map((directory) => `<p class="minor mono">${escape(directory)}</p>`).join('')}<a class="btn" href="${link('sessions', { project: project.id })}">Read chats</a> <button class="btn sm" data-history-connect="${project.id}">Connect clients…</button> <button class="btn sm" data-history-revoke="history-${project.id.slice(0, 20)}">Revoke access…</button> <button class="btn sm" data-history-label="${project.id}">Rename</button> <button class="btn sm" data-history-exclude="${project.id}" data-excluded="${project.excluded}">${project.excluded ? 'Include again' : 'Exclude'}</button></div></article>`).join('') || empty('No saved projects yet', 'Capture history in Chats to save project associations.')}</div></section>`;
+    return `<section class="saved-projects"><p class="small-note">${projects.length} saved projects · Client access is configured separately.</p><div class="grid section-gap">${projects.map((project) => `<article class="card"><div class="card-b"><div class="project-kind">${pill(project.kind)}</div><h3>${escape(project.label)}</h3><p class="small-note">${project.chats} preserved conversations</p>${project.locations.map((directory) => `<p class="minor mono">${escape(directory)}</p>`).join('')}<a class="btn" href="${link('sessions', { project: project.id })}">Read chats ↗</a><details data-ui-key="project-${project.id}"><summary>Access & project settings</summary><div class="page-actions"><button class="btn sm" data-history-connect="${project.id}">Connect clients…</button> <button class="btn sm" data-history-revoke="history-${project.id.slice(0, 20)}">Revoke access…</button> <button class="btn sm" data-history-label="${project.id}">Rename</button> <button class="btn sm" data-history-exclude="${project.id}" data-excluded="${project.excluded}">${project.excluded ? 'Include again' : 'Exclude'}</button></div></details></div></article>`).join('') || empty('No saved projects yet', 'Capture history in Chats to save project associations.')}</div></section>`;
   }
   async function refresh() {
     requested = '';
@@ -181,6 +193,14 @@ export function setupHistoryUi({ api, render, notice }) {
     URL.revokeObjectURL(url);
   }
   document.addEventListener('click', (event) => {
+    if (event.target.closest('[data-history-action="sources"]')) {
+      const panel = document.querySelector('#history-sources');
+      if (panel) {
+        panel.open = !panel.open;
+        panel.scrollIntoView({ block: 'nearest' });
+      }
+      return;
+    }
     const button = event.target.closest(
       '[data-history-action], [data-history-event], [data-history-download], [data-history-forget], [data-history-label], [data-history-exclude], [data-history-connect], [data-history-revoke]',
     );
@@ -273,6 +293,7 @@ export function setupHistoryUi({ api, render, notice }) {
     if (element.dataset.historySource) {
       if (element.checked) selectedSources.add(element.dataset.historySource);
       else selectedSources.delete(element.dataset.historySource);
+      render();
     }
     if (element.id === 'history-auto') automatic = element.checked;
     if (['history-project', 'history-client'].includes(element.id)) {
@@ -295,9 +316,10 @@ export function setupHistoryUi({ api, render, notice }) {
       });
   });
   document.addEventListener('input', (event) => {
-    if (event.target.id !== 'search' || !location.hash.startsWith('#/sessions')) return;
+    if (event.target.id !== 'search' || readRoute().resource !== 'chats') return;
     const params = new URLSearchParams(location.hash.split('?')[1]);
-    if (params.has('chat')) return;
+    params.delete('chat');
+    params.delete('revision');
     if (event.target.value.trim()) params.set('q', event.target.value.trim());
     else params.delete('q');
     params.delete('offset');

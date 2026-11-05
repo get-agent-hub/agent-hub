@@ -6,7 +6,7 @@ Agent Hub keeps a local archive of supported native conversations. Clients conti
 
 Run `ahub ui`. The interface starts a read-only project metadata scan over known Claude Code, Codex and DSH stores. Finding a working folder does not register project memory or grant another client access.
 
-Open **Chats**, choose native sources and click **Capture selected history**. This copies supported history into private Hub storage. Messages may contain private text, tool output and embedded images; nothing is uploaded. Progress and source coverage remain visible. Stop retains conversations already committed. Reloading the page reconnects to the running job; restarting the server retains the saved archive.
+Open **All data → Chats**, choose native sources and click **Capture selected history**. This copies supported history into private Hub storage. Messages may contain private text, tool output and embedded images; nothing is uploaded. Progress and source coverage remain visible. Stop retains conversations already committed. Reloading the page reconnects to the running job; restarting the server retains the saved archive.
 
 Use the search field to search conversation text and tool data. Select All events to include technical context and other native fields. Filter by client or project. Open a conversation to read event windows, inspect every original JSON field, choose an earlier preserved version or download the source bytes. Long messages have a complete original-event reader rather than a silently truncated preview.
 
@@ -14,7 +14,7 @@ The interface defaults to **Conversation**: readable user/assistant messages wit
 
 **Projects** shows saved associations with chat links. Rename a project or exclude it without changing native files. Explicit aliases can associate a relocated directory with an existing project through the advanced policy interface. Git common-directory evidence groups worktrees; clones are not merged by name or remote URL. A chat can have several related projects. Saved associations remain separate from the existing project-memory registry.
 
-Choose **Connect clients…** on a saved project to preview a read-only history MCP connection. The review identifies clients and configuration files. Apply adds its scoped grant and Hub tool definition, then uses the existing guarded MCP delivery. Other definitions and native settings are preserved. Client restart and native trust approval may be required. Partial delivery has per-client results and recorded recovery; it is not a simultaneous filesystem transaction. **Revoke access…** stops retrieval immediately while retaining the archive and installed configuration entry.
+Expand **Access & project settings** and choose **Connect clients…** on a saved project to preview a read-only history MCP connection. The review identifies clients and configuration files. Apply adds its scoped grant and Hub tool definition, then uses the existing guarded MCP delivery. Other definitions and native settings are preserved. Client restart and native trust approval may be required. Partial delivery has per-client results and recorded recovery; it is not a simultaneous filesystem transaction. **Revoke access…** stops retrieval immediately while retaining the archive and installed configuration entry.
 
 Enable **Keep updated** to rescan selected sources every 30 seconds while the Chats or Projects page stays open. An update running on the server continues across page reload. Closing the page does not install a background service. For refresh independently of the browser, use the foreground watcher below.
 
@@ -94,4 +94,4 @@ The archive lives under `state/history` inside the Hub, excluded from normal Hub
 
 Existing first-baseline reset and recorded connection-workflow recovery still apply. Reset archives current managed state before restoration and may restore retained older history/policy. Review [recovery semantics](RECOVERY.md) before applying it. Neither resetting Hub nor uninstalling its CLI erases native conversations.
 
-Cross-client interoperability here means shared archive retrieval through MCP. Native continuation, rewriting active session stores, multi-device replication and a complete new interface are separate capabilities; they are not implied by successful archive capture.
+Cross-client interoperability here means shared archive retrieval through MCP. Native continuation, rewriting active session stores, multi-device replication and general all-area reconciliation are separate capabilities; they are not implied by successful archive capture.

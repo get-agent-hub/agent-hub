@@ -1,4 +1,4 @@
-import { escape, pill } from './html.js';
+import { escape, pill } from '../shared/html.js';
 
 export function setupQuickUi({ api, load, notice, getState }) {
   const dialog = document.querySelector('#quick-dialog');

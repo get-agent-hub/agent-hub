@@ -469,7 +469,7 @@ test('memory UI API binds the project, requires a token and consumes reviewed pr
       headers: { 'Content-Type': 'application/json', 'X-Agent-Hub-Token': key },
       body: JSON.stringify(body),
     });
-  assert.equal((await fetch(`${ui.url}/memory.js`)).status, 200);
+  assert.equal((await fetch(`${ui.url}/features/memory.js`)).status, 200);
   const input = {
     operation: 'create',
     id: 'ui-fact',

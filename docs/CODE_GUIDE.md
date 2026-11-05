@@ -33,7 +33,7 @@ For MCP sync, start at `src/core/mcp/sync.ts`. Its `sync/` modules separate plan
 
 HTTP startup is in `src/ui/server.ts`. Headers, origin checks and error handling stay there; body parsing is in `protocol.ts`. Each `routes/` file owns one API area and its previews/jobs. `session.ts` owns selection and shared mutation state. Project switches invalidate pending previews across route groups. Server shutdown stops its jobs.
 
-The browser remains in `ui/app` during this refactor. Historical `ui/mockups` files are design references, not runtime modules or package assets.
+The browser lives in `ui/app` with native JavaScript modules and no bundler. Historical `ui/mockups` files are design references, not runtime modules or package assets.
 
 ## Dependencies
 
@@ -63,7 +63,7 @@ Aim for 100–250 lines per file and a function explainable in one sentence. Aro
 
 Automated ceilings are 400 lines per TypeScript/runtime JavaScript module or maintenance script, 250 nonblank/noncomment lines per TypeScript function and 800 lines per test module. The function ceiling is an upper guard, not a preferred size. Tests can be longer because readable scenarios include setup, actions and assertions.
 
-The one browser exception is `ui/app/app.js`, held at 765 lines until its separate rebuild. New modules follow the normal ceiling. Do not extend the exception to other files. CSS and historical mockups have no artificial function limit; split styles by responsibility during the UI rebuild.
+Every browser JavaScript module follows the same 400-line ceiling, including `app.js`. CSS is split into tokens, shell, primitives, resource representations, history, dialogs and responsive rules. Historical mockups are outside the runtime.
 
 Use descriptive subsystem names. Avoid `utils`, `helpers`, `manager` or `service` modules that accumulate unrelated behavior. Comment constraints, ownership and non-obvious decisions rather than restating code. Remove obsolete numbered extraction comments.
 
@@ -94,8 +94,12 @@ npm run install:check      # Actual install into a temporary prefix
 
 For HTTP changes, exercise the synthetic browser fixture too. A fixture is not a real-client usefulness trial. New dependencies need a concrete capability and runtime/package-cost review; these structure checks add no production dependency.
 
-## FSD principles for the next UI
+## Browser slices
 
 Use app composition → pages → user-action features → entities → shared UI/infrastructure. A slice exposes a small named API; callers do not reach into another slice's private model/UI. Dependencies point downward; same-layer slices do not import each other's implementation.
 
-Create only layers with actual code. Overview, All data and Projects are pages; connecting a source and resolving a conflict are features; source/resource/project representations are entities. UI primitives and transport helpers are shared. Business operations and authority remain in backend core. This does not require a new framework or empty FSD folders now.
+Create only layers with actual code. Overview, All data and Projects are pages; connecting a source and resolving a conflict are features; source/resource/project representations are entities. UI primitives and transport helpers are shared. Business operations and authority remain in backend core. The architecture check enforces downward imports and rejects imports across feature/page/entity slices. Shared primitives may compose other shared primitives. No framework or empty layer is required.
+
+The browser shell composes three main destinations: Overview, All data and Projects. Sources & settings is secondary. `pages` owns the overview, resource views and source settings; `features` owns guarded setup/import/sync, diagnostics, memory, archive and discovery actions; `entities` owns transcript and health representations; `shared` owns escaping, links, route parsing, disclosure/focus preservation and shell copy. `styles` separates visual responsibilities. Small slices expose named exports directly; there are no forwarding barrels. Existing resource hashes are accepted as aliases.
+
+`src/ui/assets.ts` is an explicit asset allowlist. Moving a browser module requires updating its URL, package/install checks and local imports. No arbitrary directory serving or remote runtime assets are permitted.

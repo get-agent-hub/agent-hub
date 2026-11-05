@@ -132,7 +132,37 @@ try {
       }
     });
   });
-  for (const asset of ['/', '/quick.js', '/projects.js', '/history.js', '/history-conversation.js'])
+  for (const asset of [
+    '/',
+    '/app.js',
+    '/shared/navigation.js',
+    '/shared/view.js',
+    '/shared/en.js',
+    '/pages/overview.js',
+    '/pages/sources.js',
+    '/pages/resources.js',
+    '/features/quick.js',
+    '/features/projects.js',
+    '/features/history.js',
+    '/features/import-mcp.js',
+    '/features/sync-mcp.js',
+    '/features/check-mcp.js',
+    '/features/content.js',
+    '/features/memory.js',
+    '/entities/health.js',
+    '/entities/resource.js',
+    '/entities/history-conversation.js',
+    '/app.css',
+    '/base.css',
+    '/styles/primitives.css',
+    '/styles/tables.css',
+    '/styles/resources.css',
+    '/styles/dialogs.css',
+    '/styles/history.css',
+    '/styles/shell.css',
+    '/styles/pages.css',
+    '/styles/responsive.css',
+  ])
     assert.equal((await fetch(`${url}${asset}`)).status, 200);
   const state = await (await fetch(`${url}/api/state`)).json();
   assert.equal(state.status.hub.root, home);

@@ -3,8 +3,13 @@ export const escape = (value) =>
     /[&<>"']/g,
     (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c],
   );
-export const link = (page, params = {}) =>
-  `#/${page}${Object.keys(params).length ? `?${new URLSearchParams(params)}` : ''}`;
+export function link(page, params = {}) {
+  if (['sessions', 'skills', 'mcp', 'instructions', 'memory'].includes(page)) {
+    params = { ...params, type: page === 'sessions' ? 'chats' : page };
+    page = 'data';
+  }
+  return `#/${page}${Object.keys(params).length ? `?${new URLSearchParams(params)}` : ''}`;
+}
 export function pill(text, type = '') {
   return `<span class="pill ${type}">${escape(text)}</span>`;
 }

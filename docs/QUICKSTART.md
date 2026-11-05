@@ -89,11 +89,15 @@ In a terminal these public workflows show the plan and ask before applying. Use 
 ahub ui
 ```
 
-**Set up shared Hub** works from any folder, even before Hub initialization. It previews global tools, skills and shared instructions only.
+**Review Hub setup** works from any folder, even before Hub initialization. It previews global tools, skills and shared instructions.
 
-In the current source version, open **Projects**, choose Claude Code and select **Find projects** to discover existing working folders from local chat metadata. No Hub initialization or project registration is needed. Git worktrees are grouped; ordinary and unavailable folders remain visible. The result shows metadata coverage and chat counts, not conversation contents or an archive. It does not connect memory or change client files. The scan continues automatically and shows progress; use **Stop** to cancel. Search covers all found groups, with pages for larger results. **Refresh** scans again; incomplete retries keep older observations marked. **Reveal folder** opens a verified location without connecting memory. Codex/DSH discovery and full history ingestion are not supported by this first slice. Install this source revision to use it; it is not in the published `v0.1.0-beta.1` archive.
+The main navigation has three sections: **Overview** for counts and conversations, **All data** for chats, skills, MCP, instructions and memory, and **Projects** for saved conversation groups. **Sources & settings** contains setup, individual delivery actions and connection checks. Writes always require a preview and an explicit apply.
 
-For optional project setup, start `ahub ui` from that Git project, then choose **Connect project memory** on Overview or **Connect project memory & handoff** on Repos & tasks. This is a separate preview with a visible project path and an explicit hook option. Use the header to switch among verified projects already registered in this Hub, the startup folder or shared knowledge. Requests cannot choose an arbitrary path. Switching expires all setup/content/memory previews. Preview IDs expire after five minutes and apply once.
+Metadata discovery starts automatically over known supported Claude Code, Codex and DSH stores. In **Projects**, expand **Find more projects & inspect source coverage** to inspect or repeat it. Git worktrees are grouped; ordinary and unavailable folders stay distinct. Finding a location does not connect memory or preserve complete history. In **All data → Chats**, select **Capture selected history** to preserve supported conversations and search their messages.
+
+For optional project-memory setup, start `ahub ui` from a Git project, open **Projects → Current folder context** and choose **Connect project memory & handoff**. The preview identifies the project and optional hooks. **Knowledge scope** switches among registered projects, the startup folder and shared knowledge. Switching scope expires earlier setup/content/memory previews. Requests cannot select an arbitrary path; previews expire after five minutes and apply once.
+
+These additions are in the current source checkout, rather than the published `v0.1.0-beta.1` archive. See [the UI guide](UI.md) and [history support and limits](HISTORY.md).
 
 ## Conflicts, repeat runs and automation boundaries
 

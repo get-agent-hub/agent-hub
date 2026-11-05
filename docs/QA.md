@@ -2,6 +2,18 @@
 
 The implemented import → sync → doctor → restore flow was exercised through the live UI and production CLI on macOS. Client writes used temporary configurations. Production client configurations were not synchronized.
 
+## Local interface rebuild — 2026-11-06
+
+`npm run check` passes **279 tests**, formatting, lint, strict types and architecture checks (**178 modules / 877 imports**). Standalone coverage passes all 279 with **92.76% lines**, **84.18% branches** and **90.68% functions**. A targeted **36-test** navigation/architecture/sync run also passes on Node **22.13**; this is not a fresh full-suite minimum-runtime claim.
+
+The interface now has Overview, All data and Projects, with secondary Sources & settings. Browser modules use enforced downward slice boundaries; the 765-line shell exception is removed. The shell is 243 lines, action controllers retain reviewed-plan state, and styles have separate responsibilities. No frontend framework, production dependency or remote font/script was added. Existing resource bookmarks remain accepted.
+
+A separate temporary browser profile exercised **113 synthetic conversations** on desktop and a **400px** viewport. Capture, message search, search from an open conversation, normal/all-event DSH views, reload, escaped native markup, source selection, project views, skills and memory controls, setup/import/sync previews, old links, keyboard search and read-failure retry passed. Expanded details and focused source controls survive background refresh; clearing every source stays cleared and disables capture. Mobile pages and setup/import/sync dialogs had no horizontal overflow. Final screenshots were inspected. Terminal command copies remain accessible in collapsed disclosures.
+
+The browser also applied an import and a single-item Claude MCP delivery, then ran connection checks, using only fixture files. Codex and DSH configurations stayed byte-for-byte unchanged during targeted Claude delivery. This exposed a pre-existing HTTP replacement bug: the route checked the preview but omitted its revision when calling the replacement guard. The route now forwards that validated revision. An actual HTTP regression verifies explicit replacement, unchanged unrelated settings/files, one-use consumption and rejection after an external edit. It does not weaken the core approval requirement.
+
+Package validation and the real temporary-prefix installer cover every moved browser module and stylesheet, both CLI binary names, quick setup, full history capture/search/read, scoped Codex history connection and metadata discovery. Test/browser artifacts stay outside the package. No production client configuration was applied, normal global CLI installation changed, remote CI run, release or deployment performed for this rebuild.
+
 ## Readable DSH conversations — 2026-11-05
 
 A user trial exposed a missing native envelope: DSH stores message bodies in `data.message.content` or `data.content`. The initial fixtures proved preservation but missed this display shape. The corrected projection extracts message text, parts, IDs, numeric timestamps and native titles. Conversation mode hides explicit runtime context/lifecycle events and duplicate tool transport echoes; All events retains access to every indexed record. Reasoning, tool arguments/results and unknown blocks are expandable. Old generic indexes are interpreted from their preserved raw records at read time, without native reads, reimport or archive writes.

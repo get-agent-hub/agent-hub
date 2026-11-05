@@ -1,4 +1,4 @@
-import { escape, pill } from './html.js';
+import { escape, pill } from '../shared/html.js';
 
 export function healthPill(name, cached) {
   const result = cached?.report.results.find((r) => r.name === name);

@@ -18,6 +18,23 @@ const allowed = {
   browser: ['browser'],
 };
 
+function inspectBrowserBoundary(file, target, issues) {
+  const browserLayer = (name) => (name === 'ui/app/app.js' ? 'app' : name.split('/')[2]);
+  const levels = { app: 4, pages: 3, features: 2, entities: 1, shared: 0 };
+  const from = browserLayer(file),
+    to = browserLayer(target);
+  if (!(from in levels) || !(to in levels)) {
+    issues.push(`Unknown browser layer: ${file} → ${target}`);
+    return;
+  }
+  const slice = (name) => name.split('/')[3]?.replace(/\.js$/, '');
+  if (
+    levels[to] > levels[from] ||
+    (from === to && from !== 'shared' && slice(file) !== slice(target))
+  )
+    issues.push(`Forbidden browser dependency: ${file} → ${target}`);
+}
+
 function importKind(node) {
   if (ts.isImportDeclaration(node)) {
     const clause = node.importClause;
@@ -115,6 +132,7 @@ export function inspectArchitecture(modules) {
         continue;
       }
       const to = layer(target);
+      if (from === 'browser' && to === 'browser') inspectBrowserBoundary(file, target, issues);
       const uiEntry = file === 'src/commands/ui.ts' && to === 'ui';
       if (!uiEntry && !allowed[from]?.includes(to))
         issues.push(`Forbidden dependency: ${file} → ${target}`);

@@ -23,10 +23,10 @@ The [simplification proposal](docs/proposals/simple-hub/README.md) records resea
 - `src/adapters`: client formats, client-local policy and location discovery.
 - `src/integrations`: optional provider presets; generic health transport stays in core.
 - `src/ui`: HTTP lifecycle/protocol, operator session, focused route handlers and safe public queries.
-- `ui/app`: browser orchestration, HTML primitives and connection-status views; no bundler.
+- `ui/app`: three-page browser shell, pages, action features, entity views and shared primitives; no bundler.
 - `tests`: Node's test runner with isolated temporary hubs and independent MCP fixtures.
 
-Read [the code guide](docs/CODE_GUIDE.md) for dependency rules, module ownership, enforced size limits and FSD principles for the future browser rebuild. [AGENTS.md](AGENTS.md) gives the same working rules to coding agents.
+Read [the code guide](docs/CODE_GUIDE.md) for dependency rules, module ownership, enforced size limits and browser slice boundaries. [AGENTS.md](AGENTS.md) gives the same working rules to coding agents.
 
 Prefer small functions with one responsibility and explicit inputs over speculative interfaces or class hierarchies. Add shared helpers when two real callers need the same behavior. Keep runtime schema validation at file/HTTP boundaries. Do not let parser exceptions or server logs enter user-facing reports.
 

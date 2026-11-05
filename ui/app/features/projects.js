@@ -1,4 +1,4 @@
-import { escape, intro, pill, empty } from './html.js';
+import { escape, intro, pill, empty } from '../shared/html.js';
 
 const count = (value, noun) => `${value} ${noun}${value === 1 ? '' : 's'}`;
 const running = (report) => report?.state === 'running';

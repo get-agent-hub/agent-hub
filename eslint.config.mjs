@@ -56,7 +56,5 @@ export default defineConfig([
   },
   { files: ['ui/**/*.js'], languageOptions: { globals: globals.browser } },
   { files: ['ui/app/**/*.js'], rules: { 'max-lines': ['error', { max: 400 }] } },
-  // Existing browser shell is held at its current size until the separate UI rebuild.
-  { files: ['ui/app/app.js'], rules: { 'max-lines': ['error', { max: 765 }] } },
   prettier,
 ]);

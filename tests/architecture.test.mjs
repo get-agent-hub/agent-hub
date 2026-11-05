@@ -73,3 +73,24 @@ test('adapters cannot grow dependencies on setup or recovery workflows', () => {
   });
   assert.match(report.issues.join('\n'), /unrelated workflows/);
 });
+
+test('browser slices depend downward and cannot reach across feature implementations', () => {
+  for (const files of [
+    { 'ui/app/shared/html.js': "import '../pages/overview.js';", 'ui/app/pages/overview.js': '' },
+    {
+      'ui/app/entities/chat.js': "import '../features/history.js';",
+      'ui/app/features/history.js': '',
+    },
+    { 'ui/app/features/history.js': "import './memory.js';", 'ui/app/features/memory.js': '' },
+  ])
+    assert.match(inspect(files).issues.join('\n'), /Forbidden browser dependency/);
+  assert.deepEqual(
+    inspect({
+      'ui/app/app.js': "import './pages/overview.js';",
+      'ui/app/pages/overview.js': "import '../entities/chat.js';",
+      'ui/app/entities/chat.js': "import '../shared/html.js';",
+      'ui/app/shared/html.js': '',
+    }).issues,
+    [],
+  );
+});

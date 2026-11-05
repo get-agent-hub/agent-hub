@@ -1,0 +1,158 @@
+.app {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  min-height: 100vh;
+}
+.sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  padding: 32px 18px 20px;
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+}
+.brand {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 0 12px;
+  margin-bottom: 54px;
+  font: 25px/1.2 var(--serif);
+  letter-spacing: -0.6px;
+}
+.logo {
+  font: 36px/0.8 var(--serif);
+}
+.brand small {
+  display: block;
+  font: 10px/1.5 var(--sans);
+  color: var(--muted);
+  letter-spacing: 0;
+  margin-top: 8px;
+}
+.nav {
+  display: grid;
+  gap: 6px;
+}
+.nav a,
+.settings-link {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  border-radius: 8px;
+  padding: 11px 12px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.nav a:hover,
+.settings-link:hover {
+  background: var(--panel-2);
+  color: var(--text);
+}
+.nav a.active,
+.settings-link.active {
+  background: var(--accent-bg);
+  color: var(--text);
+  font-weight: 600;
+}
+.sidebar-bottom {
+  margin-top: auto;
+}
+.settings-link {
+  font-size: 12px;
+}
+.foot {
+  padding: 18px 12px 0;
+  margin-top: 12px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.foot .dot {
+  width: 5px;
+  height: 5px;
+  margin-right: 6px;
+  color: var(--ok);
+}
+.ver {
+  padding-left: 13px;
+  color: var(--faint);
+  font-size: 10px;
+}
+.main {
+  min-width: 0;
+}
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 40px;
+  min-height: 76px;
+  border-bottom: 1px solid var(--line);
+}
+.topbar h1 {
+  font: 500 13px var(--sans);
+  margin: 0;
+}
+.local-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.local-badge .dot {
+  width: 5px;
+  height: 5px;
+  color: var(--ok);
+}
+.search-field {
+  position: relative;
+  width: 270px;
+}
+.search-field .input {
+  width: 100%;
+  padding-right: 40px;
+  font-size: 12px;
+  background: transparent;
+}
+.search-field .kbd {
+  position: absolute;
+  right: 8px;
+  top: 9px;
+  border: 0;
+  padding: 0;
+  pointer-events: none;
+  font-size: 10px;
+}
+.icon-button {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  font-size: 18px;
+  background: transparent;
+  border-color: transparent;
+}
+.scope-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.scope-control select {
+  width: 170px;
+  font-size: 11px;
+}
+.content {
+  max-width: 1450px;
+  margin: 0 auto;
+  padding: 40px 44px 64px;
+}
+.content:focus {
+  outline: none;
+}

@@ -46,7 +46,7 @@ P1 blocks reliable discovery across supported sources. P2 affects truthful statu
 - [Project grouping](../../../src/core/projects/discovery.ts): Git exit classification, source-only aggregate coverage and a verification limit that does not cap output cardinality.
 - [UI state](../../../src/ui/data.ts) and [status collection](../../../src/core/overview/status.ts): bootstrap depends on multiple reads through `Promise.all`; a malformed unrelated client can reject the request.
 - [Discovery endpoint](../../../src/ui/server.ts): one active-request flag, without cancellation propagated to the reader.
-- [Projects UI](../../../ui/app/projects.js) and [app refresh](../../../ui/app/app.js): transient browser report, generic status and existing Refresh behavior.
+- [Projects UI](../../../ui/app/features/projects.js) and [app refresh](../../../ui/app/app.js): transient browser report, generic status and existing Refresh behavior.
 
 The temporary probes used known synthetic inputs: a one-file exact-limit source; a valid 80 KiB record; early/late collections under a two-prefix byte budget; a corrupt Git config; a child environment without Git; one session with 500 locations; valid/invalid unselected Codex config around the same UI; and an aborted request with a controlled pending reader. All temporary servers/directories were closed/removed by their probes.
 

@@ -448,6 +448,51 @@ test('CLI defaults to dry run, prints a runnable command, and rejects ambiguous 
   );
 });
 
+test('HTTP item replacement requires a current reviewed preview and preserves other client files', async (t) => {
+  const f = await fixture(t);
+  const edited = JSON.parse(original['claude-code']);
+  edited.mcpServers.demo.command = 'client-specific-command';
+  await fs.writeFile(f.file('claude-code'), JSON.stringify(edited));
+  const ui = await startUiServer({
+    port: 0,
+    services: { state: async () => ({}), syncPlan: (options) => planSync(options, f.context) },
+  });
+  t.after(() => ui.close());
+  const token = (await (await fetch(`${ui.url}/api/state`)).json()).token;
+  const post = (route, body) =>
+    fetch(`${ui.url}/api/sync/${route}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Agent-Hub-Token': token },
+      body: JSON.stringify(body),
+    });
+  const selection = { client: 'claude-code', only: ['demo'] };
+  const blocked = await (await post('preview', selection)).json();
+  assert.equal(blocked.blocked, true);
+  assert.equal((await post('apply', { id: blocked.id })).status, 409);
+  const before = await fs.readFile(f.file('claude-code'), 'utf8');
+  const reviewed = await (await post('preview', { ...selection, replace: ['demo'] })).json();
+  assert.equal(reviewed.blocked, false);
+  assert.equal(await fs.readFile(f.file('claude-code'), 'utf8'), before);
+  const response = await post('apply', { id: reviewed.id });
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).changedFiles, 1);
+  const result = JSON.parse(await fs.readFile(f.file('claude-code'), 'utf8'));
+  assert.match(result.mcpServers.demo.command, /node/);
+  assert.deepEqual(result.mcpServers.unrelated, edited.mcpServers.unrelated);
+  assert.equal(result.theme, edited.theme);
+  assert.equal(result.oauth, edited.oauth);
+  for (const client of ['codex', 'dsh'])
+    assert.equal(await fs.readFile(f.file(client), 'utf8'), original[client]);
+  assert.equal((await post('apply', { id: reviewed.id })).status, 409);
+  const stale = await (
+    await post('preview', { client: 'dsh', only: ['demo'], replace: ['demo'] })
+  ).json();
+  const later = original.dsh + '\n# An external edit after review\n';
+  await fs.writeFile(f.file('dsh'), later);
+  assert.equal((await post('apply', { id: stale.id })).status, 409);
+  assert.equal(await fs.readFile(f.file('dsh'), 'utf8'), later);
+});
+
 test('HTTP sync preview is read-only, apply consumes it, and stale previews are rejected', async (t) => {
   const f = await fixture(t);
   const ui = await startUiServer({

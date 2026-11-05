@@ -1,4 +1,4 @@
-import { escape, pill } from './html.js';
+import { escape, pill } from '../shared/html.js';
 
 const titles = {
   'project-disconnect': 'Disconnect selected project · retain knowledge and notes',

@@ -1,12 +1,39 @@
-# Live local UI
+# Local interface
 
-The live application is in `ui/app/`, served by `src/ui/server.ts` through `ahub ui`. The original `ui/mockups/` remains available as a visual reference; both use `ui/app/base.css`. Live assets are self-contained.
+Run `ahub ui` to open Agent Hub on your computer. The interface uses the same core operations as the CLI. Reading a page does not apply configuration changes.
 
-The server calls the existing status collector and the shared `src/core/mcp/import-plan.ts` service. The CLI import command uses the same planner and writer. Internal plans contain secret values; only the explicit public plan projection is sent to the browser.
+## Find your data
 
-## Guided first run
+- **Overview** shows inventory counts, conversations from your archive and detected clients. Skill and MCP totals count items found across clients; memory counts include shared records and the selected project. A failed archive read is shown as unavailable, never as zero conversations. The conversation selection follows archive order, not native activity time.
+- **All data** has five categories: Chats, Skills, MCP servers, Instructions and Memory. Search applies to the selected category. Chats searches preserved messages; it also offers project and client filters. Overview search covers skill names, MCP definitions and shared index documents; it does not search archived messages.
+- **Projects** shows saved associations from captured chats. Open a project's chats, or expand **Access & project settings** to connect clients, revoke access, rename or exclude a project. **Find more projects & inspect source coverage** opens metadata discovery. Finding a folder does not connect project memory.
 
-Overview separates **Set up shared Hub** from optional **Connect project memory**. Hub setup works from any folder and previews global MCP, skill and shared instruction/index collection/delivery. The header selects a verified registered project, the startup folder or shared knowledge. Switching expires every preview. Project connection is available for the selected Git project and previews its memory, handoff and hooks. The scope and storage/project paths are labeled separately. Both results show completed, unchanged, skipped and blocked stages, restore previews, per-run undo and the separate first-baseline reset command. See [QUICKSTART.md](QUICKSTART.md).
+Existing bookmarks such as `#/sessions?chat=...` and `#/skills?name=...` still work. New resource links use `#/data?type=chats` and the other categories. **Current folder context** keeps access to repository instructions, project notes and handoff setup.
+
+## Read conversations
+
+In **All data → Chats**, expand **Native history sources** or use **Manage history sources**. Select supported local stores and choose **Capture selected history**. This preserves available messages and events in the Hub; native stores stay in place. Source coverage and incomplete attachments remain visible.
+
+A conversation opens with readable messages. Reasoning and tool output can be expanded. **All events** also includes runtime context and technical records. **Conversation details & preserved versions** contains revision selection, native identity, project associations, preserved-source download and removal from the archive. **Read original event** is available on each message. Archived content is displayed as text, never executed.
+
+**Keep updated** checks the selected sources every 30 seconds while Chats or Projects is open. Deselecting every source keeps capture disabled. Closing the browser does not install a background service. See [history behavior and limits](HISTORY.md).
+
+## Review changes
+
+**Sources & settings** shows detected client locations, configuration differences, setup and MCP connection checks. Detection alone does not prove that a client is active or its backend is available.
+
+**Review Hub setup** collects and delivers shared content through the existing staged workflow. Individual imports and delivery actions remain available here and in the relevant data category. Every write requires a preview and an explicit apply; scope, revision checks, backups and recovery still apply. Review a new preview after changing knowledge scope.
+
+Memory records and native-memory automation are available through **Manage records** in Memory. The **Knowledge scope** selector chooses shared knowledge, the folder where the UI started or a registered project. The document list below contains shared index files, rather than individual knowledge records.
+
+## Navigation and appearance
+
+Use Command/Ctrl+K to focus search. Keyboard focus has a visible outline; **Skip to content** bypasses navigation. Background reads preserve expanded details and focused controls within the same view. The theme button switches light/dark appearance and remembers it locally when browser storage is available. The layout adapts to a narrow screen.
+
+The browser loads fonts, scripts and styles locally. It adds no frontend framework or remote asset dependency. CLI commands, native client formats, grants and recovery storage are unchanged by this interface rebuild.
+
+<details>
+<summary>Technical reference: HTTP, reviewed writes and connection jobs</summary>
 
 `POST /api/quick/preview` accepts only `clients` and `prefer`. `POST /api/project/connect/preview` accepts only `clients` and `automation`; its project directory is the verified server-side selection or startup folder. The corresponding `/apply` routes consume private single-use `previewId` plus `revision`. A Hub preview cannot be applied through a project route. Unknown or cross-scope options are rejected. IDs expire after five minutes; writes share the UI operation guard and each stage's filesystem lock. No source-bearing internal plan enters the response. Each workflow is staged rather than one transaction.
 
@@ -16,9 +43,9 @@ Overview separates **Set up shared Hub** from optional **Connect project memory*
 | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `GET /api/state`                 | Actual hub/client status, sanitized registry definitions, known hub Markdown documents, current repository context, refresh timestamp and session token |
 | `GET /api/skill?name=…&source=…` | A skill selected from the discovered hub/client inventory; never an arbitrary filesystem path                                                           |
-| `POST /api/import/preview`       | Build an MCP import plan without writing; accepts `item`, `prefer`, `overwrite`                                                                         |
+| `POST /api/import/preview`       | Build an MCP import plan without writing; accepts `item`, `source`, `prefer`, `overwrite`                                                               |
 | `POST /api/import/apply`         | Apply a previously reviewed plan by opaque `id`; rebuild and compare its input revision first                                                           |
-| `POST /api/sync/preview`         | Dry-run MCP sync for all enabled clients or one `client`; return file/server actions and copyable CLI commands                                          |
+| `POST /api/sync/preview`         | Dry-run MCP sync with optional `client`, `only` and `replace`; return file/server actions and copyable CLI commands                                     |
 | `POST /api/sync/apply`           | Apply a reviewed sync preview by `id`, with backups, ownership tracking, stale-input checks and rollback                                                |
 | `POST /api/doctor/run`           | Start a background connection-check job; accepts `name`, `client`, `timeout`, returns 202 with a job ID                                                 |
 | `GET /api/doctor/<id>`           | Poll incremental results and the final report                                                                                                           |
@@ -29,10 +56,6 @@ POST requests require JSON and `X-Agent-Hub-Token`, obtained from `/api/state`. 
 Preview IDs expire after five minutes, are single-use and are bounded in memory. Import and sync writes share a lock within a UI server process. Import, sync, restore and initialization share one filesystem lock across CLI/UI processes. Doctor report merging uses that lock too. The input revision includes client definitions, registry, environment values and import options. Imports detect changes between preview and apply. Import records private hashes of reviewed client variants and the selected hub definition; sync may replace those exact variants after a source choice, while later edits remain conflicts. No credential values are stored in this provenance. Sync additionally checks each file immediately before atomic replacement. External clients do not honor the hub lock; a client write in the narrow interval between the final check and rename is still a limitation.
 
 The UI supports import, dry-run sync, guarded client MCP writes, filtering and document inspection. Connection checks use background jobs with progress, cancellation and a shared, credential-safe cached report. Skills import/delivery, shared instruction/index delivery and repository setup use guarded content previews. Chats now provides full native-event capture, search, original-event windows and preserved versions. Projects includes a durable archive catalog and reviewed scoped MCP connections; see [history](HISTORY.md). Document editing and agent launch remain unimplemented. Unavailable features have explanatory states instead of working-looking controls with sample results.
-
-## Next
-
-Run the personal workflow in [WORKING_GUIDE.md](WORKING_GUIDE.md), then complete release validation. Shared context delivery and repository templates are implemented; [CONTENT.md](CONTENT.md) defines their exact scope. Sync and restore are implemented in `src/core/mcp/sync.ts`, `config-edit.ts` and `restore.ts`; CLI and UI share the sync planner. Codex STDIO fields and local tool policies follow the [official OpenAI documentation](https://learn.chatgpt.com/docs/extend/mcp?surface=cli).
 
 ## Doctor jobs
 
@@ -50,10 +73,12 @@ The probe is an unauthenticated GET to the base URL plus `/healthz/readiness`, w
 
 `POST /api/content/preview` accepts `skills-import`, `skills-sync`, `context-sync`, `init-repo` or `project-disconnect`. It returns only actions, paths, a revision and copyable commands. Source rules and memory text are excluded. `POST /api/content/apply` consumes the opaque preview ID, rebuilds the plan and applies it under the shared Hub lock. The same Host/Origin/token protections and five-minute, single-use preview lifetime apply. All content writes serialize with imports and MCP sync.
 
-The local UI has Skills import/delivery controls, context delivery on Instructions/Memory and Prepare repository on Repos & tasks. Init-repo is bound to the selected verified project or startup folder. The isolated QA harness injects fixture-only content targets as well as MCP targets, so these controls never default to the developer's real client directories there.
+All data has skill import/delivery and instruction/index delivery controls. Projects → Current folder context provides repository preparation. Init-repo is bound to the selected verified project or startup folder. The isolated QA harness injects fixture-only content targets as well as MCP targets, so these controls never default to the developer's real client directories there.
 
 ## Evidence and project selection
 
-Overview distinguishes configuration matching, current/stale/missing MCP check evidence, hook installation and recent observed hook/checkpoint timestamps. A configured hook is not reported as observed. Submitted fact counts include empty acknowledgements and are not a quality claim. The memory metric counts canonical records, separately from read-only Markdown document previews; unconnected folders default record management to shared scope.
+Sources & settings distinguishes configuration matching, current/stale/missing MCP check evidence, hook installation and recent observed hook/checkpoint timestamps. A configured hook is not reported as observed. Submitted fact counts include empty acknowledgements and are not a quality claim. The memory metric counts canonical records, separately from read-only Markdown document previews; unconnected folders default record management to shared scope.
 
 `POST /api/project/select` accepts a registered project ID, `@current` or null for shared knowledge. It validates a stored checkout's Git identity, creates a new bound memory session and expires setup, import, content, delivery and memory previews. Arbitrary paths are rejected. Per-item MCP/skill directions open scoped source-import or Hub-delivery previews, with replacement explicitly selected for only that item.
+
+</details>

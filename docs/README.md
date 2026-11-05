@@ -9,6 +9,7 @@ Start with the quick start. Use the working guide for a complete personal trial,
 | Guide                             | What it explains                                                                       |
 | --------------------------------- | -------------------------------------------------------------------------------------- |
 | [Quick start](QUICKSTART.md)      | Install once, set up shared tools and optionally connect a project.                    |
+| [Local interface](UI.md)          | Navigate your data, read chats and review setup changes.                               |
 | [CLI reference](CLI.md)           | Who uses each command, why it exists and what it changes.                              |
 | [Content and sync](CONTENT.md)    | Skill bundles, shared instructions, imports and guarded delivery.                      |
 | [Memory](MEMORY.md)               | Knowledge scopes, existing client notes and the optional Memory MCP server.            |

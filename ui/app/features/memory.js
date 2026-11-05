@@ -1,4 +1,4 @@
-import { escape } from './html.js';
+import { escape } from '../shared/html.js';
 
 export function setupMemoryUi({ api, load, notice, getState }) {
   const dialog = document.querySelector('#memory-dialog');

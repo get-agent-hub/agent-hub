@@ -13,7 +13,7 @@ import { writeTransaction } from '../dist/shared/file-transaction.js';
 import { withHubLock } from '../dist/shared/hub-lock.js';
 import { recoveryRoot } from '../dist/shared/recovery-paths.js';
 import { formatCommand } from '../dist/shared/shell.js';
-import { healthPill, serviceDetails } from '../ui/app/health.js';
+import { healthPill, serviceDetails } from '../ui/app/entities/health.js';
 
 async function fixture(t) {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ahub-core-'));

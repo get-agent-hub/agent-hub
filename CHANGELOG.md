@@ -2,11 +2,14 @@
 
 ## Unreleased
 
+- Rebuild the local interface around Overview, All data and Projects. Add light/dark themes, a responsive layout and quieter resource/conversation views. Move setup and diagnostics to Sources & settings while retaining reviewed writes, full-event access and old bookmarks. Split browser code into bounded slices with enforced dependency rules.
+
+- Correct item-level MCP delivery from the interface by passing its validated preview revision to the existing replacement guard. Unreviewed, expired and externally changed plans remain blocked.
 - Read DSH nested message envelopes as conversations, collapse tool/reasoning details and separate technical context with an All events view. Correct old archived projections and fallback titles at read time without reimport.
 - Preserve supported Claude, Codex and DSH conversations in a private, versioned local archive with complete-event search, project associations, attachment coverage and scoped read-only MCP connections. Add automatic metadata discovery, the Chats page, reviewed access/deletion policies and optional foreground refresh.
 - Organize backend modules by subsystem, split HTTP routing and sync/setup operations, and enforce dependency boundaries, runtime-cycle checks and module-size limits. Clean builds remove stale compiled modules; existing CLI and HTTP behavior is retained.
 
-- Find projects from selected local Claude Code chat metadata in the UI, including ordinary folders, missing locations and grouped Git worktrees. Discovery is read-only and reports incomplete coverage; it does not archive chats or connect project memory. Codex and DSH readers remain planned.
+- Find projects from selected local Claude Code chat metadata in the UI, including ordinary folders, missing locations and grouped Git worktrees. Discovery is read-only and reports incomplete coverage; it does not archive chats or connect project memory.
 - Continue project discovery in cancellable batches with progress, paginated search, safe folder reveal and visibly retained previous results. Handle large initial records and isolate unrelated client/Git errors. Supported capacity limits stay explicit.
 - Record implementation policies and 47 acceptance cases for simpler setup, synchronization, archive access and recovery, with explicit ownership by implementation slice.
 

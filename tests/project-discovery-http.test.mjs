@@ -5,7 +5,7 @@ import { test } from 'node:test';
 import { discoverProjects } from '../dist/core/projects/discovery.js';
 import { createDiscoveryJobs } from '../dist/ui/project-discovery.js';
 import { startUiServer } from '../dist/ui/server.js';
-import { projectDiscoveryView } from '../ui/app/projects.js';
+import { projectDiscoveryView } from '../ui/app/features/projects.js';
 import {
   clientUi,
   completed,
@@ -84,7 +84,7 @@ test('local HTTP flow requires selection/token, rejects supplied paths and never
     (await post('/api/project/select', { projectId: report.projects[0].id })).status,
     409,
   );
-  assert.equal((await fetch(`${ui.url}/projects.js`)).status, 200);
+  assert.equal((await fetch(`${ui.url}/features/projects.js`)).status, 200);
   assert.deepEqual(await snapshot(f.root), before);
 });
 

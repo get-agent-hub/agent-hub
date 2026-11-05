@@ -69,7 +69,8 @@
     "CHANGELOG.md",
     "SECURITY.md",
     "docs/RELEASE.md",
-    "docs/HISTORY.md"
+    "docs/HISTORY.md",
+    "docs/UI.md"
   ],
   "repository": {
     "type": "git",

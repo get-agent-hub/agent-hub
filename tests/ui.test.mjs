@@ -82,13 +82,26 @@ after(async () => {
 });
 
 test('serves app assets with a restrictive policy and never exposes arbitrary files', async () => {
-  for (const file of ['/', '/app.js', '/app.css', '/base.css']) {
+  const browserRoot = new URL('../ui/app/', import.meta.url);
+  const assets = (await fs.readdir(browserRoot, { recursive: true })).filter((file) =>
+    /\.(js|css|html)$/.test(file),
+  );
+  for (const file of assets.map((file) => (file === 'index.html' ? '/' : `/${file}`))) {
     const res = await fetch(`${ui.url}${file}`);
     assert.equal(res.status, 200);
     assert.equal(res.headers.get('cache-control'), 'no-store');
     assert.match(res.headers.get('content-security-policy'), /frame-ancestors 'none'/);
   }
-  for (const file of ['/.env', '/src/cli.ts', '/api/unknown', '/mcp/servers.yaml'])
+  for (const file of [
+    '/.env',
+    '/src/cli.ts',
+    '/api/unknown',
+    '/mcp/servers.yaml',
+    '/shared/private.js',
+    '/styles/unknown.css',
+    '/toString',
+    '/constructor',
+  ])
     assert.equal((await fetch(`${ui.url}${file}`)).status, 404);
 });
 
@@ -273,7 +286,7 @@ test('shared Hub previews reject project options and apply once with a session t
   const body = { previewId: plan.previewId, revision: plan.revision };
   assert.equal((await post('/api/quick/apply', body)).status, 200);
   assert.equal((await post('/api/quick/apply', body)).status, 409);
-  assert.equal((await fetch(`${ui.url}/quick.js`)).status, 200);
+  assert.equal((await fetch(`${ui.url}/features/quick.js`)).status, 200);
 });
 
 test('project connection is bound to the startup project and cannot apply a shared Hub preview', async () => {

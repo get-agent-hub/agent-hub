@@ -57,7 +57,7 @@ export function createSyncRoutes(session: UiSession) {
         if (plan.blocked)
           throw new RequestError(409, 'Resolve the conflicts in this plan before applying.');
         syncPreviews.delete(id);
-        json(200, await services.syncApply(plan));
+        json(200, await services.syncApply(plan, preview.revision));
       } finally {
         session.applying = false;
       }
