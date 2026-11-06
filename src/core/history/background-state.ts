@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import { z } from 'zod';
 import { HubError } from '../../shared/errors.js';
-import { snapshot, writeChecked } from '../../shared/file-store.js';
+import { readOptionalText, snapshot, writeChecked } from '../../shared/file-store.js';
 import { historySourceSchema, ownedHistoryPath } from './storage.js';
 
 const token = z.string().regex(/^[a-f0-9]{32}$/);
@@ -39,10 +39,10 @@ export async function readBackgroundLease(root: string) {
   return read(root, 'lease', lease);
 }
 async function read<T>(root: string, name: string, schema: z.ZodType<T>): Promise<T | null> {
-  const before = await snapshot(await backgroundFile(root, name));
-  if (before.content === null) return null;
+  const content = await readOptionalText(await backgroundFile(root, name));
+  if (content === null) return null;
   try {
-    return schema.parse(JSON.parse(before.content));
+    return schema.parse(JSON.parse(content));
   } catch {
     throw new HubError('Background update metadata is invalid. Preserve it before recovery.');
   }
@@ -64,10 +64,10 @@ export function alive(pid: number) {
   }
 }
 export async function backgroundStopped(root: string, id: string) {
-  const before = await snapshot(await backgroundFile(root, 'stop'));
-  if (before.content === null) return false;
+  const content = await readOptionalText(await backgroundFile(root, 'stop'));
+  if (content === null) return false;
   try {
-    return z.object({ id: token }).strict().parse(JSON.parse(before.content)).id === id;
+    return z.object({ id: token }).strict().parse(JSON.parse(content)).id === id;
   } catch {
     throw new HubError('Background stop metadata is invalid. Preserve it before recovery.');
   }

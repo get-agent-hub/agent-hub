@@ -239,11 +239,13 @@ test('a failed source retries and recovers, while a replacement directory cannot
       path.join(f.source.root, 'project', 'replacement.jsonl'),
       f.encode(f.messages),
     );
-    const previousAttempt = (await backgroundStatus(f.root)).lastAttempt;
+    const previousReceipt = (await readHistory(f.root)).receipts[0].checkedAt;
     await until(
-      () => backgroundStatus(f.root),
-      (status) => status.lastAttempt !== previousAttempt,
-      'retry replaced source',
+      () => readHistory(f.root),
+      (catalog) =>
+        catalog.receipts[0]?.checkedAt !== previousReceipt &&
+        catalog.receipts[0]?.coverage === 'unavailable',
+      'published rejection of the replaced source',
     );
     assert.equal((await readHistory(f.root)).chats.length, 1);
     assert.equal((await readHistory(f.root)).receipts[0].coverage, 'unavailable');

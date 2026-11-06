@@ -2,7 +2,22 @@
 
 ## Unreleased
 
+## 0.1.0-beta.4 — 2026-11-06
+
+Find an earlier conversation and carry reviewed context to another client. This prerelease includes the local Claude Code, Codex and DSH archive, full-event search, readable chat titles/dates, project grouping, optional background updates and context packets for new conversations. The simpler interface also covers shared MCP, skills, instructions and scoped memory with reviewed changes and recovery. Beta.3 was not published because its release checks exposed a background updater race.
+
+Basic usage analytics is **on by default**. Disable it in Sources & settings, with `ahub telemetry off`, or with `DO_NOT_TRACK=1`. Events contain named actions, a random installation ID, language and version; chat text, search queries, paths, client configuration and credentials are excluded. Website analytics has a separate setting and identity. No session replay or third-party browser SDK is loaded in the local Hub.
+
+- Read background control metadata without a second filesystem lookup after reading its contents. A worker stopping between those operations no longer makes status or stop fail with a missing-file error.
+- Add deterministic disappearing-lease and corrupt/symlink metadata regressions. Wait for a completed source receipt when testing replacement-source detection, rather than observing the start of a scan.
+
+The maintainer confirmed the real Codex → DSH and PostHog checks on the beta.3 feature basis. Beta.4 adds the automated race regressions; a separate manual beta.4 trial is not claimed. Install from the attached source ZIP or npm tarball; Node.js 22.13+ and npm are required, and installation can download dependencies. Public npm registry publication is deferred. macOS and Linux are supported; Windows is experimental.
+
+Unavailable attachments and unsupported coverage are reported explicitly. Shared settings use reviewed delivery; context packets do not transfer active native sessions. Multi-file recovery is compensating rather than power-loss-safe. Actual OS sign-in activation remains an unverified manual check. Earlier candidate tags are kept unchanged.
+
 ## 0.1.0-beta.3 — 2026-11-06
+
+Unpublished candidate: release CI exposed a background metadata read race. Superseded by beta.4; its tag remains unchanged.
 
 Find an earlier conversation and carry inspected context to another client. This prerelease includes the archive/interface work from the unpublished beta.2 candidate, plus basic usage analytics.
 
@@ -19,7 +34,7 @@ Basic usage analytics is **on by default**. Turn it off in Sources & settings, r
 
 ### Beta.3 verification and limits
 
-Automated checks cover Linux/macOS and Node 22.13/24, 345 tests, isolated package installation/reinstallation/removal, and secret/history scans. The maintainer confirmed the real Codex → DSH scenario, including external-edit conflict and recovery, and observed PostHog events on 2026-11-06. These are maintainer-reported manual results, separate from automated fixtures.
+The preceding runtime baseline passed Linux/macOS and Node 22.13/24 checks with 345 tests; the beta.3 tagged workflow then exposed the race fixed in beta.4. Local checks also covered isolated package installation/reinstallation/removal, and secret/history scans. The maintainer confirmed the real Codex → DSH scenario, including external-edit conflict and recovery, and observed PostHog events on 2026-11-06. These are maintainer-reported manual results, separate from automated fixtures.
 
 Unavailable local attachments and unsupported source coverage are reported explicitly. Shared settings use reviewed delivery, not universal automatic bidirectional reconciliation. Context packets are reference data, not active-session migration. Multi-file recovery is compensating, not power-loss-safe. Actual OS sign-in activation remains a separate unverified manual check. Windows is experimental; public npm registry publication is deferred. Download the source ZIP or installable tarball from GitHub Releases; Node.js 22.13+ and npm are required, and installation can download dependencies.
 
