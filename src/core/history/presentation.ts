@@ -1,6 +1,9 @@
 import type { HistoryChat, HistoryEvent, HistoryPart } from '../../contracts/history.js';
-import { object } from '../../adapters/history/events.js';
-import { messageTitle, titleNeedsRepair } from '../../adapters/history/titles.js';
+import {
+  messageTitle,
+  nativeHistoryTitle,
+  titleNeedsRepair,
+} from '../../adapters/history/titles.js';
 
 export type HistoryView = 'events' | 'conversation';
 
@@ -49,41 +52,48 @@ export async function titledHistoryChat(
   signal?: AbortSignal,
 ) {
   signal?.throwIfAborted();
-  const repairTitle = titleNeedsRepair(chat.title, chat.nativeId);
-  let title = repairTitle ? undefined : chat.title;
-  let nativeTitle = false;
+  const needsRepair = titleNeedsRepair(chat.title, chat.nativeId);
+  const inspectFallback = chat.client === 'dsh';
+  let derived: string | undefined;
+  let native: string | undefined;
+  let fallbackMatches = false;
+  let unavailable = false;
   let startedAt: string | null = null;
   let bytes = 0;
   try {
     for await (const event of events) {
-      const row = object(event.raw),
-        data = object(row.data);
       const time = event.timestamp;
       if (time && /T.*(?:Z|[+-]\d{2}:?\d{2})$/i.test(time) && Number.isFinite(Date.parse(time)))
         startedAt ??= new Date(time).toISOString();
-      const native = event.type === 'session/title' ? data.title : row.customTitle;
-      if (repairTitle && !nativeTitle && typeof native === 'string' && native.trim()) {
-        title = native.slice(0, 200);
-        nativeTitle = true;
-      }
-      if (repairTitle && !nativeTitle) title ??= messageTitle(event);
-      if (startedAt && (!repairTitle || nativeTitle)) break;
+      derived ??= messageTitle(event);
+      native ??= nativeHistoryTitle(event);
+      fallbackMatches ||= nativeHistoryTitle(event, true) === chat.title;
+      if (
+        startedAt &&
+        ((!needsRepair && !inspectFallback) ||
+          native === chat.title ||
+          (native && (needsRepair || fallbackMatches)))
+      )
+        break;
       bytes += event.text.length;
       if (event.ordinal >= 255 || bytes >= 1024 * 1024) break;
     }
   } catch {
     signal?.throwIfAborted();
-    return {
-      ...chat,
-      title: title ?? `Conversation ${chat.nativeId}`,
-      startedAt,
-      issues: [
-        ...chat.issues,
-        repairTitle
-          ? 'The conversation title could not be fully checked because its saved event index is unavailable.'
-          : 'The conversation time could not be checked because its saved event index is unavailable.',
-      ],
-    };
+    unavailable = true;
   }
-  return { ...chat, title: title ?? `Conversation ${chat.nativeId}`, startedAt };
+  const repairTitle = needsRepair || fallbackMatches;
+  return {
+    ...chat,
+    title: repairTitle ? (native ?? derived ?? `Conversation ${chat.nativeId}`) : chat.title,
+    startedAt,
+    issues: unavailable
+      ? [
+          ...chat.issues,
+          repairTitle
+            ? 'The conversation title could not be fully checked because its saved event index is unavailable.'
+            : 'The conversation time could not be checked because its saved event index is unavailable.',
+        ]
+      : chat.issues,
+  };
 }

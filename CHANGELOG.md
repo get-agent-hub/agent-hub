@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Derive readable Codex/DSH titles instead of environment blocks, approval boilerplate and 20-character fallback excerpts. Preserve native/provider titles and delegated-task labels, label review/build-output sessions and keep all original events accessible.
+
 - Default chat lists and Overview conversations to newest native dates first. Add an oldest-first selector, sort before pagination and keep unknown dates last without changing archived data.
 
 - Show native conversation date/time in chat rows and the open conversation, in the browser’s local timezone. Existing archives work without reimport; missing timestamps are not replaced with capture dates.

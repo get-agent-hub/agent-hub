@@ -1,7 +1,12 @@
 import type { HistoryEvent } from '../../contracts/history.js';
 import { isAbsoluteLocalPath } from '../../shared/paths.js';
 import { historyParts } from './content.js';
-import { localCommandNotice, messageTitle } from './titles.js';
+import {
+  localCommandNotice,
+  runtimeContextNotice,
+  messageTitle,
+  nativeHistoryTitle,
+} from './titles.js';
 
 export const object = (value: unknown): Record<string, unknown> =>
   value && typeof value === 'object' && !Array.isArray(value)
@@ -56,17 +61,16 @@ export function historyEvent(raw: unknown, ordinal: number): HistoryEvent {
     role = 'assistant';
   }
   const source = object(message.source ?? data.source ?? row.source);
-  const localCommand =
-    type === 'user' &&
+  const userText = parts
+    .filter((part) => part.kind === 'text')
+    .map((part) => part.text)
+    .join('\n');
+  const contextNotice =
     role === 'user' &&
-    localCommandNotice(
-      parts
-        .filter((part) => part.kind === 'text')
-        .map((part) => part.text)
-        .join('\n'),
-    );
+    parts.every((part) => part.kind === 'text') &&
+    ((type === 'user' && localCommandNotice(userText)) || runtimeContextNotice(userText));
   const category =
-    localCommand ||
+    contextNotice ||
     ['system', 'developer'].includes(role) ||
     contextSources.has(String(source.kind))
       ? 'context'
@@ -125,7 +129,6 @@ export interface NativeContext {
 }
 export function observeHistory(context: NativeContext, raw: unknown) {
   const row = object(raw),
-    data = object(row.data),
     payload = object(row.payload);
   if (row.type === 'session_meta' || row.type === 'session') {
     context.id ??= string(payload.id) ?? string(row.id) ?? undefined;
@@ -145,12 +148,9 @@ export function observeHistory(context: NativeContext, raw: unknown) {
       context.titleOrigin = 'message';
     }
   }
-  if (row.type === 'session/title' && typeof data.title === 'string' && data.title.trim()) {
-    context.title = data.title.slice(0, 200);
-    context.titleOrigin = 'native';
-  }
-  if (typeof row.customTitle === 'string' && row.customTitle.trim()) {
-    context.title = row.customTitle.slice(0, 200);
+  const nativeTitle = nativeHistoryTitle(event);
+  if (nativeTitle) {
+    context.title = nativeTitle;
     context.titleOrigin = 'native';
   }
   for (const cwd of [row.cwd, payload.cwd])

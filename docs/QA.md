@@ -2,6 +2,16 @@
 
 The implemented import → sync → doctor → restore flow was exercised through the live UI and production CLI on macOS. Client writes used temporary configurations. Production client configurations were not synchronized.
 
+## Codex and DSH conversation names — 2026-11-06
+
+`npm run check` and standalone coverage pass **312 tests**; coverage is **93.17% lines**, **85.27% branches** and **90.96% functions**. The targeted **21-test** client-title/title/presentation/sorting suite passes on Node **22.13**. The final regressions also ensure that runtime-looking text accompanied by an attachment stays a message.
+
+Package validation passes **374 files / 1,859,846 unpacked bytes**, and the actual temporary-prefix installer passes.
+
+Codex environment and AGENTS/user-instruction envelopes are treated as context only when complete and standalone; mixed requests retain their human text and quoted/incomplete examples remain messages. Known approval-history prompts derive **Approval review**, and known terminal build-output headers derive **Build output**, without dropping those archived messages. DSH metadata marked `fallback` cannot override the full task excerpt; provider/user titles and delegated-task labels are retained. Previously captured fallback catalogs are repaired at read time without native-source access or catalog/raw-byte changes. Long excerpts end at a word boundary with an ellipsis; sessions with no identifiable task keep an honest untitled fallback.
+
+Six new regressions cover the native formats, explicit-name precedence, old catalogs, quoted content, raw/original-event preservation and safe truncation. A synthetic browser scenario passes Codex task/review/build labels, DSH full-task/provider/descriptor labels, reload, normal versus All events and desktop/400px layout without overflow or runtime exceptions. A read-only check of the latest 100 existing chats found no reported environment/approval/AGENTS/build-header title prefixes, 38 concise approval-review labels and eight sessions without a derived task. No real titles, messages or credential values were printed or rewritten.
+
 ## Native date sorting — 2026-11-06
 
 `npm run check` and standalone coverage pass **306 tests**; coverage is **93.05% lines**, **84.93% branches** and **90.93% functions**. The targeted **13-test** sorting/title/HTTP suite also passes on Node **22.13**.
