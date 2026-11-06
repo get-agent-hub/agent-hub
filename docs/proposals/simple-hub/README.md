@@ -2,6 +2,8 @@
 
 Research and design proposal · 2026-11-05 · reviewed core: `06c4960`.
 
+Latest review: [user problems and the next investment decision](USER_DEMAND.md), 2026-11-06, recommends pausing feature expansion for a bounded adoption experiment. The implementation proposals below remain reference material; they are not evidence that more development is warranted before testing demand.
+
 **Current product direction:** automatically discover existing clients and data, then present a shared inventory and reviewed synchronization through Overview, All data and Projects. The person keeps working in native clients. [Automatic discovery and implementation plan](AUTOMATIC_HUB.md) specifies the first-launch flow, source coverage and delivery order; it supersedes earlier mandatory discovery clicks and source-by-source setup suggestions.
 
 **Status: design target with a first implementation slice.** This consolidates the earlier simplification and relationship reviews. The working source now has explicit read-only project discovery from local Claude chat metadata in the UI. The released beta still has MCP-only `sync`, setup-run recovery and no shared chat archive. This proposal does not change that release contract.
@@ -15,6 +17,7 @@ Agent Hub should find your clients, collect the content you choose, and keep it 
 - [Discovery findings, fixes and remaining boundaries](DISCOVERY_REVIEW.md)
 - [Hansard comparison and proposed product focus](HANSARD_COMPARISON.md)
 - [Competitive opportunities and validation priorities](OPPORTUNITIES.md)
+- [User problems, substitutes and the release-or-stop decision](USER_DEMAND.md)
 
 ## One ordinary workflow
 

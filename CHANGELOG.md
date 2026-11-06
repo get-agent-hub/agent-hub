@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.1.0-beta.2 — 2026-11-06
+
+Local conversation archive and a simpler interface. Distributed as reviewed GitHub source/package archives; no public npm registry installation.
+
 - Make archive status and source settings easier to read: visible storage/update summary, client cards, grouped update switches and expandable folder/read details. Explain attachment-reference coverage separately, omit zero warnings and move index rebuilding into troubleshooting.
 
 - Prepare reviewed, version-pinned context packets for a new conversation in Claude Code, Codex or DSH. Include bounded original-message excerpts, an optional next step and source references; copy/download rechecks access. No separate model call or native session transfer.
@@ -35,6 +39,10 @@
 - Find projects from selected local Claude Code chat metadata in the UI, including ordinary folders, missing locations and grouped Git worktrees. Discovery is read-only and reports incomplete coverage; it does not archive chats or connect project memory.
 - Continue project discovery in cancellable batches with progress, paginated search, safe folder reveal and visibly retained previous results. Handle large initial records and isolate unrelated client/Git errors. Supported capacity limits stay explicit.
 - Record implementation policies and 47 acceptance cases for simpler setup, synchronization, archive access and recovery, with explicit ownership by implementation slice.
+
+### Beta.2 limits
+
+Local supported source files only; unavailable attachments and incomplete coverage are reported. Context handoff prepares bounded original excerpts for a new conversation, not native runtime migration. Shared settings still use reviewed operations rather than universal automatic bidirectional sync. Multi-file recovery remains compensating, not power-loss-safe. Actual client usefulness and OS sign-in activation are separate manual checks. Windows remains experimental; public npm registry publication is deferred.
 
 ## 0.1.0-beta.1 — 2026-11-04
 

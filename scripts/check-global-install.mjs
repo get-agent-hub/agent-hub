@@ -211,8 +211,46 @@ try {
   assert.equal(scan.coverage, 'complete');
   assert.equal(scan.projects.length, 1);
   assert.equal(scan.projects[0].locations[0], await fs.realpath(workspace));
+  const stopped = new Promise((resolve) => ui.once('exit', resolve));
+  ui.kill('SIGTERM');
+  await stopped;
+  ui = undefined;
+  stopBackground();
+  stopBackground = undefined;
+
+  const preservedPaths = [
+    path.join(home, 'hub.yaml'),
+    path.join(home, 'mcp', 'servers.yaml'),
+    path.join(home, 'state', 'history', 'catalog.json'),
+    path.join(directory, 'codex', 'config.toml'),
+    path.join(collection, 'fixture.jsonl'),
+  ];
+  const preserved = await Promise.all(preservedPaths.map((file) => fs.readFile(file)));
+  execFileSync(process.execPath, ['scripts/install-global.mjs'], {
+    cwd: source,
+    env,
+    stdio: 'pipe',
+  });
+  assert.equal(run(['--version']).trim(), metadata.version);
+  assert.equal(JSON.parse(run(['history', 'ls'])).chats[0].id, history.chats[0].id);
+  for (const [index, file] of preservedPaths.entries())
+    assert.deepEqual(await fs.readFile(file), preserved[index], `Reinstall preserved ${file}`);
+
+  execFileSync(process.execPath, [process.env.npm_execpath, 'uninstall', '--global', 'agent-hub'], {
+    cwd: workspace,
+    env,
+    stdio: 'pipe',
+  });
+  for (const target of [
+    installedPackage,
+    path.join(prefix, 'bin', 'ahub'),
+    path.join(prefix, 'bin', 'agent-hub'),
+  ])
+    await assert.rejects(fs.lstat(target), { code: 'ENOENT' });
+  for (const [index, file] of preservedPaths.entries())
+    assert.deepEqual(await fs.readFile(file), preserved[index], `Uninstall retained ${file}`);
   console.log(
-    'Real installer verified in a temporary prefix: both binaries, quick preview/apply, status, full history capture/search/read, detached background start/stop and reviewed Codex history connection, UI assets and read-only project discovery from an unrelated directory.',
+    'Temporary-prefix lifecycle passed: standalone install, both binaries, quick preview/apply, archive/search/handoff, background start/stop, scoped connection and UI; reinstall preserves data/settings; uninstall removes binaries without implicitly deleting archive or restoring client settings.',
   );
 } finally {
   if (stopBackground) stopBackground();

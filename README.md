@@ -15,7 +15,7 @@ One local hub for the chats, projects, MCP tools, skills and memory used by Clau
 
 ![Agent Hub overview with saved conversations, shared resources and detected clients](https://raw.githubusercontent.com/get-agent-hub/agent-hub/master/docs/images/hub-overview.png)
 
-Real interface with fictional sample data. [See a saved conversation](docs/images/hub-chat.png).
+Real interface with fictional sample data. [See a saved conversation](docs/images/hub-chat.png) · [Watch the 70-second demo](https://raw.githubusercontent.com/get-agent-hub/agent-hub/master/docs/images/hub-demo.mp4).
 
 | Keep your archive current                                                                                                                               | Continue in another client                                                                                                                                                     |
 | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -25,7 +25,7 @@ Background updates continue after you close the interface. Optional login startu
 
 ## Get started
 
-Requires **Node.js 22.13+** and npm. macOS and Linux are supported; Windows is experimental. The package version is **0.1.0-beta.1**; the source and screenshots include later improvements that are not in the older beta release archive. Public npm registry installation is not available yet.
+Requires **Node.js 22.13+** and npm. macOS and Linux are supported; Windows is experimental. This source is the **0.1.0-beta.2 candidate**. The earlier published **0.1.0-beta.1** archive does not include the current chat and interface features. Use the source checkout while the candidate is being prepared. Public npm registry installation is not available yet.
 
 Clone the source and install a standalone global CLI:
 

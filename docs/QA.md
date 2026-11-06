@@ -2,6 +2,16 @@
 
 The implemented import → sync → doctor → restore flow was exercised through the live UI and production CLI on macOS. Client writes used temporary configurations. Production client configurations were not synchronized.
 
+## Beta.2 release preparation — 2026-11-06
+
+The candidate passes **339 tests**, formatting, lint, architecture and types. Coverage is **93.76% lines**, **85.80% branches** and **91.90% functions**. Package validation passes; the disposable-prefix installer now also verifies same-version reinstall, unchanged saved/native data and package removal without implicit archive deletion or settings restoration.
+
+A separate temporary-home trial verifies the published beta.1 archive checksum, installs it, creates synthetic Hub/client content, upgrades to the beta.2 tarball and compares complete file bytes, modes and links for Hub, recovery, skills and native configuration. Existing memory remains readable; new archive/handoff/background-append operations pass; stopping then uninstalling retains saved data. No real client account, provider request, OS startup or production Hub is used.
+
+The production audit reports **zero vulnerabilities**. The full audit reports **10 moderate development-package entries** tracing to the minimatch globparts amplification advisory through ESLint/typescript-eslint. Suggested top-level changes include incompatible downgrades; no force fix or dependency override was applied. These development tools are excluded from the runtime package. See [the advisory](https://github.com/advisories/GHSA-g3hv-75wg-m249).
+
+A 70-second real-interface demo uses six fictional conversations across the three native formats and an actual context download. It contains no receiving-client screen or generated model response. The manual [Codex → DSH trial](launch/REAL_CLIENT_TRIAL.md), including useful saved knowledge and conflict/recovery, remains pending maintainer evidence. See [launch readiness](launch/READINESS.md) and the separate real OS sign-in boundary below.
+
 ## Archive summary and source controls — 2026-11-06
 
 `npm run check` and standalone coverage pass **339 tests**; coverage is **93.53% lines**, **85.68% branches** and **91.90% functions**. Architecture passes **197 modules / 961 imports**. Package validation and the real temporary-prefix installer include the new source-panel module. This is a browser presentation change; capture, worker, startup, archive policy and native file operations are unchanged.

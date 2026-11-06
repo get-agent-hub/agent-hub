@@ -12,11 +12,13 @@ npm run install:global
 ahub --help
 ```
 
-Candidate 0.1.0-beta.1 is distributed as reviewed source and package archives. The package stays private to prevent accidental registry publication; `npm install --global agent-hub` from a public registry is not an advertised installation route. Run `npm run install:global` from the downloaded source directory. It builds, packs and globally installs a standalone package copy with a production shrinkwrap. Afterwards use `ahub` from any directory; `agent-hub` is an equivalent executable name. See [RELEASE.md](RELEASE.md) for tarball installation, checksums and publication gates. Both installation routes may download locked dependencies from npm.
+This guide covers the **0.1.0-beta.2 candidate**. The earlier published **0.1.0-beta.1** archive is older; use the current source checkout while the new candidate is being prepared. The package stays private to prevent accidental registry publication; `npm install --global agent-hub` from a public registry is not an advertised installation route. Run `npm run install:global` from the downloaded source directory. It builds, packs and globally installs a standalone package copy with a production shrinkwrap. Afterwards use `ahub` from any directory; `agent-hub` is an equivalent executable name. See [RELEASE.md](RELEASE.md) for tarball installation, checksums and publication gates. Both installation routes may download locked dependencies from npm.
 
 The source checkout may be removed after installation. Keep Node and the installed package at stable paths: generated launchers and memory hooks bind to the installed runtime. If the shell cannot find `ahub`, check `npm prefix --global` and add its binary directory to PATH (on macOS/Linux, `<prefix>/bin`). Use a user-writable npm prefix or your Node version manager when permissions prevent installation.
 
-For updates, run `npm ci` and `npm run install:global` from the desired source revision again, then preview quick to review any affected bindings. `npm uninstall --global agent-hub` removes the CLI executables; it does not reset Hub/client data. Preview and apply reset before uninstalling when you intend to restore the recorded originals.
+For updates, first close the UI, keep affected clients idle and run `ahub history watch --stop`; wait for status to show the worker has stopped. Saved chats remain. Run `npm ci` and `npm run install:global` from the desired source revision again, check `ahub --version`, review `ahub quick --dry-run` and restart affected clients. Restart background updates explicitly when ready. Keep Node and package paths stable; review login startup again if those paths change.
+
+Before uninstalling, stop the updater and, if configured, preview `ahub history watch --login off` and apply its exact emitted removal command. Login startup removal affects the next user session; edited or foreign files require review. `npm uninstall --global agent-hub` removes the CLI but retains Hub/client data. Generated client launchers and hooks still need the installed runtime: review recovery before uninstalling if clients should work independently of Hub. See [update and uninstall](RELEASE.md#update-or-uninstall) for the safe sequence and data-retention limits.
 
 ## Set up the shared Hub
 
@@ -93,11 +95,11 @@ ahub ui
 
 The main navigation has three sections: **Overview** for counts and conversations, **All data** for chats, skills, MCP, instructions and memory, and **Projects** for saved conversation groups. **Sources & settings** contains setup, individual delivery actions and connection checks. Writes always require a preview and an explicit apply.
 
-Metadata discovery starts automatically over known supported Claude Code, Codex and DSH stores. In **Projects**, expand **Find more projects & inspect source coverage** to inspect or repeat it. Git worktrees are grouped; ordinary and unavailable folders stay distinct. Finding a location does not connect memory or preserve complete history. In **All data → Chats**, select **Capture selected history** to preserve supported conversations and search their messages.
+Metadata discovery starts automatically over known supported Claude Code, Codex and DSH stores. In **Projects**, expand **Find more projects & inspect source coverage** to inspect or repeat it. Git worktrees are grouped; ordinary and unavailable folders stay distinct. Finding a location does not connect memory or preserve complete history. In **All data → Chats**, expand **Sources & automatic updates**, choose supported stores and select **Save chats to Hub**. An existing archive offers **Update archive now**. Captured conversations can be read and searched in Hub.
 
 For optional project-memory setup, start `ahub ui` from a Git project, open **Projects → Current folder context** and choose **Connect project memory & handoff**. The preview identifies the project and optional hooks. **Knowledge scope** switches among registered projects, the startup folder and shared knowledge. Switching scope expires earlier setup/content/memory previews. Requests cannot select an arbitrary path; previews expire after five minutes and apply once.
 
-These additions are in the current source checkout, rather than the published `v0.1.0-beta.1` archive. See [the UI guide](UI.md) and [history support and limits](HISTORY.md).
+These features are in the beta.2 candidate source, rather than the earlier published `v0.1.0-beta.1` archive. See [the UI guide](UI.md) and [history support and limits](HISTORY.md).
 
 ## Conflicts, repeat runs and automation boundaries
 
@@ -152,4 +154,4 @@ Run `ahub` for six everyday groups and two starting routes: quick or ui. Use `ah
 
 ## Preserve and search conversations
 
-Open `ahub ui` → **Chats** → **Capture selected history**, or run `ahub history scan`. Projects are found automatically from known local metadata. Capture preserves supported native events and source bytes; it does not replace active client session files. Use a saved project's **Connect clients…** action to review scoped read-only MCP access. See [Chats and projects](HISTORY.md) for source coverage, terminal commands, optional refresh, attachments and removal.
+Open `ahub ui` → **All data → Chats** → **Sources & automatic updates**, select supported stores and choose **Save chats to Hub** or **Update archive now**. The CLI alternative is `ahub history scan`. Projects are found automatically from known local metadata. Capture preserves supported native events and source bytes; it does not replace active client session files. Enable background updates for the selected sources when wanted. Open a saved chat and choose **Continue in…** to review and copy context into a new conversation in another client. Use a saved project's **Connect clients…** action for separately reviewed scoped MCP access. See [Chats and projects](HISTORY.md) for coverage, background/login startup, attachments and removal.
