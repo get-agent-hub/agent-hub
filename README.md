@@ -9,16 +9,23 @@ One local hub for the chats, projects, MCP tools, skills and memory used by Clau
 - Collect existing MCP definitions and complete skill bundles into a shared Hub.
 - Deliver Hub settings to selected clients while preserving personal content.
 - Connect optional project memory, handoff notes and lifecycle checkpoints.
-- Preserve supported conversations locally, search messages and share scoped archive access.
+- Save conversations locally, search messages and keep selected sources updated in the background.
+- Prepare context from an archived chat for a new conversation in another client.
 - Review changes in the terminal or local UI, with conflict guards and recovery.
 
 ![Agent Hub overview with saved conversations, shared resources and detected clients](https://raw.githubusercontent.com/get-agent-hub/agent-hub/master/docs/images/hub-overview.png)
 
 Real interface with fictional sample data. [See a saved conversation](docs/images/hub-chat.png).
 
+| Keep your archive current                                                                                                                               | Continue in another client                                                                                                                                                     |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| ![Archive status, selected sources and automatic updates](https://raw.githubusercontent.com/get-agent-hub/agent-hub/master/docs/images/hub-archive.png) | ![Review original message excerpts before copying context to a new conversation](https://raw.githubusercontent.com/get-agent-hub/agent-hub/master/docs/images/hub-handoff.png) |
+
+Background updates continue after you close the interface. Optional login startup resumes them after sign-in. **Continue in…** prepares original excerpts and source references to paste into a new chat; active sessions stay in their clients. [How it works](docs/HISTORY.md).
+
 ## Get started
 
-Requires **Node.js 22.13+** and npm. macOS and Linux are supported; Windows is experimental. This is **0.1.0-beta.1**; public npm registry installation is not available yet.
+Requires **Node.js 22.13+** and npm. macOS and Linux are supported; Windows is experimental. The package version is **0.1.0-beta.1**; the source and screenshots include later improvements that are not in the older beta release archive. Public npm registry installation is not available yet.
 
 Clone the source and install a standalone global CLI:
 
