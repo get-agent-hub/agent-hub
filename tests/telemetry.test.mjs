@@ -145,12 +145,24 @@ test('sender accepts only named metadata, rejects stale identities and never bac
   await sendUsage({ event: 'chat_opened', id: nextId }, async () => {
     throw new Error('private provider failure');
   });
+  let aborted = false;
   await sendUsage({ event: 'chat_opened', id: nextId }, async (_url, options) => {
-    await new Promise((resolve) =>
-      options.signal.addEventListener('abort', resolve, { once: true }),
-    );
+    // A real pending socket keeps Node 22 alive; the injected transport must do so too.
+    await new Promise((resolve) => {
+      const socket = setTimeout(resolve, 2000);
+      options.signal.addEventListener(
+        'abort',
+        () => {
+          aborted = true;
+          clearTimeout(socket);
+          resolve();
+        },
+        { once: true },
+      );
+    });
     throw new Error('Timeout');
   });
+  assert.equal(aborted, true);
 });
 
 test('detached worker delivers to an isolated TLS collector and CLI opt-out prevents further traffic', async (t) => {
