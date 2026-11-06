@@ -5,10 +5,56 @@ const commandPrefix =
   /^\s*<(local-command-(?:caveat|stdout|stderr)|command-(?:name|message|args))(?:\s[^<>]*)?>/i;
 const contextPrefix =
   /^\s*<(environment_context|user_instructions|turn_aborted|permissions|collaboration_mode)(?:\s[^<>]*)?>/i;
+const closingContextPrefix =
+  /^\s*<\/(?:INSTRUCTIONS|environment_context|user_instructions|turn_aborted|permissions|collaboration_mode)\s*>/i;
 const instructionsPrefix = /^# AGENTS\.md instructions for\b/i;
 const instructionsHeader = /^# AGENTS\.md instructions for [^\r\n]+\r?\n\s*/i;
 const approvalPrefix = /^The following is the Codex agent history\b/;
 const buildOutputPrefix = /^(?:yarn run v\d+\.\d+\.\d+(?:\s|$)|npm (?:ERR!|WARN)(?:\s|$))/;
+
+/** Balance this known wrapper, ignoring tag examples inside Markdown code and blockquotes. */
+function runtimeEnvelopeEnd(text: string, tag: string) {
+  const tokens = new RegExp(
+    '(^[ \\t]{0,3}(?:`{3,}|~{3,})[^\\n]*$)|(`+)|(<\\/?' + tag + '(?:[ \\t][^<>\\r\\n]*)?>)|(\\n)',
+    'gim',
+  );
+  let depth = 0;
+  let fence = '';
+  let inline = 0;
+  let lineStart = 0;
+  for (const token of text.matchAll(tokens)) {
+    if (token[4]) {
+      lineStart = token.index! + token[0].length;
+      continue;
+    }
+    const prefix = text.slice(lineStart, Math.min(token.index!, lineStart + 4));
+    if (/^(?: {4}|\t| {0,3}>)/.test(prefix)) continue;
+    if (token[1]) {
+      const marker = token[1].trim().match(/^(`{3,}|~{3,})/)![0];
+      if (inline) continue;
+      if (!fence) fence = marker;
+      else if (
+        marker[0] === fence[0] &&
+        marker.length >= fence.length &&
+        !token[1].trim().slice(marker.length).trim()
+      )
+        fence = '';
+      continue;
+    }
+    if (fence) continue;
+    if (token[2]) {
+      if (!inline) inline = token[2].length;
+      else if (inline === token[2].length) inline = 0;
+      continue;
+    }
+    if (inline) continue;
+    if (/\/\s*>$/.test(token[3]!)) continue;
+    depth += token[3]!.startsWith('</') ? -1 : 1;
+    if (depth === 0) return token.index! + token[0].length;
+    if (depth < 0) return -1;
+  }
+  return -1;
+}
 
 /** Remove complete leading runtime envelopes only; quoted markup and mixed requests remain text. */
 function withoutRuntimeContext(text: string) {
@@ -18,10 +64,9 @@ function withoutRuntimeContext(text: string) {
     const content = header ? remaining.slice(header[0].length) : remaining;
     const opening = (header ? /^<(INSTRUCTIONS)>/i : contextPrefix).exec(content);
     if (!opening) break;
-    const close = `</${opening[1]}>`;
-    const end = content.indexOf(close, opening[0].length);
+    const end = runtimeEnvelopeEnd(content, opening[1]!);
     if (end < 0) break;
-    remaining = content.slice(end + close.length).trim();
+    remaining = content.slice(end).trim();
   }
   return remaining;
 }
@@ -95,6 +140,7 @@ export function titleNeedsRepair(title: string, nativeId: string) {
     title === `Conversation ${nativeId}` ||
     commandPrefix.test(title) ||
     contextPrefix.test(title) ||
+    closingContextPrefix.test(title) ||
     instructionsPrefix.test(title) ||
     approvalPrefix.test(title) ||
     buildOutputPrefix.test(title) ||

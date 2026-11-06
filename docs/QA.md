@@ -2,6 +2,16 @@
 
 The implemented import → sync → doctor → restore flow was exercised through the live UI and production CLI on macOS. Client writes used temporary configurations. Production client configurations were not synchronized.
 
+## Nested instruction envelopes — 2026-11-06
+
+`npm run check` and standalone coverage pass **314 tests**; coverage is **93.07% lines**, **85.27% branches** and **90.97% functions**. The targeted **23-test** client-title/title/presentation/sorting suite also passes on Node **22.13**. A synthetic browser run covers nested wrappers, normal/All-events access, reload and desktop/400px layouts without exceptions or overflow.
+
+Package validation passes **374 files / 1,863,361 unpacked bytes**, and the real temporary-prefix installer passes.
+
+Known runtime wrappers are matched by nesting depth rather than the first closing tag. Markdown fenced/inline code, indented examples and blockquoted tag examples do not close the outer instruction envelope. Complete leading AGENTS blocks and following environment blocks remain context; mixed requests retain their task text. Unbalanced blocks and quoted/user-written markup remain messages, as do records with attachments. Previously derived titles beginning with a leftover known closing tag are re-evaluated from their preserved original events, without deleting arbitrary tags from user messages.
+
+Two new regressions cover nested wrappers, literal tag examples, old leftover-tag titles after source removal, unchanged catalog/raw bytes, complete-event access and unbalanced/mixed/attachment cases. A read-only check of both reported-date chats found task titles rather than technical prefixes or untitled fallbacks. No real archive or client files were changed.
+
 ## Codex and DSH conversation names — 2026-11-06
 
 `npm run check` and standalone coverage pass **312 tests**; coverage is **93.17% lines**, **85.27% branches** and **90.96% functions**. The targeted **21-test** client-title/title/presentation/sorting suite passes on Node **22.13**. The final regressions also ensure that runtime-looking text accompanied by an attachment stays a message.

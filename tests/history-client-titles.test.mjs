@@ -186,6 +186,75 @@ test('long request titles end at a word boundary with an ellipsis instead of sil
   assert.ok(request.includes(title.slice(0, -1) + ' '));
 });
 
+test('nested AGENTS wrappers close at the matching depth and repair old leftover-tag titles', async (t) => {
+  const f = await historyFixture(t);
+  const instructions =
+    '# AGENTS.md instructions for /fixture/project\n\n<INSTRUCTIONS>\n' +
+    '<INSTRUCTIONS>\n# Deployment guide\n\n' +
+    '```xml\n</INSTRUCTIONS>\n<INSTRUCTIONS>\n```\n' +
+    'An inline `</INSTRUCTIONS>` is only an example.\n' +
+    '> </INSTRUCTIONS>\n> A literal unmatched ` marker\n' +
+    '    const example = `;\n    </INSTRUCTIONS>\n\nPreserve service configuration.\n' +
+    '</INSTRUCTIONS>\n</INSTRUCTIONS>';
+  const bundle = instructions + '\n' + environment;
+  assert.equal(historyEvent(codexUser(bundle), 0).category, 'context');
+  assert.equal(
+    messageTitle(historyEvent(codexUser(bundle + '\nReview deployment configuration'), 0)),
+    'Review deployment configuration',
+  );
+  const rows = [
+    {
+      type: 'session_meta',
+      timestamp: '2026-05-26T14:13:00Z',
+      payload: { id: 'nested', cwd: f.project },
+    },
+    codexUser(bundle),
+    codexUser('Review deployment configuration'),
+  ];
+  const bytes = f.encode(rows);
+  await fs.writeFile(f.file, bytes);
+  const catalog = await ingestHistory(f.root, [f.source]);
+  assert.equal(catalog.chats[0].title, 'Review deployment configuration');
+  catalog.chats[0].title = '</INSTRUCTIONS> ' + environment.slice(0, 100);
+  await writeHistory(f.root, catalog);
+  await fs.rm(f.source.root, { recursive: true });
+  const catalogFile = path.join(f.root, 'state/history/catalog.json');
+  const before = await fs.readFile(catalogFile);
+  const chat = (await listHistory(f.root, operator)).chats[0];
+  assert.equal(chat.title, 'Review deployment configuration');
+  assert.deepEqual(
+    (await readConversation(f.root, operator, chat.id, { view: 'conversation' })).events.map(
+      (e) => e.ordinal,
+    ),
+    [2],
+  );
+  assert.equal((await readConversation(f.root, operator, chat.id)).events.length, rows.length);
+  assert.deepEqual(
+    JSON.parse((await readHistoryEvent(f.root, operator, chat.id, 1)).text),
+    rows[1],
+  );
+  assert.deepEqual(await fs.readFile(catalogFile), before);
+  assert.equal(
+    Buffer.from((await rawWindow(f.root, chat.id, chat.revision, 0)).data, 'base64').toString(),
+    bytes,
+  );
+});
+
+test('unbalanced or quoted instruction examples remain messages, and nested context keeps attachments', () => {
+  for (const text of [
+    '# AGENTS.md instructions for /fixture/project\n<INSTRUCTIONS><INSTRUCTIONS>Unclosed</INSTRUCTIONS>',
+    'Explain </INSTRUCTIONS> in this XML example',
+    '```xml\n<INSTRUCTIONS>Example</INSTRUCTIONS>\n```',
+    '<INSTRUCTIONS>User-written markup</INSTRUCTIONS>',
+  ])
+    assert.equal(historyEvent(codexUser(text), 0).category, 'message');
+  const image = codexUser(
+    '# AGENTS.md instructions for /fixture/project\n<INSTRUCTIONS><INSTRUCTIONS>Rules</INSTRUCTIONS></INSTRUCTIONS>',
+  );
+  image.payload.content.push({ type: 'input_image', image_url: 'data:image/png;base64,AA==' });
+  assert.equal(historyEvent(image, 0).category, 'message');
+});
+
 test('native subagent labels name delegated work, and terminal headers get a readable output label', async (t) => {
   const f = await dshFixture(t);
   const rows = f.bytes.trim().split('\n').map(JSON.parse);
