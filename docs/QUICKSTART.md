@@ -1,5 +1,7 @@
 # Quick start: one shared Hub
 
+Basic usage statistics is on by default. To disable it before setup, set `DO_NOT_TRACK=1`, or run `ahub telemetry off` after installation. The same switch is available in Sources & settings. Chat text, queries, project names and paths are not sent.
+
 Agent Hub manages shared MCP tools, skills and instructions for Claude Code, Codex CLI and DeepSeek Harness. Start with one shared Hub; no project path or Git repository is required. Project memory and handoff are optional, separate setup.
 
 ## Install the CLI once

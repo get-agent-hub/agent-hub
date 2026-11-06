@@ -11,6 +11,9 @@ const [archive] = JSON.parse(
 const files = new Set(archive.files.map((file) => file.path));
 for (const required of [
   'dist/cli.js',
+  'dist/workers/telemetry.js',
+  'dist/core/telemetry/settings.js',
+  'ui/app/features/telemetry.js',
   'dist/core/history/ingest.js',
   'dist/core/history/background-process.js',
   'dist/workers/history.js',

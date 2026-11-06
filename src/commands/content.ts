@@ -1,3 +1,4 @@
+import { recordUsage } from '../core/telemetry/usage.js';
 import { CLIENT_IDS, type ClientId } from '../contracts/clients.js';
 import {
   applyManagedPlan,
@@ -28,6 +29,11 @@ export async function runManaged(build: () => Promise<ManagedPlan>, options: Man
   const preview = publicManagedPlan(plan);
   const execute = async (expect: string | undefined) => {
     const result = await applyManagedPlan(plan, build, expect);
+    if (
+      result.changedPaths > 0 &&
+      plan.requests.some((request) => CLIENT_IDS.includes(request.client as ClientId))
+    )
+      recordUsage('shared_config_delivered');
     if (options.json) printJson({ ...preview, dryRun: false, result });
     else {
       console.log(

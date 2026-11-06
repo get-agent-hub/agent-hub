@@ -1,3 +1,4 @@
+import { telemetryStatus } from '../../core/telemetry/settings.js';
 import { projectCatalog, registeredWorkspace } from '../../core/projects/catalog.js';
 import { sessionDiscoveryClients } from '../../core/projects/discovery.js';
 import { hubRoot } from '../../shared/paths.js';
@@ -48,6 +49,7 @@ export function createStateRoutes(session: UiSession) {
       }
       json(200, {
         ...state,
+        telemetry: await telemetryStatus(),
         ...(session.selectedProject === null
           ? {
               workspace: null,

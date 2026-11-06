@@ -1,3 +1,4 @@
+import { setupTelemetryUi } from './features/telemetry.js';
 import { escape, link, intro } from './shared/html.js';
 import { resources, destinations, readRoute, icon } from './shared/navigation.js';
 import { createView } from './shared/view.js';
@@ -109,9 +110,12 @@ function render() {
     void loadOverviewArchive();
     body = overviewPage(state, archive);
   }
+  if (page === 'sources') body += telemetryUi.view();
   paint(body, `${page}:${resource}:${params.get('chat') || ''}:${params.get('revision') || ''}`);
 }
 
+const telemetryUi = setupTelemetryUi({ api, getState: () => state, load, notice });
+const track = telemetryUi.track;
 const mcpPage = createMcpPage({ api, render });
 const resourcePages = createResourcePages({
   getState: () => state,
@@ -121,10 +125,10 @@ const resourcePages = createResourcePages({
   route,
 });
 const projectDiscovery = setupProjectDiscoveryUi({ api, getState: () => state, render, notice });
-const historyUi = setupHistoryUi({ api, render, notice });
-setupHistoryHandoffUi({ api, notice });
+const historyUi = setupHistoryUi({ api, render, notice, track });
+setupHistoryHandoffUi({ api, notice, track });
 setupHistoryStartupUi({ api, notice, refresh: historyUi.refresh });
-const context = { api, load, notice, getState: () => state };
+const context = { api, load, notice, getState: () => state, track };
 setupQuickUi(context);
 setupContentUi(context);
 setupMemoryUi(context);
@@ -156,6 +160,7 @@ async function load() {
     const nextState = await api('/api/state');
     if (generation !== loadVersion) return;
     state = nextState;
+    telemetryUi.initialize();
     archive = undefined;
     archiveRequest++;
     projectDiscovery.initialize();

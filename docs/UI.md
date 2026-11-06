@@ -104,3 +104,19 @@ Sources & settings distinguishes configuration matching, current/stale/missing M
 `POST /api/project/select` accepts a registered project ID, `@current` or null for shared knowledge. It validates a stored checkout's Git identity, creates a new bound memory session and expires setup, import, content, delivery and memory previews. Arbitrary paths are rejected. Per-item MCP/skill directions open scoped source-import or Hub-delivery previews, with replacement explicitly selected for only that item.
 
 </details>
+
+## Usage analytics
+
+Basic collection is on by default. Sources & settings has a **Share basic usage statistics** checkbox. `ahub telemetry off` disables it for this user's CLI and local Hub UI; `ahub telemetry on` re-enables it with a new random installation ID. `ahub telemetry status` reports the effective setting and destination without creating an ID. Set `DO_NOT_TRACK=1` or `AGENT_HUB_TELEMETRY_DISABLED=1` to suppress collection without writing preferences. CI and Node test-runner processes suppress it too. The browser's DNT/GPC preference suppresses UI events.
+
+Only named outcomes are sent: opening the UI, completing shared setup, completing a manual archive update, searching, opening a chat, exporting context and delivering changed shared configuration. Failed operations, previews, status polling and automatic capture do not count as activity. The export event means the packet was output, copied or downloaded, not that another client completed a task. Page refreshes/pagination are not extra chat-open/search events; same-name bursts within two seconds may be coalesced.
+
+Payload fields are the event name, random installation UUID, app version and fixed UI language. No text, search phrase, chat ID, project name/path, client configuration, credentials, native session data or machine/account identifier is included. There is no third-party browser SDK, autocapture or recording. The local browser talks only to the local backend; a bounded detached worker sends once to the HTTPS relay, then PostHog. A relay timeout/outage loses the event and cannot fail the user's task. There is no retry queue or backfill.
+
+Preferences live at `$XDG_CONFIG_HOME/agent-hub/telemetry.json` or `~/.config/agent-hub/telemetry.json`, outside the Hub's reset/restore data. Turning off removes the saved UUID; re-enabling creates a new one. A malformed, unreadable or symlink preference fails closed. An interrupted preference write may leave `telemetry.json.lock`; inspect that no settings update is running before removing the abandoned lock, or use `DO_NOT_TRACK=1`. File changes use a dedicated exclusive preference lock and checked replacement, not Hub recovery/locks. An already transmitted event cannot be recalled by the switch; deletion/retention of stored events is handled in PostHog.
+
+Website collection has its own browser setting and UUID, and is never joined to an installation ID. These statistics describe participating installations and browsers, not unique people or every user. Reports must exclude `is_test=true`. Endpoint health/HTTP 202 is not proof of visibility in provider reports.
+
+For controlled tests or a reviewed alternate deployment, `AGENT_HUB_TELEMETRY_STATE` overrides the private preference file and `AGENT_HUB_TELEMETRY_URL` accepts an HTTPS `/v1/events` endpoint without credentials/query/fragment. Never point synthetic tests at production.
+
+`POST /api/telemetry/settings` accepts only `{ enabled: boolean }`; `/api/telemetry/event` accepts only a named `{ event }`; `/api/telemetry/status` accepts an empty object. All require the local session token and same-origin request protections. GET state includes only effective enabled/blocked/destination, not the UUID.

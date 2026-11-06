@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { telemetryCommand } from './commands/telemetry.js';
 import { Command, Option } from 'commander';
 import { configureCliHelp } from './commands/catalog.js';
 import {
@@ -356,6 +357,7 @@ program
   .option('--no-open', 'do not open a browser automatically')
   .action(uiCommand);
 
+program.command('telemetry [state]').action(telemetryCommand);
 registerHistoryCommands(program, serveHistory);
 configureCliHelp(program);
 program.action(() => program.outputHelp());

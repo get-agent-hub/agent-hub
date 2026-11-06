@@ -1,3 +1,5 @@
+> The beta.2 checklist below records the frozen archive/UI candidate. Current source is beta.3 with analytics changes and needs its own exact-commit checks and real-client trial before release.
+
 # Beta.2 launch readiness
 
 Candidate: `0.1.0-beta.2` · prepared 2026-11-06. The exact frozen commit and archive hashes belong in the release manifest. This checklist is not a claim that publication or a user pilot has happened.

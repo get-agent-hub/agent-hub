@@ -1,3 +1,4 @@
+import { recordUsage, type UsageEvent } from '../core/telemetry/usage.js';
 import { Command } from 'commander';
 import { historySource } from '../adapters/history/sources.js';
 import { ingestHistory } from '../core/history/ingest.js';
@@ -82,6 +83,7 @@ export function registerHistoryCommands(
             : (await historySources()).filter((source) => source.client === options.client);
         } else if (options.root) throw new HubError('An explicit store root requires --client.');
         const catalog = await ingestHistory(hubRoot(), sources, { signal: control.signal });
+        recordUsage('archive_updated');
         printJson({
           receipts: catalog.receipts,
           chats: catalog.chats.length,
@@ -105,6 +107,7 @@ export function registerHistoryCommands(
           control.signal,
         ),
       );
+      recordUsage('search_performed');
     } finally {
       control.close();
     }
@@ -112,7 +115,7 @@ export function registerHistoryCommands(
   queryOptions(history.command('show <id>'))
     .option('--revision <hash>', 'read a preserved older revision')
     .action(async (id, options) =>
-      printJson(await readConversation(hubRoot(), operator, id, query(options))),
+      reportUsage(await readConversation(hubRoot(), operator, id, query(options)), 'chat_opened'),
     );
   history
     .command('event <id> <ordinal>')
@@ -136,13 +139,14 @@ export function registerHistoryCommands(
     .option('--revision <hash>', 'use this preserved version')
     .option('--next <text>', 'current request or next step to include')
     .action(async (id, options) =>
-      printJson(
+      reportUsage(
         await prepareHistoryHandoff(hubRoot(), operator, {
           id,
           target: options.client,
           revision: options.revision,
           nextStep: options.next,
         }),
+        'context_exported',
       ),
     );
   history
@@ -233,4 +237,9 @@ function cancellation() {
       process.off('SIGTERM', cancel);
     },
   };
+}
+
+function reportUsage(value: unknown, event: UsageEvent) {
+  printJson(value);
+  recordUsage(event);
 }

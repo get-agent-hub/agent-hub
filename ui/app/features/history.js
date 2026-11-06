@@ -9,7 +9,7 @@ import {
 } from '../entities/history-conversation.js';
 
 /** Archive pages own their query state; existing configuration and memory pages stay independent. */
-export function setupHistoryUi({ api, render, notice }) {
+export function setupHistoryUi({ api, render, notice, track = () => {} }) {
   let status;
   let result;
   let key = '';
@@ -21,6 +21,9 @@ export function setupHistoryUi({ api, render, notice }) {
   let sourcesInitialized = false;
   let pending = false;
   let lastView = 'sessions';
+  let viewedChat;
+  let searched;
+  let manualJob;
   const active = () => readRoute().resource === 'chats' || readRoute().page === 'projects';
   function parameters(query, params) {
     const options = {
@@ -59,6 +62,14 @@ export function setupHistoryUi({ api, render, notice }) {
             : await api(`/api/history/${query ? 'search' : 'list'}`, options);
       if (generation !== version) return;
       status = nextStatus;
+      if (id && id !== viewedChat) track('chat_opened');
+      if (!id && query && query !== searched) track('search_performed');
+      viewedChat = id;
+      searched = query;
+      if (manualJob && status.job?.id === manualJob && status.job.state === 'complete') {
+        manualJob = undefined;
+        track('archive_updated');
+      }
       result = next;
       key = nextKey;
       error = '';
@@ -155,7 +166,8 @@ export function setupHistoryUi({ api, render, notice }) {
     if (pending || !selectedSources.size) return;
     pending = true;
     try {
-      await api('/api/history/scan', { sources: [...selectedSources] });
+      const job = await api('/api/history/scan', { sources: [...selectedSources] });
+      manualJob = job.id;
       await refresh();
     } catch (failure) {
       notice(failure.message, true);

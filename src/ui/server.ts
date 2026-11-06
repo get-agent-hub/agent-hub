@@ -1,3 +1,4 @@
+import { createTelemetryRoutes } from './routes/telemetry.js';
 import http from 'node:http';
 import { HubError } from '../shared/errors.js';
 import { serveAsset } from './assets.js';
@@ -21,6 +22,7 @@ export async function startUiServer(options: UiOptions = {}) {
   const history = createHistoryRoutes(session);
   const routes = [
     createStateRoutes(session),
+    createTelemetryRoutes(session),
     discovery.handle,
     history.handle,
     createSetupRoutes(session),

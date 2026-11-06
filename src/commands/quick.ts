@@ -1,3 +1,4 @@
+import { recordUsage } from '../core/telemetry/usage.js';
 import type { ClientId } from '../contracts/clients.js';
 import {
   applyProjectConnect,
@@ -64,6 +65,8 @@ async function runSetup(options: Options, scope: 'hub' | 'project') {
     result: typeof plan.publicPlan | Awaited<ReturnType<typeof apply>>,
     applied: boolean,
   ) {
+    if (applied && scope === 'hub' && 'status' in result && result.status === 'complete')
+      recordUsage('setup_completed');
     if (options.json) printJson(result);
     else {
       console.log(

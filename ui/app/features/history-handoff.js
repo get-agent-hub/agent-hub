@@ -1,7 +1,7 @@
 import { escape } from '../shared/html.js';
 import { clientLabels } from '../shared/navigation.js';
 
-export function setupHistoryHandoffUi({ api, notice }) {
+export function setupHistoryHandoffUi({ api, notice, track = () => {} }) {
   const dialog = document.querySelector('#handoff-dialog');
   const output = dialog.querySelector('#handoff-preview');
   const target = dialog.querySelector('#handoff-target');
@@ -103,6 +103,7 @@ export function setupHistoryHandoffUi({ api, notice }) {
           anchor.click();
           URL.revokeObjectURL(url);
         }
+        track('context_exported');
       })().catch((error) => {
         actions.forEach((action) => {
           action.disabled = true;

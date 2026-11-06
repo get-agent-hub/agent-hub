@@ -19,6 +19,12 @@ const entry = (
 export const commandGuide: CommandGuide[] = [
   ...historyGuide,
   entry(
+    'telemetry',
+    'advanced',
+    'Users controlling optional anonymous usage statistics.',
+    'Show analytics status or turn collection on/off; DO_NOT_TRACK=1 always disables it.',
+  ),
+  entry(
     'quick',
     'everyday',
     'Developers setting up or updating shared client settings.',

@@ -1,6 +1,6 @@
 import { escape, pill } from '../shared/html.js';
 
-export function setupQuickUi({ api, load, notice, getState }) {
+export function setupQuickUi({ api, load, notice, getState, track = () => {} }) {
   const dialog = document.querySelector('#quick-dialog');
   const output = document.querySelector('#quick-preview');
   const summary = document.querySelector('#quick-summary');
@@ -104,6 +104,7 @@ export function setupQuickUi({ api, load, notice, getState }) {
         },
       );
       render(result, true);
+      if (operation === 'hub' && result.status === 'complete') track('setup_completed');
       options.hidden = true;
       apply.hidden = true;
       summary.textContent =

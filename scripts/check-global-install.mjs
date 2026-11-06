@@ -35,6 +35,8 @@ try {
       path.delimiter,
     ),
     AGENT_HUB_HOME: home,
+    AGENT_HUB_TELEMETRY_STATE: path.join(directory, 'telemetry.json'),
+    AGENT_HUB_TELEMETRY_DISABLED: '1',
     AGENT_HUB_CLAUDE_CONFIG: path.join(directory, 'claude.json'),
     CLAUDE_CONFIG_DIR: path.join(directory, 'claude'),
     CODEX_HOME: path.join(directory, 'codex'),

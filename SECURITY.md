@@ -17,3 +17,7 @@ Agent Hub is a local configuration and knowledge manager, not an execution sandb
 The local UI binds to loopback and requires a session token for mutations. Do not expose it through a public reverse proxy. Credentials and recovery files remain local; protect the Hub and its sibling recovery directory. Secret extraction is conservative and does not guarantee recognition of every credential format.
 
 Reviewed revisions, ownership checks, a Hub lock and compensating rollback protect managed operations. Independent clients do not honor that lock, and multi-file operations cannot guarantee machine-crash durability. See [RECOVERY.md](docs/RECOVERY.md) for exact limits. To report an ordinary bug, use the issue tracker with a redacted fixture instead.
+
+## Basic usage analytics
+
+Collection is on by default, with a persistent off switch in Sources & settings and `ahub telemetry off`. `DO_NOT_TRACK=1` suppresses it before any action. Strict event allowlists exclude chat text, search phrases, paths, settings and credentials. Website and product UUIDs are separate. See [the exact fields, lifecycle and limits](docs/UI.md#usage-analytics). A public metrics endpoint cannot prove real usage and must not be used for billing or authorization.

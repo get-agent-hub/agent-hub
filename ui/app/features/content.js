@@ -8,7 +8,7 @@ const titles = {
   'init-repo': 'Prepare this repository for agents',
 };
 
-export function setupContentUi({ api, load, notice }) {
+export function setupContentUi({ api, load, notice, track = () => {} }) {
   const dialog = document.querySelector('#content-dialog');
   const client = dialog.querySelector('#content-client');
   const preference = dialog.querySelector('#content-preference');
@@ -119,6 +119,8 @@ export function setupContentUi({ api, load, notice }) {
     for (const control of dialog.querySelectorAll('select,input')) control.disabled = true;
     try {
       const result = await api('/api/content/apply', { id: plan.id });
+      if (result.changedPaths > 0 && ['skills-sync', 'context-sync'].includes(operation))
+        track('shared_config_delivered');
       output.innerHTML = `<div class="banner ok"><b>Updated ${result.changedPaths} managed path(s).</b></div><p>Restart affected clients. Repository notes remain editable by you and your agents.</p>${result.backup ? `<p class="small-note">Backup: ${escape(result.backup)}</p>` : ''}${result.restoreCommand ? `<pre class="code">${escape(result.restoreCommand)}</pre>` : ''}`;
       summary.textContent = 'Applied with backup';
       plan = undefined;

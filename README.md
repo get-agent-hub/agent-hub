@@ -25,7 +25,7 @@ Background updates continue after you close the interface. Optional login startu
 
 ## Get started
 
-Requires **Node.js 22.13+** and npm. macOS and Linux are supported; Windows is experimental. This source is the **0.1.0-beta.2 candidate**. The earlier published **0.1.0-beta.1** archive does not include the current chat and interface features. Use the source checkout while the candidate is being prepared. Public npm registry installation is not available yet.
+Requires **Node.js 22.13+** and npm. macOS and Linux are supported; Windows is experimental. This source is the **0.1.0-beta.3 candidate**. The earlier published **0.1.0-beta.1** archive does not include the current chat and interface features. Use the source checkout while the candidate is being prepared. Public npm registry installation is not available yet.
 
 Clone the source and install a standalone global CLI:
 
@@ -60,3 +60,5 @@ Prefer a graphical workflow? Run `ahub ui`. To connect optional memory for an ex
 Run `npm ci` and `npm run check` from the source checkout. See [CONTRIBUTING.md](https://github.com/get-agent-hub/agent-hub/blob/master/CONTRIBUTING.md) for development, isolated fixtures and release checks.
 
 [Changelog](CHANGELOG.md) · [Security](SECURITY.md) · [MIT license](LICENSE)
+
+Basic usage analytics is on by default. Turn it off in **Sources & settings → Usage analytics**, with `ahub telemetry off`, or set `DO_NOT_TRACK=1` before running Agent Hub. No chat text, queries, project paths or client configuration are sent. See [analytics settings](docs/UI.md#usage-analytics).

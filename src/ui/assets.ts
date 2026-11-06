@@ -23,6 +23,7 @@ const staticFiles: Record<string, [string, string]> = {
   '/entities/mcp.js': ['entities/mcp.js', 'text/javascript; charset=utf-8'],
   '/pages/resources.js': ['pages/resources.js', 'text/javascript; charset=utf-8'],
   '/features/content.js': ['features/content.js', 'text/javascript; charset=utf-8'],
+  '/features/telemetry.js': ['features/telemetry.js', 'text/javascript; charset=utf-8'],
   '/features/quick.js': ['features/quick.js', 'text/javascript; charset=utf-8'],
   '/features/memory.js': ['features/memory.js', 'text/javascript; charset=utf-8'],
   '/features/projects.js': ['features/projects.js', 'text/javascript; charset=utf-8'],

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add basic usage analytics through a first-party relay, on by default with a visible local settings checkbox, `telemetry on/off/status` and environment overrides. Keep random IDs outside Hub recovery; exclude chats, queries, paths/configuration, background work and failed previews. Send asynchronously with no event queue or third-party browser SDK. Website analytics has its own control and identity.
+
 ## 0.1.0-beta.2 — 2026-11-06
 
 Local conversation archive and a simpler interface. Distributed as reviewed GitHub source/package archives; no public npm registry installation.

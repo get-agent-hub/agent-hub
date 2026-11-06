@@ -1,5 +1,5 @@
 import { escape, pill, link } from '../shared/html.js';
-export function setupSyncUi({ api, load, notice, getState }) {
+export function setupSyncUi({ api, load, notice, getState, track = () => {} }) {
   const $ = (s) => document.querySelector(s);
   let syncSelection,
     syncPlan,
@@ -98,6 +98,7 @@ export function setupSyncUi({ api, load, notice, getState }) {
     $('#sync-apply').textContent = 'Applying…';
     try {
       const result = await api('/api/sync/apply', { id: syncPlan.id });
+      if (result.changedFiles > 0) track('shared_config_delivered');
       $('#sync-preview').innerHTML =
         `<div class="banner ok"><div><b>Synced ${result.changedFiles} client file(s).</b><p>Restart the affected clients to load the new MCP configuration.</p></div></div>${result.backup ? `<p class="small-note">Backup: ${escape(result.backup)}</p>` : ''}${result.restoreCommand ? commandBlock('restore', 'Preview rollback in your terminal', result.restoreCommand) : ''}`;
       syncPlan.commands = { restore: result.restoreCommand };

@@ -1,3 +1,4 @@
+import { recordUsage } from '../core/telemetry/usage.js';
 import type { ClientId } from '../contracts/clients.js';
 import { planContextSync } from '../core/instructions/sync.js';
 import { applySync, planSync, publicSyncPlan } from '../core/mcp/sync.js';
@@ -57,6 +58,7 @@ export async function syncCommand(opts: Options) {
   const preview = publicSyncPlan(plan);
   if (opts.apply) {
     const result = await applySync(plan, opts.expect);
+    if (result.changedFiles > 0) recordUsage('shared_config_delivered');
     if (opts.json) printJson({ ...preview, dryRun: false, result });
     else {
       console.log(
