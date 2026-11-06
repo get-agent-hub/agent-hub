@@ -139,56 +139,58 @@ export async function automaticCheckpoint(
     throw new HubError('Checkpoint needs a session and up to 12 evidenced facts.');
   const session = sessionId(value.session);
   const facts = value.facts.map(autoFact);
-  return retryAutomatic(async () => {
-    const at = new Date().toISOString();
-    const build = async () => {
-      const { policy } = await readAutomation(root, workspace);
-      if (!policy.enabled || !policy.clients.includes(client))
-        throw new HubError('Automatic capture is not enabled for this project/client.');
-      const { file, event } = await eventFile(root, workspace, client, session);
-      const authority = await automationAuthority(root);
-      if (
-        !event ||
-        !authority ||
-        event.authority !== authority ||
-        event.stage !== 'requested' ||
-        event.token !== token ||
-        event.expires < Date.now()
-      )
-        throw new HubError('Checkpoint token expired, was used, or does not match this session.');
-      const request = autoJson(file, {
-        ...event,
-        stage: 'done',
-        checkpointAt: at,
-        submittedFacts: facts.length,
-      });
-      return planAutomaticFacts(
-        root,
-        workspace,
-        facts.map((fact) => ({
-          ...fact,
-          key: `fact:${fact.key}`,
-          client,
-          source: `session:${client}:${session}`,
-        })),
-        at,
-        {
-          requests: request ? [request] : [],
-          allowUpdates: event.baseRevision === (await scopeRevision(root, workspace)),
-        },
-      );
-    };
-    const plan = await build();
-    const result = await applyManagedPlan(plan, build, plan.revision);
-    return {
-      ...result,
-      saved: plan.rows.filter(
-        (row) => row.name.startsWith('auto-') && ['add', 'replace'].includes(row.action),
-      ).length,
-      conflicts: plan.rows.filter((row) => row.action === 'preserve').length,
-      skipped: plan.rows.filter((row) => row.action === 'skip').length,
-    };
-  });
+  return retryAutomatic(() =>
+    withHubLock(root, async () => {
+      const at = new Date().toISOString();
+      const build = async () => {
+        const { policy } = await readAutomation(root, workspace);
+        if (!policy.enabled || !policy.clients.includes(client))
+          throw new HubError('Automatic capture is not enabled for this project/client.');
+        const { file, event } = await eventFile(root, workspace, client, session);
+        const authority = await automationAuthority(root);
+        if (
+          !event ||
+          !authority ||
+          event.authority !== authority ||
+          event.stage !== 'requested' ||
+          event.token !== token ||
+          event.expires < Date.now()
+        )
+          throw new HubError('Checkpoint token expired, was used, or does not match this session.');
+        const request = autoJson(file, {
+          ...event,
+          stage: 'done',
+          checkpointAt: at,
+          submittedFacts: facts.length,
+        });
+        return planAutomaticFacts(
+          root,
+          workspace,
+          facts.map((fact) => ({
+            ...fact,
+            key: `fact:${fact.key}`,
+            client,
+            source: `session:${client}:${session}`,
+          })),
+          at,
+          {
+            requests: request ? [request] : [],
+            allowUpdates: event.baseRevision === (await scopeRevision(root, workspace)),
+          },
+        );
+      };
+      const plan = await build();
+      const result = await applyManagedPlan(plan, build, plan.revision);
+      return {
+        ...result,
+        saved: plan.rows.filter(
+          (row) => row.name.startsWith('auto-') && ['add', 'replace'].includes(row.action),
+        ).length,
+        conflicts: plan.rows.filter((row) => row.action === 'preserve').length,
+        skipped: plan.rows.filter((row) => row.action === 'skip').length,
+      };
+    }),
+  );
 }
 
 export async function memoryHook(root: string, clientValue: unknown, value: unknown) {

@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { type ArtifactSnapshot } from '../../../shared/artifacts.js';
 import { HubError } from '../../../shared/errors.js';
+import { withHubLock } from '../../../shared/hub-lock.js';
 import { hash } from '../../../shared/values.js';
 import {
   applyManagedPlan,
@@ -278,15 +279,17 @@ export async function planNativeSync(
 }
 
 export async function syncNativeAutomatically(root: string, workspace: string) {
-  return retryAutomatic(async () => {
-    const at = new Date().toISOString();
-    const build = () => planNativeSync(root, workspace, at);
-    const plan = await build();
-    const result = await applyManagedPlan(plan, build, plan.revision);
-    return {
-      ...result,
-      conflicts: plan.rows.filter((row) => row.action === 'preserve').length,
-      skipped: plan.rows.filter((row) => row.action === 'skip').length,
-    };
-  });
+  return retryAutomatic(() =>
+    withHubLock(root, async () => {
+      const at = new Date().toISOString();
+      const build = () => planNativeSync(root, workspace, at);
+      const plan = await build();
+      const result = await applyManagedPlan(plan, build, plan.revision);
+      return {
+        ...result,
+        conflicts: plan.rows.filter((row) => row.action === 'preserve').length,
+        skipped: plan.rows.filter((row) => row.action === 'skip').length,
+      };
+    }),
+  );
 }

@@ -25,6 +25,7 @@ import {
   publicManagedPlan,
 } from '../dist/core/recovery/managed-plan.js';
 import { hash } from '../dist/shared/values.js';
+import { lockPaths, withHubLock } from '../dist/shared/hub-lock.js';
 
 const exec = promisify(execFile);
 const cli = fileURLToPath(new URL('../dist/cli.js', import.meta.url));
@@ -675,10 +676,68 @@ test('independent automatic MCP writers retry brief contention and retain both n
       }),
     ),
   );
-  assert.equal(
-    results.some((result) => result.isError),
-    false,
-  );
+  for (const result of results) assert.notEqual(result.isError, true, JSON.stringify(result));
   assert.equal((await records(f)).length, 2);
   assert.equal((await autoStatus(f.root, f.workspace)).pendingCheckpoints, 0);
 });
+
+for (const operation of ['checkpoint', 'native sync']) {
+  test(`automatic ${operation} waits for a managed write before reading its staging files`, async (t) => {
+    const f = await fixture(t);
+    await enable(f, 'codex', null);
+    const stop = await memoryHook(f.root, 'codex', payload(f, 'Stop'));
+    const location = await memoryLocation(f.root, { workspace: f.workspace });
+    const staged = path.join(location.records, '.agent-hub-0123456789abcdef.new');
+    let unlock;
+    let ready;
+    const released = new Promise((resolve) => {
+      unlock = resolve;
+    });
+    const acquired = new Promise((resolve) => {
+      ready = resolve;
+    });
+    t.after(() => unlock());
+    const holder = withHubLock(f.root, async () => {
+      await fs.mkdir(location.records, { recursive: true });
+      await fs.writeFile(staged, 'incomplete managed replacement');
+      ready();
+      await released;
+      await fs.unlink(staged);
+    });
+    await acquired;
+    let observedContention;
+    const attempted = new Promise((resolve) => {
+      observedContention = resolve;
+    });
+    const open = fs.open.bind(fs);
+    t.mock.method(fs, 'open', async (file, ...args) => {
+      try {
+        return await open(file, ...args);
+      } catch (error) {
+        if (file === lockPaths(f.root)[0] && error.code === 'EEXIST') observedContention();
+        throw error;
+      }
+    });
+    const pending = (
+      operation === 'checkpoint'
+        ? automaticCheckpoint(f.root, f.workspace, 'codex', tokenOf(stop), {
+            session: 'fixture-session',
+            facts: [fact()],
+          })
+        : syncNativeAutomatically(f.root, f.workspace)
+    ).then(
+      (value) => ({ value }),
+      (error) => ({ error }),
+    );
+    // Either lock contention is observed or the unsafe early read has already failed.
+    await Promise.race([attempted, pending]);
+    unlock();
+    await holder;
+    const result = await pending;
+    assert.equal(result.error, undefined, String(result.error));
+    assert.equal((await records(f)).length, operation === 'checkpoint' ? 1 : 0);
+    // A foreign file without a managed writer must still block collection reads.
+    await fs.writeFile(staged, 'unrecognized data');
+    await assert.rejects(records(f), /Unexpected file in managed memory records/);
+  });
+}

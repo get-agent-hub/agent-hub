@@ -115,3 +115,7 @@ Policy changes use the Hub lock and first baseline. Heartbeats and stop requests
 ## Usage telemetry
 
 `core/telemetry/settings.ts` owns the small user-level preference outside Hub recovery; `usage.ts` owns the strict event contract, detached dispatch and bounded HTTPS attempt. `workers/telemetry.ts` reads only a bounded stdin event/expected UUID and rechecks the latest preference before sending. An exclusive preference lock coordinates CLI/UI writes; Hub mutation locks would create unrelated recovery data and are not used. A busy/corrupt preference drops metrics. Telemetry never imports archived data or client settings, and there are no global Commander hooks that could count MCP/background workers as human activity. Browser features receive a named-event callback from app composition; it sends no feature state.
+
+## Automatic memory writes
+
+Automatic memory checkpoints and native-note imports acquire the reentrant Hub lock before their first plan read and hold it through application. Waiting only at the final write lets another process observe intermediate staging files or a multi-file replacement in progress. Bounded automatic contention retries wrap this whole operation; foreign files, invalid tokens and unknown transaction failures remain errors.

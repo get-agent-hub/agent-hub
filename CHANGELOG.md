@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Acquire the Hub lock before reading and planning automatic memory checkpoints and native-note imports. Concurrent clients no longer mistake a managed writer's temporary staging files for foreign records. Keep strict unexpected-file checks, reviewed manual writes and bounded contention retries.
+
 ## 0.1.0-beta.4 — 2026-11-06
 
 Find an earlier conversation and carry reviewed context to another client. This prerelease includes the local Claude Code, Codex and DSH archive, full-event search, readable chat titles/dates, project grouping, optional background updates and context packets for new conversations. The simpler interface also covers shared MCP, skills, instructions and scoped memory with reviewed changes and recovery. Beta.3 was not published because its release checks exposed a background updater race.
