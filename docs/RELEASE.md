@@ -41,7 +41,7 @@ Use Gitleaks 8.24.3 with `gitleaks git . --config .gitleaks.toml --redact --log-
 
 The full audit includes development tooling; investigate findings separately from the production audit. Do not force incompatible dependency downgrades or hide results. Scan all reachable Git history and the final working tree with a pinned secret scanner, redact reports and review findings. A clean scanner report does not prove the absence of every secret or personal detail. Never rewrite shared history automatically; credential rotation and coordinated cleanup are separate maintainer actions if anything real is found.
 
-`release:prepare` refuses a dirty checkout, builds the CLI, packs the compiled runtime and UI, and archives tracked source from HEAD. Outputs are under `.tmp/release/0.1.0-beta.1/`: the installable `.tgz`, source `.zip`, `SHA256SUMS` and `release.json` with version, exact commit, Node requirement and file hashes. Verify the checksums after copying artifacts. GitHub Actions validates macOS/Linux on Node 22.13 and 24; its artifact step prepares the same files without publishing a release. A local run does not establish remote CI success.
+`release:prepare` refuses a dirty checkout, builds the CLI, packs the compiled runtime and UI, and archives tracked source from HEAD. Outputs are under `.tmp/release/0.1.0-beta.1/`: the installable `.tgz`, source `.zip`, `SHA256SUMS` and `release.json` with version, exact commit, Node requirement and file hashes. Verify the checksums after copying artifacts. GitHub Actions runs tests once on each macOS/Linux and Node 22.13/24 combination. Static checks, coverage and the production audit run on Linux/Node 22.13; package/installer checks run on Linux/Node 22.13 and macOS/Node 24. Ordinary branch/PR validation does not prepare release archives. A local run does not establish remote CI success.
 
 ## Public release gates
 
@@ -56,7 +56,7 @@ These gates remain open until evidence is recorded. Preparation is not approval 
 
 ## GitHub release workflow
 
-The release workflow runs on version-tag pushes or a manual dispatch with an existing tag. It verifies that the tag matches the package version and exact checkout, scans full history, and runs the complete checks, coverage, production audit and actual installer on macOS/Linux with Node 22.13 and 24. Only after every job passes does it create a **draft** GitHub Release with changelog notes, package/source archives, checksums and the exact-commit manifest. Beta versions are marked prerelease. It never publishes to npm or deploys the website.
+The release workflow runs on version-tag pushes or a manual dispatch with an existing tag. It reuses the Quality workflow at that exact tag, verifies the version/checkout and scans full history. Tests run on all four platform/runtime combinations; coverage/static/audit checks run once, and package/installer checks cover both operating systems. Only the primary job prepares the release artifact. Tag pushes do not also start standalone Quality or Secret scan runs. Secret scanning still covers branch pushes and pull requests. Only after every job passes does it create a **draft** GitHub Release with changelog notes, package/source archives, checksums and the exact-commit manifest. Beta versions are marked prerelease. It never publishes to npm or deploys the website.
 
 Run the following only from the reviewed, sanitized publication repository when ready to create a GitHub draft. The remote must point at the intended GitHub repository, and the tagged commit must already be available there:
 

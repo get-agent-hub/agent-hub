@@ -2,37 +2,83 @@ name: Quality
 
 on:
   push:
+    branches: [master]
   pull_request:
+  workflow_call:
+    inputs:
+      ref:
+        description: Source ref to verify
+        type: string
+        required: false
+      release:
+        description: Verify the version tag and prepare its release artifact
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
+concurrency:
+  group: quality-${{ github.workflow }}-${{ github.event.pull_request.number || inputs.ref || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   check:
+    name: check (${{ matrix.os }}, ${{ matrix.node }})
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
-        node: ['22.13.0', '24']
+        include:
+          - { os: ubuntu-latest, node: '22.13.0', primary: true, installer: true }
+          - { os: ubuntu-latest, node: '24', primary: false, installer: false }
+          - { os: macos-latest, node: '22.13.0', primary: false, installer: false }
+          - { os: macos-latest, node: '24', primary: false, installer: true }
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+          fetch-depth: ${{ inputs.release && '0' || '1' }}
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
           cache: npm
+      - name: Verify release tag
+        if: inputs.release
+        env:
+          RELEASE_TAG: ${{ inputs.ref }}
+        run: node scripts/check-release-tag.mjs
       - run: npm ci
-      - run: npm run check
-      - run: npm run test:coverage
-      - run: npm audit --omit=dev --audit-level=moderate
-      - run: npm run package:check
-      - run: npm run install:check
-      - run: npm run release:prepare
-        if: matrix.os == 'ubuntu-latest' && matrix.node == '22.13.0'
+      - name: Static checks
+        if: matrix.primary
+        run: |
+          npm run format:check
+          npm run lint
+          # Older version tags predate the architecture checker.
+          npm run check:architecture --if-present
+      - name: Tests with coverage
+        if: matrix.primary
+        run: npm run test:coverage
+      - name: Tests
+        if: ${{ !matrix.primary }}
+        run: npm test
+      - name: Production dependency audit
+        if: matrix.primary
+        run: npm audit --omit=dev --audit-level=moderate
+      - name: Package contents
+        if: matrix.installer
+        run: npm run package:check
+      - name: Real temporary-prefix installation
+        if: matrix.installer
+        run: npm run install:check
+      - name: Prepare release artifact
+        if: inputs.release && matrix.primary
+        run: npm run release:prepare
       - uses: actions/upload-artifact@v4
-        if: matrix.os == 'ubuntu-latest' && matrix.node == '22.13.0'
+        if: inputs.release && matrix.primary
         with:
-          name: beta-candidate
+          name: release-candidate
           path: .tmp/release/
           include-hidden-files: true
           if-no-files-found: error

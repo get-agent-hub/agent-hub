@@ -10,7 +10,7 @@ npm run package:check  # Verify all required UI assets and the package allowlist
 npm run qa:ui          # Manual UI fixture; no production client writes
 ```
 
-`npm run format` applies the shared formatting rules. `npm run lint:fix` applies safe ESLint fixes. The flat ESLint configuration checks TypeScript and JavaScript, catches floating TypeScript promises, rejects explicit `any`, duplicate imports and oversized runtime modules. The architecture check resolves real module paths to reject forbidden dependencies and runtime import cycles. `.editorconfig` and `.gitattributes` standardize whitespace and line endings. CI runs the same checks on macOS/Linux with Node 22.13 and 24. CI configuration is not evidence that those remote jobs have already passed.
+`npm run format` applies the shared formatting rules. `npm run lint:fix` applies safe ESLint fixes. The flat ESLint configuration checks TypeScript and JavaScript, catches floating TypeScript promises, rejects explicit `any`, duplicate imports and oversized runtime modules. The architecture check resolves real module paths to reject forbidden dependencies and runtime import cycles. `.editorconfig` and `.gitattributes` standardize whitespace and line endings. CI runs the test suite once per macOS/Linux and Node 22.13/24 combination; compilation in each test run also checks TypeScript. Formatting, lint, architecture, coverage and production audit run once on Linux/Node 22.13. Package contents and real installation are checked on Linux/Node 22.13 and macOS/Node 24. Version-tag releases reuse this workflow instead of launching another copy of the same matrix. CI configuration is not evidence that those remote jobs have already passed.
 
 ## Structure
 
