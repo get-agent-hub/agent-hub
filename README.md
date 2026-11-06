@@ -25,7 +25,7 @@ Background updates continue after you close the interface. Optional login startu
 
 ## Get started
 
-Requires **Node.js 22.13+** and npm. macOS and Linux are supported; Windows is experimental. This source is the **0.1.0-beta.3 candidate**. The earlier published **0.1.0-beta.1** archive does not include the current chat and interface features. Use the source checkout while the candidate is being prepared. Public npm registry installation is not available yet.
+Requires **Node.js 22.13+** and npm. macOS and Linux are supported; Windows is experimental. This source is **0.1.0-beta.3**. GitHub Releases provides a source ZIP, an installable npm tarball and checksums for reviewed betas. Public npm registry installation is not available yet.
 
 Clone the source and install a standalone global CLI:
 

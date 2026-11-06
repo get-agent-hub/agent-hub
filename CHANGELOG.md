@@ -2,9 +2,30 @@
 
 ## Unreleased
 
-- Add basic usage analytics through a first-party relay, on by default with a visible local settings checkbox, `telemetry on/off/status` and environment overrides. Keep random IDs outside Hub recovery; exclude chats, queries, paths/configuration, background work and failed previews. Send asynchronously with no event queue or third-party browser SDK. Website analytics has its own control and identity.
+## 0.1.0-beta.3 — 2026-11-06
+
+Find an earlier conversation and carry inspected context to another client. This prerelease includes the archive/interface work from the unpublished beta.2 candidate, plus basic usage analytics.
+
+Basic usage analytics is **on by default**. Turn it off in Sources & settings, run `ahub telemetry off`, or set `DO_NOT_TRACK=1` before using Hub. Events contain named actions, a random installation ID, language and version; chat text, search queries, project paths, client configuration and credentials are excluded. Website analytics has a separate setting and identity. No session replay or third-party browser SDK is loaded in the local Hub.
+
+- Preserve supported Claude Code, Codex and DeepSeek Harness histories in a local, versioned archive with complete-event search, project associations and explicit attachment/coverage limits.
+- Read conversations with useful titles and native dates, newest-first sorting, expandable tool/runtime details and preserved source versions.
+- Prepare bounded, version-pinned context packets for a new conversation in another client; copy/download rechecks access. No separate model call or native runtime transfer is performed.
+- Keep selected archive sources updated after closing the UI, with optional reviewed user-login startup. Native history stays in place; configuration presence does not prove activation.
+- Use the simpler Overview, All data and Projects interface, responsive layouts and light/dark themes. Keep technical details in disclosures.
+- Resolve MCP differences per server and client, recognize existing connections to the same Hub and preserve unrelated settings and local tool policies.
+- Send basic usage outcomes asynchronously through a first-party relay. Honor opt-out, DNT/GPC and environment overrides; background capture, polling, previews and failed operations do not count as activity. No retry queue or backfill.
+- Install a standalone globally callable `ahub` / `agent-hub` with locked dependencies. Fix the isolated timeout test on the supported Node 22 runtime.
+
+### Beta.3 verification and limits
+
+Automated checks cover Linux/macOS and Node 22.13/24, 345 tests, isolated package installation/reinstallation/removal, and secret/history scans. The maintainer confirmed the real Codex → DSH scenario, including external-edit conflict and recovery, and observed PostHog events on 2026-11-06. These are maintainer-reported manual results, separate from automated fixtures.
+
+Unavailable local attachments and unsupported source coverage are reported explicitly. Shared settings use reviewed delivery, not universal automatic bidirectional reconciliation. Context packets are reference data, not active-session migration. Multi-file recovery is compensating, not power-loss-safe. Actual OS sign-in activation remains a separate unverified manual check. Windows is experimental; public npm registry publication is deferred. Download the source ZIP or installable tarball from GitHub Releases; Node.js 22.13+ and npm are required, and installation can download dependencies.
 
 ## 0.1.0-beta.2 — 2026-11-06
+
+Unpublished candidate, superseded by beta.3. Its existing tag and draft remain unchanged.
 
 Local conversation archive and a simpler interface. Distributed as reviewed GitHub source/package archives; no public npm registry installation.
 

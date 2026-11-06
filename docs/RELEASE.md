@@ -1,6 +1,6 @@
 # Preparing a beta release
 
-The earlier `v0.1.0-beta.2` tag/draft remains frozen. Default-on analytics is a later source change in the beta.3 candidate; do not replace the beta.2 tag or imply it contains this change. The required real-client trial still applies to a new public candidate.
+The earlier `v0.1.0-beta.2` tag/draft remains frozen. Default-on analytics is a later source change in the beta.3 candidate; do not replace the beta.2 tag or imply it contains this change. The maintainer confirmed the required Codex → DSH trial, conflict/recovery extension and PostHog event visibility on 2026-11-06; see the [readiness record](launch/READINESS.md). This is manual maintainer evidence, not a claim that automated tests prove useful continuation.
 
 The candidate version is **0.1.0-beta.3**. It uses a source ZIP and a standalone npm tarball. The earlier published **0.1.0-beta.1** archive does not contain the current chat archive, interface and context-handoff features. Use the current source checkout while this candidate is being prepared; candidate assets become available only after publication. `private: true` deliberately prevents accidental registry publication; it does not prevent installing the reviewed local tarball. The npm registry name and registry publication are deferred. No push, tag, GitHub Release or deployment is performed by the preparation commands.
 
