@@ -1,5 +1,6 @@
 import { savedProjectsView } from '../entities/history-project.js';
-import { escape, empty, intro, link, pill } from '../shared/html.js';
+import { historySourcesPanel } from '../entities/history-sources.js';
+import { escape, empty, intro, link } from '../shared/html.js';
 import { clientLabels, readRoute } from '../shared/navigation.js';
 import {
   historyConversation,
@@ -88,34 +89,6 @@ export function setupHistoryUi({ api, render, notice }) {
     const nextKey = `${page}|${query}|${params}`;
     if (requested !== nextKey) void fetchView(query, params, nextKey);
   }
-  function sources() {
-    return `<details class="card section-gap" id="history-sources" data-ui-key="history-sources" ${status.chats ? '' : 'open'}><summary class="card-h">Native history sources</summary><div class="card-b">${status.sources
-      .map((source) => {
-        const receipt = status.receipts.find((item) => item.source.id === source.id);
-        return `<label class="tags"><input type="checkbox" data-history-source="${escape(source.id)}" ${selectedSources.has(source.id) ? 'checked' : ''} ${pending || status.background?.running ? 'disabled' : ''}>${escape(clientLabels[source.client] || source.client)} ${pill(receipt?.coverage || 'Not captured')}<span class="minor mono">${escape(source.root)}</span>${receipt ? `<span class="minor">Last checked: ${escape(new Date(receipt.checkedAt).toLocaleString())}${receipt.succeededAt ? ` · Last complete: ${escape(new Date(receipt.succeededAt).toLocaleString())}` : ''}</span>` : ''}</label>`;
-      })
-      .join(
-        '',
-      )}<p class="small-note">${status.events} stored events · ${(status.bytes / 1048576).toFixed(1)} MiB</p><p class="small-note">Capture reads all available events in the selected supported stores. Native files stay in place. History may include private messages and tool output; Hub stores it locally.</p><label><input type="checkbox" id="history-auto" ${status.background?.running ? 'checked' : ''} ${pending || !selectedSources.size ? 'disabled' : ''}> Update selected sources in the background</label><p class="small-note">Continues after you close this page and the Hub UI server. Checks every ${status.background?.interval || 30} seconds. ${status.startup?.state === 'installed' ? 'Resumes after your next sign-in while background updates stay enabled.' : 'Enable login startup below to resume after signing in.'}</p>${backgroundNote()}<label><input type="checkbox" id="history-login" ${status.startup?.installed ? 'checked' : ''} ${!status.startup?.supported || (!status.background?.enabled && !status.startup?.installed) ? 'disabled' : ''}> Resume selected updates when I sign in</label><p class="small-note">${status.startup?.state === 'needs-review' || status.startup?.state === 'hub-changed' ? 'Login startup needs review. Existing startup files are preserved.' : 'Optional user-level startup for macOS launchd or Linux systemd. Changes take effect at the next sign-in; no administrator access is used.'}</p><p><button class="btn primary" data-history-action="scan" ${pending || !selectedSources.size || status.job?.state === 'running' || status.background?.running ? 'disabled' : ''}>Capture selected history</button> <button class="btn" data-history-action="rebuild" ${status.background?.running ? 'disabled' : ''}>Rebuild search index</button></p></div></details>`;
-  }
-  function backgroundNote() {
-    const background = status.background;
-    if (!background) return '';
-    const state = background.running
-      ? background.state === 'stopping'
-        ? 'Stopping after checked work…'
-        : !background.responsive
-          ? 'Updater is not responding. Check history status before restarting it.'
-          : background.state === 'retrying'
-            ? 'Waiting to retry'
-            : background.state === 'capturing'
-              ? 'Reading selected sources…'
-              : 'Background updates are on'
-      : background.enabled
-        ? 'Background updates stopped. Turn them on to resume.'
-        : 'Background updates are off';
-    return `<p class="small-note" role="status">${state}${background.lastSuccess ? ` · Last complete update: ${escape(new Date(background.lastSuccess).toLocaleString())}` : ''}${background.error ? `<br>${escape(background.error)}` : ''}</p>`;
-  }
   function progress() {
     const job = status.job;
     if (!job) return '';
@@ -151,10 +124,7 @@ export function setupHistoryUi({ api, render, notice }) {
         `${status.chats} conversations`,
         '<button class="btn" data-history-action="sources">Manage history sources</button>',
       ) +
-      (status.incomplete || status.assetsMissing
-        ? `<p class="small-note">${status.incomplete} conversations have incomplete or unsupported event coverage. ${status.assetsMissing} attachment references are not locally preserved. See each chat for details.</p>`
-        : '') +
-      sources() +
+      historySourcesPanel({ status, selectedSources, pending }) +
       progress() +
       `<div class="history-toolbar">${filters}${historyViewPicker(params)}</div>` +
       `<div class="card section-gap chat-list"><ul class="list">${rows.join('') || empty('No conversations in this view', 'Capture selected native history, change filters or try another search phrase.')}</ul></div>` +

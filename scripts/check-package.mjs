@@ -26,6 +26,7 @@ for (const required of [
   'ui/app/features/history-handoff.js',
   'ui/app/features/history-startup.js',
   'ui/app/entities/history-conversation.js',
+  'ui/app/entities/history-sources.js',
   'docs/HISTORY.md',
   'docs/UI.md',
   'dist/shared/runtime.js',

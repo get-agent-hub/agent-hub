@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Make archive status and source settings easier to read: visible storage/update summary, client cards, grouped update switches and expandable folder/read details. Explain attachment-reference coverage separately, omit zero warnings and move index rebuilding into troubleshooting.
+
 - Prepare reviewed, version-pinned context packets for a new conversation in Claude Code, Codex or DSH. Include bounded original-message excerpts, an optional next step and source references; copy/download rechecks access. No separate model call or native session transfer.
 - Add reviewed user-login startup for the saved archive selection on macOS launchd/Linux systemd. Preserve edited or foreign startup files, support recovery and check the enabled Hub binding before resuming. Changes apply at the next user-session start; current jobs are not reloaded.
 

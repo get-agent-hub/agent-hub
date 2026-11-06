@@ -154,7 +154,10 @@ test('HTTP history requires operator token, rejects path injection and preserves
   assert.equal((await (await post('list')).json()).total, 0);
   const scripts = await fetch(ui.url + '/features/history.js');
   assert.equal(scripts.status, 200);
-  assert.match(await scripts.text(), /Capture selected history/);
+  assert.match(await scripts.text(), /historySourcesPanel/);
+  const sourcesView = await fetch(ui.url + '/entities/history-sources.js');
+  assert.equal(sourcesView.status, 200);
+  assert.match(await sourcesView.text(), /Save chats to Hub/);
 });
 
 test('MCP exposes complete windowed history only through the current persisted grant and handles revocation', async (t) => {

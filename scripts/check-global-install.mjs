@@ -172,6 +172,7 @@ try {
     '/entities/resource.js',
     '/entities/history-project.js',
     '/entities/history-conversation.js',
+    '/entities/history-sources.js',
     '/app.css',
     '/base.css',
     '/styles/primitives.css',

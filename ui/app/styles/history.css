@@ -20,6 +20,240 @@
 .history-toolbar .input {
   font-size: 12px;
 }
+.archive-panel {
+  overflow: hidden;
+}
+.archive-overview {
+  padding: 24px;
+}
+.archive-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.archive-heading h3 {
+  font-size: 16px;
+  margin: 0;
+}
+.archive-heading p {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 4px 0 0;
+}
+.archive-state {
+  height: 26px;
+  gap: 8px;
+}
+.archive-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+  margin: 24px 0 20px;
+}
+.archive-stats dt {
+  font-size: 12px;
+  color: var(--muted);
+}
+.archive-stats dd {
+  margin: 3px 0 0;
+  font-size: clamp(18px, 2vw, 28px);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.archive-update-note {
+  color: var(--muted);
+  font-size: 12px;
+  margin: 0;
+}
+.archive-update-note span {
+  display: block;
+  margin-top: 3px;
+}
+.archive-coverage {
+  margin-top: 18px;
+  border-left: 2px solid var(--warn);
+  padding-left: 12px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.archive-coverage summary {
+  color: var(--warn);
+  cursor: pointer;
+}
+.archive-coverage p {
+  max-width: 760px;
+  margin: 8px 0;
+}
+.archive-coverage details + details {
+  margin-top: 8px;
+}
+.archive-settings > summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+  cursor: pointer;
+}
+.archive-settings > summary::after {
+  content: '+';
+  color: var(--muted);
+  margin-left: auto;
+  font-size: 18px;
+}
+.archive-settings[open] > summary::after {
+  content: '−';
+}
+.archive-source-count {
+  color: var(--muted);
+  font-size: 12px;
+}
+.archive-settings-body {
+  padding: 8px 24px 24px;
+}
+.archive-source-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
+  gap: 12px;
+}
+.archive-source {
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  min-width: 0;
+}
+.archive-source-head,
+.archive-source-head label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.archive-source-head {
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+.archive-source-head label {
+  font-size: 13px;
+  cursor: pointer;
+}
+.archive-source input {
+  margin: 0;
+  accent-color: var(--accent);
+}
+.archive-source-time,
+.archive-source details,
+.archive-selection-note,
+.archive-advanced {
+  color: var(--muted);
+  font-size: 12px;
+}
+.archive-source-time {
+  margin: 12px 0 8px;
+}
+.archive-source summary,
+.archive-advanced summary {
+  cursor: pointer;
+}
+.archive-source-detail {
+  padding-top: 8px;
+}
+.archive-source-detail p {
+  margin: 6px 0;
+}
+.archive-selection-note {
+  margin: 10px 0 20px;
+}
+.archive-toggles {
+  border-block: 1px solid var(--line);
+}
+.archive-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 16px 0;
+  cursor: pointer;
+}
+.archive-toggle + .archive-toggle {
+  border-top: 1px solid var(--line);
+}
+.archive-toggle strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+}
+.archive-toggle small {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 4px;
+}
+.archive-toggle input {
+  appearance: none;
+  flex: 0 0 38px;
+  width: 38px;
+  height: 22px;
+  margin: 0;
+  border: 1px solid var(--muted);
+  background: var(--panel-2);
+  border-radius: 20px;
+  cursor: pointer;
+}
+.archive-toggle input::before {
+  content: '';
+  display: block;
+  width: 14px;
+  height: 14px;
+  margin: 3px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+.archive-toggle input:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.archive-toggle input:checked::before {
+  transform: translateX(16px);
+  background: var(--bg);
+}
+.archive-toggle input:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.archive-toggle small.archive-setting-issue {
+  color: var(--warn);
+}
+.archive-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 20px 0;
+}
+.archive-actions span {
+  font-size: 12px;
+  color: var(--muted);
+}
+@media (max-width: 600px) {
+  .archive-overview {
+    padding: 18px;
+  }
+  .archive-stats {
+    gap: 10px;
+  }
+  .archive-settings > summary {
+    padding-inline: 18px;
+  }
+  .archive-settings-body {
+    padding: 0 18px 18px;
+  }
+  .archive-source-count {
+    display: none;
+  }
+}
 .conversation {
   max-width: 860px;
   margin: 0 auto;

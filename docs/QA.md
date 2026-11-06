@@ -2,6 +2,14 @@
 
 The implemented import → sync → doctor → restore flow was exercised through the live UI and production CLI on macOS. Client writes used temporary configurations. Production client configurations were not synchronized.
 
+## Archive summary and source controls — 2026-11-06
+
+`npm run check` and standalone coverage pass **339 tests**; coverage is **93.53% lines**, **85.68% branches** and **91.90% functions**. Architecture passes **197 modules / 961 imports**. Package validation and the real temporary-prefix installer include the new source-panel module. This is a browser presentation change; capture, worker, startup, archive policy and native file operations are unchanged.
+
+The visible archive summary separates conversation/event counts, current captured source-data size and actual update state. Source cards use plain read-status labels with folder paths and detailed timestamps in disclosures. Update switches share one section; manual capture has first-use/existing-archive labels, and rebuilding is under troubleshooting. Zero incomplete-conversation warnings are omitted. Non-local attachment references have their own explanation covering remote/outside/unavailable references rather than claiming missing messages. Captured bytes are not described as exact disk use for all revisions/assets.
+
+A separate headless browser fixture passes dark/light desktop and 400px views, source cards, hidden paths/troubleshooting, retry/stopped/unavailable/incomplete states, empty-selection guards, real background enable/stop, startup preview cancellation, saved selection on reload and disclosure/focus preservation across polling. There were no runtime exceptions, horizontal overflow or native config edits. Four screenshots were inspected. The displayed stress case of **0 incomplete conversations / 4,440 attachment references / 536,625 events / 1,760.9 MiB** was supplied through a browser-only status-response override, not by rewriting real archive data. All action tests used temporary Hub/client folders.
+
 ## Login startup and cross-client context packets — 2026-11-06
 
 `npm run check` passes **339 tests**. Standalone coverage also passes **339 tests**, with **93.49% lines**, **85.68% branches** and **91.90% functions**. The **13-test** startup/handoff/HTTP suite passes on minimum Node **22.13**. Architecture checks pass **196 modules / 957 imports**. Package validation and the actual temporary-prefix installer pass, including the installed handoff CLI and both new browser modules.

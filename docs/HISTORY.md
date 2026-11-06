@@ -6,7 +6,7 @@ Agent Hub keeps a local archive of supported native conversations. Clients conti
 
 Run `ahub ui`. The interface starts a read-only project metadata scan over known Claude Code, Codex and DSH stores. Finding a working folder does not register project memory or grant another client access.
 
-Open **All data → Chats**, choose native sources and click **Capture selected history**. This copies supported history into private Hub storage. Messages may contain private text, tool output and embedded images; nothing is uploaded. Progress and source coverage remain visible. Stop retains conversations already committed. Reloading the page reconnects to the running job; restarting the server retains the saved archive.
+Open **All data → Chats**, expand **Sources & automatic updates**, choose native sources and click **Save chats to Hub**. An existing archive offers **Update archive now**. This copies supported history into private Hub storage. Messages may contain private text, tool output and embedded images; nothing is uploaded. Progress and source coverage remain visible. Stop retains conversations already committed. Reloading the page reconnects to the running job; restarting the server retains the saved archive.
 
 Use the search field to search conversation text and tool data. Select All events to include technical context and other native fields. Filter by client or project. Open a conversation to read event windows, inspect every original JSON field, choose an earlier preserved version or download the source bytes. Long messages have a complete original-event reader rather than a silently truncated preview.
 

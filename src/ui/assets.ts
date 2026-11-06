@@ -16,6 +16,7 @@ const staticFiles: Record<string, [string, string]> = {
     'entities/history-conversation.js',
     'text/javascript; charset=utf-8',
   ],
+  '/entities/history-sources.js': ['entities/history-sources.js', 'text/javascript; charset=utf-8'],
   '/pages/overview.js': ['pages/overview.js', 'text/javascript; charset=utf-8'],
   '/pages/sources.js': ['pages/sources.js', 'text/javascript; charset=utf-8'],
   '/pages/mcp.js': ['pages/mcp.js', 'text/javascript; charset=utf-8'],
