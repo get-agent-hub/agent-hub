@@ -17,7 +17,9 @@ const operations = {
   'history event':
     'Read every original field of a native event, including large tool results, in explicit character windows.',
   'history watch':
-    'Periodically capture native updates while this foreground process runs; no OS service is installed.',
+    'Capture updates in the foreground or background; preview optional user-login startup for the saved selection.',
+  'history handoff':
+    'Prepare a read-only, version-pinned context packet for a new conversation in another client; review excerpts before sharing.',
   'history rebuild':
     'Verify preserved raw history and rebuild derived event indexes without accessing native clients.',
   'history policy':

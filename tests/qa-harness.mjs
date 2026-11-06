@@ -339,6 +339,13 @@ const ui = await startUiServer({
   port,
   cwd: repo,
   services: {
+    historyStartupContext: {
+      platform: process.platform,
+      home: path.join(root, 'login-home'),
+      configHome: path.join(root, 'login-config'),
+      node: process.execPath,
+      worker: path.join(project, 'dist/workers/history-login.js'),
+    },
     discoverProjects: async (clients, sources, control) => {
       if (process.argv.includes('--slow-discovery'))
         await delay(1200, undefined, { signal: control?.signal });

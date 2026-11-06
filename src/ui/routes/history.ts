@@ -6,6 +6,9 @@ import { historySources } from '../../adapters/history/sources.js';
 import { historyOverview } from '../../core/history/overview.js';
 import { backgroundStatus } from '../../core/history/background.js';
 import { readHistory } from '../../core/history/storage.js';
+import { handoffInput, prepareHistoryHandoff } from '../../core/history/handoff.js';
+import { historyStartupStatus } from '../../core/history/startup.js';
+import { createHistoryStartupRoutes } from '../history-startup.js';
 import {
   startHistoryBackground,
   stopHistoryBackground,
@@ -73,6 +76,7 @@ export function createHistoryRoutes(session: UiSession) {
     { plan: Awaited<ReturnType<typeof planHistoryConnection>>; expires: number }
   >();
   session.trackPreviews(connections);
+  const startup = createHistoryStartupRoutes(session, root);
   const handle: UiRoute = async ({ req, url, json }) => {
     if (!url.pathname.startsWith('/api/history/')) return false;
     if (req.method !== 'POST')
@@ -87,7 +91,16 @@ export function createHistoryRoutes(session: UiSession) {
         sources: await availableSources(),
         job: jobs.status(),
         background: await backgroundStatus(root),
+        startup: await historyStartupStatus(root, session.services.historyStartupContext),
       });
+    else if (name === 'handoff')
+      json(
+        200,
+        await prepareHistoryHandoff(root, operator, validated(handoffInput, body), {
+          origin: url.origin,
+        }),
+      );
+    else if (await startup(name, body, json)) return true;
     else if (name === 'list') json(200, await listHistory(root, operator, validated(query, body)));
     else if (name === 'search')
       json(200, await searchHistory(root, operator, validated(query, body)));

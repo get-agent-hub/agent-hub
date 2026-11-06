@@ -18,6 +18,13 @@ import {
   stopHistoryBackground,
 } from '../core/history/background-process.js';
 import { readHistory } from '../core/history/storage.js';
+import { prepareHistoryHandoff } from '../core/history/handoff.js';
+import {
+  applyHistoryStartup,
+  historyStartupStatus,
+  planHistoryStartup,
+} from '../core/history/startup.js';
+import { publicManagedPlan } from '../core/recovery/managed-plan.js';
 import { CLIENT_IDS, type ClientId } from '../contracts/clients.js';
 import { HubError } from '../shared/errors.js';
 import { printJson } from '../shared/output.js';
@@ -55,6 +62,7 @@ export function registerHistoryCommands(
     printJson({
       ...(await historyOverview(hubRoot(), operator)),
       background: await backgroundStatus(hubRoot()),
+      startup: await historyStartupStatus(hubRoot()),
     }),
   );
   history
@@ -123,11 +131,47 @@ export function registerHistoryCommands(
       ),
     );
   history
+    .command('handoff <id>')
+    .requiredOption('--client <id>', 'target client for a new conversation')
+    .option('--revision <hash>', 'use this preserved version')
+    .option('--next <text>', 'current request or next step to include')
+    .action(async (id, options) =>
+      printJson(
+        await prepareHistoryHandoff(hubRoot(), operator, {
+          id,
+          target: options.client,
+          revision: options.revision,
+          nextStep: options.next,
+        }),
+      ),
+    );
+  history
     .command('watch')
     .option('--interval <seconds>', 'foreground periodic refresh, 5–300 seconds', '30')
     .option('--background', 'update previously captured sources after the terminal and UI close')
     .option('--stop', 'stop background updates; saved chats are retained')
+    .option('--login <state>', 'preview login startup on/off; applies at the next user login')
+    .option('--apply', 'apply the reviewed login startup plan')
+    .option('--expect <revision>', 'exact reviewed login startup revision')
+    .option('--dry-run', 'preview without changing startup files')
     .action(async (options) => {
+      if (options.login !== undefined) {
+        if (
+          !['on', 'off'].includes(options.login) ||
+          options.background ||
+          options.stop ||
+          (options.apply && options.dryRun)
+        )
+          throw new HubError('Choose --login on or off separately from background start/stop.');
+        const saved = await planHistoryStartup(hubRoot(), options.login === 'on');
+        return printJson(
+          options.apply
+            ? await applyHistoryStartup(saved, options.expect ?? '')
+            : publicManagedPlan(saved.plan),
+        );
+      }
+      if (options.apply || options.expect || options.dryRun)
+        throw new HubError('Startup preview/apply options require --login on or off.');
       if (options.stop && options.background) throw new HubError('Choose --background or --stop.');
       if (options.stop) return printJson(await stopHistoryBackground(hubRoot()));
       if (options.background) {

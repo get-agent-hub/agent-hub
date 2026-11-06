@@ -17,6 +17,7 @@ import { mcpDetails } from './mcp-details.js';
 import { revealDirectory } from './project-discovery.js';
 import type { HistorySource } from '../contracts/history.js';
 import type { SyncContext } from '../core/mcp/sync.js';
+import type { HistoryStartupContext } from '../core/history/startup-definition.js';
 export type UiOptions = {
   port?: number;
   cwd?: string;
@@ -39,6 +40,7 @@ export type UiOptions = {
     revealDirectory?: typeof revealDirectory;
     historySources?: () => Promise<HistorySource[]>;
     historySyncContext?: () => Promise<SyncContext>;
+    historyStartupContext?: HistoryStartupContext;
   };
 };
 export function createUiSession(options: UiOptions) {

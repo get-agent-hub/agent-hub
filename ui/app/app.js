@@ -11,6 +11,8 @@ import { setupMemoryUi } from './features/memory.js';
 import { setupQuickUi } from './features/quick.js';
 import { setupProjectDiscoveryUi } from './features/projects.js';
 import { setupHistoryUi } from './features/history.js';
+import { setupHistoryHandoffUi } from './features/history-handoff.js';
+import { setupHistoryStartupUi } from './features/history-startup.js';
 import { setupImportUi } from './features/import-mcp.js';
 import { setupSyncUi } from './features/sync-mcp.js';
 import { setupDoctorUi } from './features/check-mcp.js';
@@ -120,6 +122,8 @@ const resourcePages = createResourcePages({
 });
 const projectDiscovery = setupProjectDiscoveryUi({ api, getState: () => state, render, notice });
 const historyUi = setupHistoryUi({ api, render, notice });
+setupHistoryHandoffUi({ api, notice });
+setupHistoryStartupUi({ api, notice, refresh: historyUi.refresh });
 const context = { api, load, notice, getState: () => state };
 setupQuickUi(context);
 setupContentUi(context);

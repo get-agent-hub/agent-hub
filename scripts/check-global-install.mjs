@@ -90,6 +90,9 @@ try {
   assert.equal(JSON.parse(run(['history', 'scan', '--client', 'claude-code'])).chats, 1);
   const history = JSON.parse(run(['history', 'ls']));
   assert.equal(history.chats[0].events, 1);
+  const handoff = JSON.parse(run(['history', 'handoff', history.chats[0].id, '--client', 'codex']));
+  assert.match(handoff.text, /Installed history sentinel/);
+  assert.equal(handoff.revision, history.chats[0].revision);
   assert.equal(JSON.parse(run(['history', 'watch', '--background'])).running, true);
   let background;
   for (let attempt = 0; attempt < 100; attempt++) {
@@ -158,6 +161,8 @@ try {
     '/features/quick.js',
     '/features/projects.js',
     '/features/history.js',
+    '/features/history-handoff.js',
+    '/features/history-startup.js',
     '/features/import-mcp.js',
     '/features/sync-mcp.js',
     '/features/check-mcp.js',

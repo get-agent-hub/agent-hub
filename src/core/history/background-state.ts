@@ -65,7 +65,12 @@ export function alive(pid: number) {
 }
 export async function backgroundStopped(root: string, id: string) {
   const before = await snapshot(await backgroundFile(root, 'stop'));
-  return before.content !== null && before.content.trim() === JSON.stringify({ id });
+  if (before.content === null) return false;
+  try {
+    return z.object({ id: token }).strict().parse(JSON.parse(before.content)).id === id;
+  } catch {
+    throw new HubError('Background stop metadata is invalid. Preserve it before recovery.');
+  }
 }
 
 /** A process lease, distinct from the short Hub mutation lock. Never signal a saved PID. */

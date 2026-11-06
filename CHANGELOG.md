@@ -2,7 +2,10 @@
 
 ## Unreleased
 
-- Keep selected native chat sources updated in one optional detached worker after closing the browser, terminal or Hub UI server. Persist the source selection, retry temporary failures, show last complete reads and stop cooperatively without deleting archives. Add `history watch --background` / `--stop`; OS login/startup installation remains separate.
+- Prepare reviewed, version-pinned context packets for a new conversation in Claude Code, Codex or DSH. Include bounded original-message excerpts, an optional next step and source references; copy/download rechecks access. No separate model call or native session transfer.
+- Add reviewed user-login startup for the saved archive selection on macOS launchd/Linux systemd. Preserve edited or foreign startup files, support recovery and check the enabled Hub binding before resuming. Changes apply at the next user-session start; current jobs are not reloaded.
+
+- Keep selected native chat sources updated in one optional detached worker after closing the browser, terminal or Hub UI server. Persist the source selection, retry temporary failures, show last complete reads and stop cooperatively without deleting archives. Add `history watch --background` / `--stop`; Login startup is a separately reviewed option.
 
 - Reuse bounded in-memory chat title/date summaries while checking current access and saved index identity. Load Overview history only when that page is shown, avoiding duplicate archive reads on Chats. Add real interface screenshots with fictional data to the README.
 

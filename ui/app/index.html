@@ -63,6 +63,41 @@
         </div>
       </main>
     </div>
+    <dialog id="handoff-dialog" aria-labelledby="handoff-title">
+      <div class="dialog-head">
+        <h2 id="handoff-title">Continue in another client</h2>
+        <button class="btn ghost" data-handoff-close aria-label="Close context preview">✕</button>
+      </div>
+      <div class="dialog-body">
+        <p>Prepare context for a new conversation. Review the excerpts before sharing them.</p>
+        <div class="handoff-options">
+          <label
+            >Target client<select class="input" id="handoff-target">
+              <option value="codex">Codex</option>
+              <option value="claude-code">Claude Code</option>
+              <option value="dsh">DeepSeek Harness</option>
+            </select></label
+          >
+          <label
+            >What should happen next? <span class="minor">Optional</span
+            ><textarea
+              class="input"
+              id="handoff-next"
+              maxlength="2000"
+              rows="3"
+              placeholder="For example: finish the retry logic and run the tests."
+            ></textarea>
+          </label>
+        </div>
+        <p><button class="btn" data-handoff-prepare>Prepare context</button></p>
+        <div id="handoff-preview" aria-live="polite"></div>
+      </div>
+      <div class="dialog-foot">
+        <button class="btn" data-handoff-close>Close</button><span class="spacer"></span
+        ><button class="btn" data-handoff-download disabled>Download context</button
+        ><button class="btn primary" data-handoff-copy disabled>Copy context</button>
+      </div>
+    </dialog>
     <dialog id="quick-dialog" aria-labelledby="quick-title">
       <div class="dialog-head">
         <div>

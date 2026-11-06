@@ -22,7 +22,11 @@ Enable **Update selected sources in the background** to check your selection eve
 
 The worker reads only the selected store paths. Newly discovered profiles are not added to that selection. It retries temporary source/storage/lock failures, keeps old chats when originals disappear, and refuses a different directory at a previously bound path. Exclusions, deletion markers and scoped client grants still apply. It does not deliver MCP/skills/instructions or import project memory; those use their existing workflows. Background capture changes the Hub archive, never native conversations.
 
-This starts a detached process, not an OS-managed service. After a computer restart or an unexpected process exit, turn it on again in the interface. There is no login/startup installation or automatic restart supervisor. A hard crash during a Hub mutation may leave an operation lock; inspect it through the existing recovery workflow before resuming. No stored PID is ever killed to stop or recover an updater. Missing/invalid policy or a replaced Hub directory stops the worker rather than discovering a new scope or recreating reset data.
+Background refresh starts a detached process. To resume automatically, choose **Resume selected updates when I sign in**. Review the listed user-level startup files and apply. macOS uses a LaunchAgent; Linux uses a systemd user service and its `default.target.wants` link. No system service, administrator access, login credentials or shell startup changes are involved. Setup and removal use the existing checked file/recovery workflow and preserve foreign or edited files. Turning off login startup changes the next session start; use the background switch to stop the current capture.
+
+Login startup reads the saved selection and enabled policy. A stopped policy, missing/replaced Hub or invalid stop metadata never resumes capture. New profiles are not discovered into the selection. Keep the reviewed Node/package path available; moving or removing it requires reviewing startup again. On Linux this requires systemd user sessions; the job starts with the user manager, so a manager kept alive across logins may need a restart before the new setup takes effect. Setup does not reload/restart your current user manager. File installation, actual worker activity and a real post-login trial are separate evidence.
+
+Without login startup, turn background refresh on again after a restart. There is no automatic crash supervisor. A hard crash during a Hub mutation may leave an operation lock; inspect it through the existing recovery workflow before resuming. No stored PID is ever killed to stop or recover an updater. Missing/invalid policy or a replaced Hub directory stops the worker rather than discovering a new scope or recreating reset data. The operating system may request its normal filesystem access permissions; Hub does not change those permissions.
 
 ## Terminal workflow
 
@@ -45,6 +49,33 @@ ahub history watch --stop
 ```
 
 The background form uses the saved source paths, including explicit custom roots, and omits excluded sources. It requires at least one saved source. It does not discover new profiles each pass. `--interval 5` through `--interval 300` changes the check interval when starting; the interface uses 30 seconds. `status.background` reports whether a worker is actually running, not just whether an earlier configuration enabled it. Repeating the same start is idempotent. `--stop` retains the selection and archived chats.
+
+Login startup can also be reviewed from the terminal:
+
+```sh
+ahub history watch --login on
+ahub history watch --login on --apply --expect REVIEWED_REVISION
+ahub history watch --login off
+```
+
+Use the emitted apply command to remove startup after reviewing the `off` preview. These changes take effect at the next user-session start. `status.startup` describes owned file installation, not native activation. The generated macOS/Linux configuration follows [Apple's LaunchAgent model](https://developer.apple.com/library/archive/documentation/MacOSX/Conceptual/BPSystemStartup/Chapters/CreatingLaunchdJobs.html) and the [systemd service contract](https://www.freedesktop.org/software/systemd/man/latest/systemd.service.html).
+
+## Continue in another client
+
+Open a saved conversation and choose **Continue in…**. Select Claude Code, Codex or DeepSeek Harness. Optionally describe the next step, then choose **Prepare context**. Review the displayed original-message excerpts and source references. **Copy context** or **Download context**, open a new conversation in the target client and paste it there.
+
+The packet includes the first substantive request found in the inspected windows and up to ten recent user/assistant text events, their native ordinals/timestamps, preserved revision, project labels and recorded working locations. It instructs the receiving agent to verify current files, tests, decisions and remaining work using its normal project instructions, memory and handoff notes. Hub does not invent those decisions or claim that a proposed tool call completed. Tools, reasoning and runtime instructions are omitted from this compact packet; full events remain in the archive.
+
+This is a deterministic context packet, not a model-generated summary. Hub makes no separate AI/provider request, starts no client and writes no native conversation or project file. It does not grant the target client archive access. If that client has a suitable History MCP connection, it can follow the pinned references; otherwise the copied excerpts and local operator/event commands still work. Review private text before sharing it with another client or provider. Current access/exclusions are checked again before the interface copies/downloads context. A copied packet cannot be recalled later by revoking a grant.
+
+For large chats, preparation inspects at most the first 1 MiB and last 4 MiB of saved event data, verifying the blocks it reads. Partial boundary records and omitted middle events are explicitly reported. Excerpts are capped at 2,000 characters each; incomplete event/attachment coverage remains visible. This saves prompt space without pretending the packet contains the full conversation. Historical directories are references, not proof of an available current checkout.
+
+```sh
+ahub history handoff CHAT_ID --client codex
+ahub history handoff CHAT_ID --client dsh --revision PRESERVED_HASH --next "Review the pending changes"
+```
+
+Terminal output is JSON containing the packet text, references, coverage notes and digest. Preparing it is read-only and works after native originals disappear as long as the selected preserved data is intact.
 
 These commands output JSON. `show` returns `next` for another event window. `event` returns `next` for another character window of the complete native JSON record. Search returns event references and bounded snippets; it searches complete indexed records, not just visible previews. `show --revision HASH` reads a preserved earlier version.
 

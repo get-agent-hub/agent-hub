@@ -119,10 +119,36 @@ export async function* rawHistory(
     throw new HubError('Preserved raw history failed its integrity check.');
 }
 export async function rawWindow(root: string, chat: string, revision: string, offset: number) {
-  const value = await rawDescriptor(root, chat, revision);
+  const result = await rawHistorySlice(root, chat, revision, offset, 64 * 1024);
+  return {
+    data: result.bytes.toString('base64'),
+    size: result.size,
+    offset,
+    next: offset + result.bytes.length < result.size ? offset + result.bytes.length : null,
+  };
+}
+
+/** Bounded verified random access; only intersecting blocks are read and checked in full. */
+export async function rawHistorySlice(
+  root: string,
+  chat: string,
+  revision: string,
+  offset: number,
+  length: number,
+  name: 'raw' | 'events' = 'raw',
+) {
+  if (
+    !Number.isSafeInteger(offset) ||
+    offset < 0 ||
+    !Number.isSafeInteger(length) ||
+    length < 1 ||
+    length > 8 * 1024 * 1024
+  )
+    throw new HubError('Invalid preserved history slice.');
+  const value = await rawDescriptor(root, chat, revision, name);
   const pieces: Buffer[] = [];
   let position = 0,
-    remaining = 64 * 1024;
+    remaining = length;
   for (const block of value.blocks) {
     if (position + block.bytes > offset && remaining) {
       const buffer = await fs.readFile(await ownedHistoryPath(root, 'objects', block.id));
@@ -137,11 +163,5 @@ export async function rawWindow(root: string, chat: string, revision: string, of
     }
     position += block.bytes;
   }
-  const bytes = Buffer.concat(pieces);
-  return {
-    data: bytes.toString('base64'),
-    size: value.size,
-    offset,
-    next: offset + bytes.length < value.size ? offset + bytes.length : null,
-  };
+  return { bytes: Buffer.concat(pieces), size: value.size, offset };
 }

@@ -18,7 +18,9 @@ The chat list shows a readable title, client, project and the date/time of its f
 
 A conversation opens with readable messages. Reasoning and tool output can be expanded. **All events** also includes runtime context and technical records. **Conversation details & preserved versions** contains revision selection, native identity, project associations, preserved-source download and removal from the archive. **Read original event** is available on each message. Archived content is displayed as text, never executed.
 
-**Update selected sources in the background** checks the saved selection every 30 seconds, even after closing the browser or Hub UI server. It shows running/retry/stopped status, the last complete update and per-source check/complete-read times. Turn it off before changing sources or manually rebuilding. Empty selections stay disabled. After a computer restart, enable it again; no OS service is installed. See [history behavior and limits](HISTORY.md).
+**Update selected sources in the background** checks the saved selection every 30 seconds, even after closing the browser or Hub UI server. It shows running/retry/stopped status, the last complete update and per-source check/complete-read times. Turn it off before changing sources or manually rebuilding. Empty selections stay disabled. Optional **Resume selected updates when I sign in** previews owned macOS LaunchAgent/Linux systemd user files for the next session start, with guarded apply and recovery. It does not reload your current user manager.
+
+Open a conversation and choose **Continue in…** to prepare original-message excerpts for Claude Code, Codex or DSH. Add an optional next step, review the pinned source references, then copy/download and paste into a new target conversation. Preparation is local/read-only; no separate model call, client launch or access grant occurs. Copy/download rechecks current access. See [history behavior and limits](HISTORY.md).
 
 ## Review changes
 
