@@ -6,7 +6,7 @@ import { HubError } from '../../shared/errors.js';
 import { snapshot, writeChecked } from '../../shared/file-store.js';
 
 const id = z.string().regex(/^[a-f0-9]{64}$/);
-const source = z.object({
+export const historySourceSchema = z.object({
   id,
   client: z.enum(['claude-code', 'codex', 'dsh']),
   root: z.string(),
@@ -14,6 +14,7 @@ const source = z.object({
   layout: z.enum(['claude', 'codex', 'dsh']),
   binding: z.string().optional(),
 });
+const source = historySourceSchema;
 const catalogSchema = z.object({
   version: z.literal(1),
   sources: z.array(source),
@@ -26,6 +27,7 @@ const catalogSchema = z.object({
       bytes: z.number(),
       issues: z.array(z.string()),
       checkedAt: z.string(),
+      succeededAt: z.string().optional(),
     }),
   ),
   chats: z.array(

@@ -14,11 +14,10 @@ export function setupHistoryUi({ api, render, notice }) {
   let key = '';
   let requested = '';
   let version = 0;
+  let fetching = false;
   let error = '';
   let selectedSources = new Set();
   let sourcesInitialized = false;
-  let automatic = false;
-  let lastCapture = 0;
   let pending = false;
   let lastView = 'sessions';
   const active = () => readRoute().resource === 'chats' || readRoute().page === 'projects';
@@ -38,6 +37,7 @@ export function setupHistoryUi({ api, render, notice }) {
     return options;
   }
   async function fetchView(query, params, nextKey) {
+    fetching = true;
     const generation = ++version;
     requested = nextKey;
     try {
@@ -64,7 +64,11 @@ export function setupHistoryUi({ api, render, notice }) {
       if (!sourcesInitialized) {
         sourcesInitialized = true;
         selectedSources = new Set(
-          status.sources.map((source) => source.id).filter((id) => !status.excluded.includes(id)),
+          status.background?.sources.length
+            ? status.background.sources
+            : status.sources
+                .map((source) => source.id)
+                .filter((id) => !status.excluded.includes(id)),
         );
       }
       render();
@@ -75,6 +79,8 @@ export function setupHistoryUi({ api, render, notice }) {
         error = failure.message;
         render();
       }
+    } finally {
+      if (generation === version) fetching = false;
     }
   }
   function ensure(query, params, page) {
@@ -86,11 +92,29 @@ export function setupHistoryUi({ api, render, notice }) {
     return `<details class="card section-gap" id="history-sources" data-ui-key="history-sources" ${status.chats ? '' : 'open'}><summary class="card-h">Native history sources</summary><div class="card-b">${status.sources
       .map((source) => {
         const receipt = status.receipts.find((item) => item.source.id === source.id);
-        return `<label class="tags"><input type="checkbox" data-history-source="${escape(source.id)}" ${selectedSources.has(source.id) ? 'checked' : ''}>${escape(source.client)} ${pill(receipt?.coverage || 'Not captured')}<span class="minor mono">${escape(source.root)}</span></label>`;
+        return `<label class="tags"><input type="checkbox" data-history-source="${escape(source.id)}" ${selectedSources.has(source.id) ? 'checked' : ''} ${pending || status.background?.running ? 'disabled' : ''}>${escape(clientLabels[source.client] || source.client)} ${pill(receipt?.coverage || 'Not captured')}<span class="minor mono">${escape(source.root)}</span>${receipt ? `<span class="minor">Last checked: ${escape(new Date(receipt.checkedAt).toLocaleString())}${receipt.succeededAt ? ` · Last complete: ${escape(new Date(receipt.succeededAt).toLocaleString())}` : ''}</span>` : ''}</label>`;
       })
       .join(
         '',
-      )}<p class="small-note">${status.events} stored events · ${(status.bytes / 1048576).toFixed(1)} MiB</p><p class="small-note">Capture reads all available events in the selected supported stores. Native files stay in place. History may include private messages and tool output; Hub stores it locally.</p><label><input type="checkbox" id="history-auto" ${automatic ? 'checked' : ''}> Keep updated every 30 seconds while this page is open</label><p><button class="btn primary" data-history-action="scan" ${pending || !selectedSources.size || status.job?.state === 'running' ? 'disabled' : ''}>Capture selected history</button> <button class="btn" data-history-action="rebuild">Rebuild search index</button></p></div></details>`;
+      )}<p class="small-note">${status.events} stored events · ${(status.bytes / 1048576).toFixed(1)} MiB</p><p class="small-note">Capture reads all available events in the selected supported stores. Native files stay in place. History may include private messages and tool output; Hub stores it locally.</p><label><input type="checkbox" id="history-auto" ${status.background?.running ? 'checked' : ''} ${pending || !selectedSources.size ? 'disabled' : ''}> Update selected sources in the background</label><p class="small-note">Continues after you close this page and the Hub UI server. Checks every ${status.background?.interval || 30} seconds. After a computer restart, turn it on again here.</p>${backgroundNote()}<p><button class="btn primary" data-history-action="scan" ${pending || !selectedSources.size || status.job?.state === 'running' || status.background?.running ? 'disabled' : ''}>Capture selected history</button> <button class="btn" data-history-action="rebuild" ${status.background?.running ? 'disabled' : ''}>Rebuild search index</button></p></div></details>`;
+  }
+  function backgroundNote() {
+    const background = status.background;
+    if (!background) return '';
+    const state = background.running
+      ? background.state === 'stopping'
+        ? 'Stopping after checked work…'
+        : !background.responsive
+          ? 'Updater is not responding. Check history status before restarting it.'
+          : background.state === 'retrying'
+            ? 'Waiting to retry'
+            : background.state === 'capturing'
+              ? 'Reading selected sources…'
+              : 'Background updates are on'
+      : background.enabled
+        ? 'Background updates stopped. Turn them on to resume.'
+        : 'Background updates are off';
+    return `<p class="small-note" role="status">${state}${background.lastSuccess ? ` · Last complete update: ${escape(new Date(background.lastSuccess).toLocaleString())}` : ''}${background.error ? `<br>${escape(background.error)}` : ''}</p>`;
   }
   function progress() {
     const job = status.job;
@@ -162,7 +186,6 @@ export function setupHistoryUi({ api, render, notice }) {
     pending = true;
     try {
       await api('/api/history/scan', { sources: [...selectedSources] });
-      lastCapture = Date.now();
       await refresh();
     } catch (failure) {
       notice(failure.message, true);
@@ -299,7 +322,19 @@ export function setupHistoryUi({ api, render, notice }) {
       else selectedSources.delete(element.dataset.historySource);
       render();
     }
-    if (element.id === 'history-auto') automatic = element.checked;
+    if (element.id === 'history-auto') {
+      pending = true;
+      render();
+      void api('/api/history/background', {
+        enabled: element.checked,
+        ...(element.checked ? { sources: [...selectedSources] } : {}),
+      })
+        .catch((failure) => notice(failure.message, true))
+        .finally(() => {
+          pending = false;
+          void refresh();
+        });
+    }
     if (['history-project', 'history-client', 'history-sort'].includes(element.id)) {
       const params = Object.fromEntries(new URLSearchParams(location.hash.split('?')[1]));
       const field = {
@@ -337,9 +372,8 @@ export function setupHistoryUi({ api, render, notice }) {
     render();
   });
   setInterval(() => {
-    if (!active()) return;
-    if (status?.job?.state === 'running') void refresh();
-    else if (automatic && Date.now() - lastCapture > 30000) void scan();
-  }, 1500);
+    if (!active() || fetching) return;
+    if (status?.job?.state === 'running' || status?.background?.running) void refresh();
+  }, 3000);
   return { view, projectsView, refresh };
 }

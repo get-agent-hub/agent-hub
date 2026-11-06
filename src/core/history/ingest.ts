@@ -42,12 +42,16 @@ export async function ingestHistory(
         bytes: 0,
         issues: [],
         checkedAt: new Date().toISOString(),
+        succeededAt: catalog.receipts.find((item) => item.source.id === source.id)?.succeededAt,
       };
       try {
         const before = await fs.stat(source.root);
         const binding = `${before.dev}:${before.ino}`;
         const registered = catalog.sources.find((item) => item.id === source.id)!;
-        if (registered.binding && registered.binding !== binding)
+        if (
+          (registered.binding && registered.binding !== binding) ||
+          (source.binding && source.binding !== binding)
+        )
           throw new Error('Source binding changed.');
         registered.binding = binding;
         for await (const file of historyFiles(source, control.signal)) {
@@ -91,6 +95,7 @@ export async function ingestHistory(
           'Source enumeration did not finish. Archived conversations were retained.',
         );
       }
+      if (receipt.coverage === 'complete') receipt.succeededAt = new Date().toISOString();
       catalog.receipts = [
         ...catalog.receipts.filter((item) => item.source.id !== source.id),
         receipt,

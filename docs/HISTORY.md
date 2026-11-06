@@ -18,7 +18,11 @@ The interface defaults to **Conversation**: readable user/assistant messages wit
 
 Expand **Access & project settings** and choose **Connect clients…** on a saved project to preview a read-only history MCP connection. The review identifies clients and configuration files. Apply adds its scoped grant and Hub tool definition, then uses the existing guarded MCP delivery. Other definitions and native settings are preserved. Client restart and native trust approval may be required. Partial delivery has per-client results and recorded recovery; it is not a simultaneous filesystem transaction. **Revoke access…** stops retrieval immediately while retaining the archive and installed configuration entry.
 
-Enable **Keep updated** to rescan selected sources every 30 seconds while the Chats or Projects page stays open. An update running on the server continues across page reload. Closing the page does not install a background service. For refresh independently of the browser, use the foreground watcher below.
+Enable **Update selected sources in the background** to check your selection every 30 seconds. One local worker continues after you close the browser, terminal or Hub UI server. Reopening the interface shows its current state, last complete update and source coverage. The source list also separates the most recent check from the last complete read. Turn the switch off before changing the selection; stopping retains checked work and every saved version. A stop request remains active if filesystem work takes longer than the interface can wait.
+
+The worker reads only the selected store paths. Newly discovered profiles are not added to that selection. It retries temporary source/storage/lock failures, keeps old chats when originals disappear, and refuses a different directory at a previously bound path. Exclusions, deletion markers and scoped client grants still apply. It does not deliver MCP/skills/instructions or import project memory; those use their existing workflows. Background capture changes the Hub archive, never native conversations.
+
+This starts a detached process, not an OS-managed service. After a computer restart or an unexpected process exit, turn it on again in the interface. There is no login/startup installation or automatic restart supervisor. A hard crash during a Hub mutation may leave an operation lock; inspect it through the existing recovery workflow before resuming. No stored PID is ever killed to stop or recover an updater. Missing/invalid policy or a replaced Hub directory stops the worker rather than discovering a new scope or recreating reset data.
 
 ## Terminal workflow
 
@@ -31,6 +35,16 @@ ahub history show CHAT_ID --offset 0 --limit 50
 ahub history event CHAT_ID EVENT_NUMBER --offset 0
 ahub history watch
 ```
+
+`watch` without flags stays in the foreground. To continue refreshing the sources already captured in this Hub after closing the terminal:
+
+```sh
+ahub history watch --background
+ahub history status
+ahub history watch --stop
+```
+
+The background form uses the saved source paths, including explicit custom roots, and omits excluded sources. It requires at least one saved source. It does not discover new profiles each pass. `--interval 5` through `--interval 300` changes the check interval when starting; the interface uses 30 seconds. `status.background` reports whether a worker is actually running, not just whether an earlier configuration enabled it. Repeating the same start is idempotent. `--stop` retains the selection and archived chats.
 
 These commands output JSON. `show` returns `next` for another event window. `event` returns `next` for another character window of the complete native JSON record. Search returns event references and bounded snippets; it searches complete indexed records, not just visible previews. `show --revision HASH` reads a preserved earlier version.
 

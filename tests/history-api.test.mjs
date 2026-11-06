@@ -9,7 +9,75 @@ import { startUiServer } from '../dist/ui/server.js';
 import { ingestHistory } from '../dist/core/history/ingest.js';
 import { planHistoryPolicy, applyHistoryPolicy } from '../dist/core/history/policy.js';
 import { readHistory } from '../dist/core/history/storage.js';
+import { stopHistoryBackground } from '../dist/core/history/background-process.js';
 import { historyFixture } from './helpers/history.mjs';
+
+test('authenticated background selection survives closing the HTTP server and reopening it without widening source scope', async (t) => {
+  const f = await historyFixture(t);
+  const previous = process.env.AGENT_HUB_HOME;
+  process.env.AGENT_HUB_HOME = f.root;
+  let ui;
+  try {
+    const open = (discovered = [f.source]) =>
+      startUiServer({ port: 0, services: { historySources: async () => discovered } });
+    ui = await open();
+    const token = (await (await fetch(ui.url + '/api/state')).json()).token;
+    const post = (body, auth = token) =>
+      fetch(ui.url + '/api/history/background', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Agent-Hub-Token': auth },
+        body: JSON.stringify(body),
+      });
+    assert.equal((await post({ enabled: true, sources: [f.source.id] }, '')).status, 403);
+    assert.equal((await post({ enabled: true, sources: ['unknown'] })).status, 400);
+    assert.equal((await post({ enabled: true, sources: [f.source.id], root: '/etc' })).status, 400);
+    assert.equal((await post({ enabled: true })).status, 400);
+    assert.equal((await post({ enabled: true, sources: [f.source.id] })).status, 200);
+    await ui.close();
+    ui = undefined;
+    for (let attempt = 0; attempt < 100; attempt++) {
+      if ((await readHistory(f.root)).chats.length) break;
+      await new Promise((resolve) => setTimeout(resolve, 25));
+    }
+    assert.equal(
+      (await readHistory(f.root)).chats.length,
+      1,
+      'capture continues without HTTP server',
+    );
+    ui = await open([]);
+    const nextToken = (await (await fetch(ui.url + '/api/state')).json()).token;
+    const response = await fetch(ui.url + '/api/history/status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Agent-Hub-Token': nextToken },
+      body: '{}',
+    });
+    const status = await response.json();
+    assert.equal(status.background.running, true);
+    assert.deepEqual(status.background.sources, [f.source.id]);
+    assert.deepEqual(
+      status.sources.map((source) => source.id),
+      [f.source.id],
+      'saved custom root remains selectable without rediscovery',
+    );
+    const control = (name, body) =>
+      fetch(ui.url + '/api/history/' + name, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Agent-Hub-Token': nextToken },
+        body: JSON.stringify(body),
+      });
+    assert.equal((await control('background', { enabled: false })).status, 200);
+    assert.equal(
+      (await control('scan', { sources: [f.source.id] })).status,
+      202,
+      'manual capture also accepts the saved declared source',
+    );
+  } finally {
+    await ui?.close();
+    await stopHistoryBackground(f.root);
+    if (previous === undefined) delete process.env.AGENT_HUB_HOME;
+    else process.env.AGENT_HUB_HOME = previous;
+  }
+});
 
 test('HTTP history requires operator token, rejects path injection and preserves jobs across polling', async (t) => {
   const f = await historyFixture(t);

@@ -2,6 +2,16 @@
 
 The implemented import → sync → doctor → restore flow was exercised through the live UI and production CLI on macOS. Client writes used temporary configurations. Production client configurations were not synchronized.
 
+## Selected-source background archive updates — 2026-11-06
+
+`npm run check` and standalone coverage pass **326 tests**; coverage is **93.59% lines**, **85.62% branches** and **91.90% functions**. The **10-test** background/HTTP suite also passes on Node **22.13**. Architecture checks pass **189 modules / 923 imports**. Package validation passes **386 files / 1,912,857 unpacked bytes**; the actual temporary-prefix installer starts the installed worker, verifies a completed capture and stops it.
+
+The new scenarios cover Claude, Codex and DSH capture, external appends, preserved revisions, explicit source selection and saved custom roots, source disappearance/replacement/recovery, retry after Hub lock contention, duplicate process rejection, explicit restart after a crashed idle owner, replaced Hub directories and empty/invalid selections. Scoped grants, revocation, source exclusion and conversation deletion markers remain effective during background work. Native fixture bytes remain intact. An unconfigured stop creates no Hub or recovery directory. Hard crashes during a mutation can still leave a Hub operation lock requiring inspected recovery; the idle-owner test does not claim automatic crash recovery for transactions.
+
+Authenticated HTTP tests reject missing tokens, unknown source IDs and path injection, then close/reopen the UI server while retaining the selected worker. A separate isolated end-to-end run closes the HTTP server **before appending a new message**; the worker captures that message on its next scheduled pass and retains both revisions. No live client store was modified or captured for this work.
+
+A separate headless browser profile passes empty-selection guards, one-switch enable/stop, locked source controls, capture, reload and retained selection, with no runtime exceptions or overflow at desktop and 400px widths. Screenshots were inspected. All test workers, servers and browser profiles were stopped/cleaned; no background capture was enabled on real data. OS startup installation, automatic reboot/crash supervision, native session continuation and all-area reconciliation remain separate capabilities.
+
 ## Nested instruction envelopes — 2026-11-06
 
 `npm run check` and standalone coverage pass **314 tests**; coverage is **93.07% lines**, **85.27% branches** and **90.97% functions**. The targeted **23-test** client-title/title/presentation/sorting suite also passes on Node **22.13**. A synthetic browser run covers nested wrappers, normal/All-events access, reload and desktop/400px layouts without exceptions or overflow.

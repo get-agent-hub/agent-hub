@@ -77,6 +77,7 @@ export interface HistoryReceipt {
   bytes: number;
   issues: string[];
   checkedAt: string;
+  succeededAt?: string;
 }
 export interface HistoryCatalog {
   version: 1;

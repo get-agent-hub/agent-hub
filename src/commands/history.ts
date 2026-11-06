@@ -12,6 +12,12 @@ import {
 } from '../core/history/query.js';
 import { rebuildHistory } from '../core/history/rebuild.js';
 import { watchHistory } from '../core/history/watch.js';
+import { backgroundStatus } from '../core/history/background.js';
+import {
+  startHistoryBackground,
+  stopHistoryBackground,
+} from '../core/history/background-process.js';
+import { readHistory } from '../core/history/storage.js';
 import { CLIENT_IDS, type ClientId } from '../contracts/clients.js';
 import { HubError } from '../shared/errors.js';
 import { printJson } from '../shared/output.js';
@@ -45,9 +51,12 @@ export function registerHistoryCommands(
     offset: Number(options.offset),
     limit: Number(options.limit),
   });
-  history
-    .command('status')
-    .action(async () => printJson(await historyOverview(hubRoot(), operator)));
+  history.command('status').action(async () =>
+    printJson({
+      ...(await historyOverview(hubRoot(), operator)),
+      background: await backgroundStatus(hubRoot()),
+    }),
+  );
   history
     .command('scan')
     .option('--client <id>', 'read only this native client')
@@ -116,7 +125,21 @@ export function registerHistoryCommands(
   history
     .command('watch')
     .option('--interval <seconds>', 'foreground periodic refresh, 5–300 seconds', '30')
+    .option('--background', 'update previously captured sources after the terminal and UI close')
+    .option('--stop', 'stop background updates; saved chats are retained')
     .action(async (options) => {
+      if (options.stop && options.background) throw new HubError('Choose --background or --stop.');
+      if (options.stop) return printJson(await stopHistoryBackground(hubRoot()));
+      if (options.background) {
+        const catalog = await readHistory(hubRoot());
+        return printJson(
+          await startHistoryBackground(
+            hubRoot(),
+            catalog.sources.filter((source) => !catalog.excluded.includes(source.id)),
+            Number(options.interval),
+          ),
+        );
+      }
       const control = cancellation();
       try {
         await watchHistory(hubRoot(), {

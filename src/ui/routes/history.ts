@@ -4,6 +4,12 @@ import { CLIENT_IDS } from '../../contracts/clients.js';
 import { planHistoryConnection, applyHistoryConnection } from '../../core/history/connection.js';
 import { historySources } from '../../adapters/history/sources.js';
 import { historyOverview } from '../../core/history/overview.js';
+import { backgroundStatus } from '../../core/history/background.js';
+import { readHistory } from '../../core/history/storage.js';
+import {
+  startHistoryBackground,
+  stopHistoryBackground,
+} from '../../core/history/background-process.js';
 import { applyHistoryPolicy, planHistoryPolicy } from '../../core/history/policy.js';
 import {
   historyBytes,
@@ -51,6 +57,14 @@ const operator = { operator: true } as const;
 export function createHistoryRoutes(session: UiSession) {
   const root = hubRoot();
   const sources = session.services.historySources ?? historySources;
+  const availableSources = async () => [
+    ...new Map(
+      [...(await readHistory(root)).sources, ...(await sources())].map((source) => [
+        source.id,
+        source,
+      ]),
+    ).values(),
+  ];
   const jobs = createHistoryJobs(root, (running) => {
     session.applying = running;
   });
@@ -70,8 +84,9 @@ export function createHistoryRoutes(session: UiSession) {
     if (name === 'status')
       json(200, {
         ...(await historyOverview(root, operator)),
-        sources: await sources(),
+        sources: await availableSources(),
         job: jobs.status(),
+        background: await backgroundStatus(root),
       });
     else if (name === 'list') json(200, await listHistory(root, operator, validated(query, body)));
     else if (name === 'search')
@@ -100,11 +115,36 @@ export function createHistoryRoutes(session: UiSession) {
     else if (name === 'scan') {
       if (session.applying) throw new RequestError(409, 'Another operation is running.');
       const input = validated(z.object({ sources: z.array(z.string()).min(1) }).strict(), body);
-      const available = await sources();
+      const available = await availableSources();
       if (input.sources.some((id) => !available.some((source) => source.id === id)))
         throw new RequestError(400, 'Choose known native history sources.');
       if (session.applying) throw new RequestError(409, 'Another operation is running.');
       json(202, jobs.start(available.filter((source) => input.sources.includes(source.id))));
+    } else if (name === 'background') {
+      const input = validated(
+        z
+          .object({ enabled: z.boolean(), sources: z.array(z.string()).min(1).max(100).optional() })
+          .strict(),
+        body,
+      );
+      if (!input.enabled) json(200, await stopHistoryBackground(root));
+      else {
+        if (session.applying) throw new RequestError(409, 'Another operation is running.');
+        const available = await availableSources();
+        const selected = input.sources ?? [];
+        if (
+          !selected.length ||
+          selected.some((id) => !available.some((source) => source.id === id))
+        )
+          throw new RequestError(400, 'Choose known native history sources.');
+        json(
+          200,
+          await startHistoryBackground(
+            root,
+            available.filter((source) => selected.includes(source.id)),
+          ),
+        );
+      }
     } else if (name === 'connection/preview') {
       const input = validated(
         z.object({ project: z.string(), clients: z.array(z.enum(CLIENT_IDS)).optional() }).strict(),

@@ -11,6 +11,7 @@ const prefix = path.join(directory, 'prefix');
 const workspace = path.join(directory, 'unrelated-project');
 const home = path.join(directory, 'hub');
 let ui;
+let stopBackground;
 try {
   await fs.mkdir(workspace);
   execFileSync('git', ['init', '-q', workspace]);
@@ -58,6 +59,7 @@ try {
 
   const run = (args, name = 'ahub') =>
     execFileSync(name, args, { cwd: workspace, env, encoding: 'utf8' });
+  stopBackground = () => run(['history', 'watch', '--stop']);
   assert.match(run(['--help']), /quick/);
   const metadata = JSON.parse(await fs.readFile(path.join(source, 'package.json'), 'utf8'));
   assert.equal(run(['--version']).trim(), metadata.version);
@@ -88,6 +90,15 @@ try {
   assert.equal(JSON.parse(run(['history', 'scan', '--client', 'claude-code'])).chats, 1);
   const history = JSON.parse(run(['history', 'ls']));
   assert.equal(history.chats[0].events, 1);
+  assert.equal(JSON.parse(run(['history', 'watch', '--background'])).running, true);
+  let background;
+  for (let attempt = 0; attempt < 100; attempt++) {
+    background = JSON.parse(run(['history', 'status'])).background;
+    if (background.lastSuccess) break;
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  assert.ok(background.lastSuccess, 'Installed worker performs a checked capture');
+  assert.equal(JSON.parse(stopBackground()).running, false);
   assert.equal(JSON.parse(run(['history', 'search', 'Installed history sentinel'])).total, 1);
   assert.equal(
     JSON.parse(run(['history', 'show', history.chats[0].id])).events[0].text,
@@ -195,9 +206,10 @@ try {
   assert.equal(scan.projects.length, 1);
   assert.equal(scan.projects[0].locations[0], await fs.realpath(workspace));
   console.log(
-    'Real installer verified in a temporary prefix: both binaries, quick preview/apply, status, full history capture/search/read and reviewed Codex history connection, UI assets and read-only project discovery from an unrelated directory.',
+    'Real installer verified in a temporary prefix: both binaries, quick preview/apply, status, full history capture/search/read, detached background start/stop and reviewed Codex history connection, UI assets and read-only project discovery from an unrelated directory.',
   );
 } finally {
+  if (stopBackground) stopBackground();
   if (ui && ui.exitCode === null) {
     const stopped = new Promise((resolve) => ui.once('exit', resolve));
     ui.kill('SIGTERM');

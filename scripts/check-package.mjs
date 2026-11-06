@@ -12,6 +12,8 @@ const files = new Set(archive.files.map((file) => file.path));
 for (const required of [
   'dist/cli.js',
   'dist/core/history/ingest.js',
+  'dist/core/history/background-process.js',
+  'dist/workers/history.js',
   'dist/adapters/history/titles.js',
   'dist/core/history/raw.js',
   'dist/core/history/connection.js',
