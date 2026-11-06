@@ -2,7 +2,19 @@
 
 ## Unreleased
 
+## 0.1.0-beta.5 — 2026-11-06
+
+Fix an intermittent failure when two clients save project memory at the same time. A planner could read another managed writer’s temporary staging file before acquiring the Hub lock and reject it as an unexpected record. Automatic checkpoints and native-note imports now acquire the existing lock before their first plan read and hold it through application.
+
 - Acquire the Hub lock before reading and planning automatic memory checkpoints and native-note imports. Concurrent clients no longer mistake a managed writer's temporary staging files for foreign records. Keep strict unexpected-file checks, reviewed manual writes and bounded contention retries.
+- Add two deterministic regressions that fail before the fix and pass after it, covering checkpoint and native-note import ordering. Keep the independent two-client MCP test and include the actual tool error in its failure output.
+- Keep foreign-file rejection, one-use checkpoint tokens, reviewed manual plans, bounded contention retries and recovery checks. No staging-file ignore rule or broader automatic retry was added.
+
+The runtime fix passed 349 tests on all four Linux/macOS × Node 22.13/24 CI combinations. A local 32-trial Node 22 contention run also passed after the fix. The maintainer’s earlier Codex → DSH and PostHog checks apply to the existing feature set; a new beta.5 manual trial or OS sign-in test is not claimed.
+
+Download the source ZIP or installable npm tarball with SHA256SUMS and release.json. Node.js 22.13+ and npm are required; installation can download locked dependencies. macOS and Linux are supported, Windows is experimental, and public npm registry publication remains deferred. Update using the existing stop/install/restart instructions in docs/RELEASE.md.
+
+Basic usage analytics remains **on by default**. Disable it in Sources & settings, run `ahub telemetry off`, or set `DO_NOT_TRACK=1`. Events exclude chat text, queries, paths, client configuration and credentials. The local archive, context handoff and reviewed shared settings from beta.4 are included. Context packets do not transfer active sessions; recovery across files is compensating rather than power-loss-safe.
 
 ## 0.1.0-beta.4 — 2026-11-06
 
@@ -42,7 +54,7 @@ Unavailable local attachments and unsupported source coverage are reported expli
 
 ## 0.1.0-beta.2 — 2026-11-06
 
-Unpublished candidate, superseded by beta.3. Its existing tag and draft remain unchanged.
+Unpublished candidate, superseded by beta.3. Its tag remains unchanged; its unpublished draft was later removed at the maintainer’s request.
 
 Local conversation archive and a simpler interface. Distributed as reviewed GitHub source/package archives; no public npm registry installation.
 

@@ -36,7 +36,7 @@ Regression tests should demonstrate observable failures: stale plans, interrupte
 
 ## Release checks
 
-The candidate is 0.1.0-beta.4, distributed as a source ZIP and standalone npm tarball. The package remains private to prevent accidental registry publication; the public npm name and registry publication are deferred. Publishing and pushing are explicit maintainer actions. The package allowlist excludes test fixtures, local state, QA reports and design mockups. Run the full checks from a clean checkout before cutting a release. See [RELEASE.md](docs/RELEASE.md) for artifact preparation and open publication gates, and [SECURITY.md](SECURITY.md) for private reporting.
+The candidate is 0.1.0-beta.5, distributed as a source ZIP and standalone npm tarball. The package remains private to prevent accidental registry publication; the public npm name and registry publication are deferred. Publishing and pushing are explicit maintainer actions. The package allowlist excludes test fixtures, local state, QA reports and design mockups. Run the full checks from a clean checkout before cutting a release. See [RELEASE.md](docs/RELEASE.md) for artifact preparation and open publication gates, and [SECURITY.md](SECURITY.md) for private reporting.
 
 Production dependency audit must pass. Review development-tool advisories separately: do not force unrelated major-version changes or hide advisories with unexplained overrides. See `docs/CODE_REVIEW.md` for the audited baseline and known limitations.
 

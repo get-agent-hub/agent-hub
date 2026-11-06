@@ -1,8 +1,8 @@
 # Preparing a beta release
 
-The earlier `v0.1.0-beta.2` tag/draft and failed `v0.1.0-beta.3` tag remain frozen. Beta.4 fixes the background metadata race exposed by beta.3 release CI and includes its default-on analytics. The maintainer confirmed the Codex → DSH trial, conflict/recovery extension and PostHog visibility on the beta.3 feature basis on 2026-11-06; see the [readiness record](launch/READINESS.md). This is manual maintainer evidence; a separate beta.4 manual trial is not claimed.
+Beta.5 includes published beta.4 and fixes the automatic memory planning race found by a later master CI rerun. The runtime fix passed all four Linux/macOS × Node 22.13/24 checks at `e6ea67ef608c119d95763017f5046e80029e90c8`; the tagged workflow verifies the final release commit separately. Earlier tags stay unchanged. The unpublished beta.2 draft was removed at the maintainer’s request. The maintainer confirmed the Codex → DSH trial, conflict/recovery and PostHog visibility on the earlier feature basis; a separate beta.5 manual trial is not claimed. See the [readiness record](launch/READINESS.md).
 
-The candidate version is **0.1.0-beta.4**. It uses a source ZIP and a standalone npm tarball. The earlier published **0.1.0-beta.1** archive does not contain the current chat archive, interface and context-handoff features. Use the current source checkout while this candidate is being prepared; candidate assets become available only after publication. `private: true` deliberately prevents accidental registry publication; it does not prevent installing the reviewed local tarball. The npm registry name and registry publication are deferred. No push, tag, GitHub Release or deployment is performed by the preparation commands.
+The candidate version is **0.1.0-beta.5**. It uses a source ZIP and a standalone npm tarball from GitHub Releases. Always choose matching versioned files and verify their checksums; candidate assets become available after publication. `private: true` deliberately prevents accidental registry publication; it does not prevent installing a reviewed local tarball. The npm registry name and registry publication are deferred. Local preparation commands do not push, tag, publish a GitHub Release or deploy the website.
 
 ## Install the candidate
 
@@ -18,11 +18,11 @@ ahub quick
 Alternatively install the prebuilt tarball from the same candidate:
 
 ```sh
-npm install --global ./agent-hub-0.1.0-beta.4.tgz
+npm install --global ./agent-hub-0.1.0-beta.5.tgz
 ahub --version
 ```
 
-The executable must report `0.1.0-beta.4`. Both installation methods may download locked dependencies from npm; this is not an offline bundle. Use a user-writable npm prefix.
+The executable must report `0.1.0-beta.5`. Both installation methods may download locked dependencies from npm; this is not an offline bundle. Use a user-writable npm prefix.
 
 ## Update or uninstall
 
@@ -74,7 +74,7 @@ Use Gitleaks 8.24.3 with `gitleaks git . --config .gitleaks.toml --redact --log-
 
 The full audit includes development tooling; investigate findings separately from the production audit. Do not force incompatible dependency downgrades or hide results. Scan all reachable Git history and the final working tree with a pinned secret scanner, redact reports and review findings. A clean scanner report does not prove the absence of every secret or personal detail. Never rewrite shared history automatically; credential rotation and coordinated cleanup are separate maintainer actions if anything real is found.
 
-`release:prepare` refuses a dirty checkout, builds the CLI, packs the compiled runtime and UI, and archives tracked source from HEAD. Outputs are under `.tmp/release/0.1.0-beta.4/`: the installable `.tgz`, source `.zip`, `SHA256SUMS` and `release.json` with version, exact commit, Node requirement and file hashes. Verify the checksums after copying artifacts. GitHub Actions runs tests once on each macOS/Linux and Node 22.13/24 combination. Static checks, coverage and the production audit run on Linux/Node 22.13; package/installer checks run on Linux/Node 22.13 and macOS/Node 24. Ordinary branch/PR validation does not prepare release archives. A local run does not establish remote CI success.
+`release:prepare` refuses a dirty checkout, builds the CLI, packs the compiled runtime and UI, and archives tracked source from HEAD. Outputs are under `.tmp/release/0.1.0-beta.5/`: the installable `.tgz`, source `.zip`, `SHA256SUMS` and `release.json` with version, exact commit, Node requirement and file hashes. Verify the checksums after copying artifacts. GitHub Actions runs tests once on each macOS/Linux and Node 22.13/24 combination. Static checks, coverage and the production audit run on Linux/Node 22.13; package/installer checks run on Linux/Node 22.13 and macOS/Node 24. Ordinary branch/PR validation does not prepare release archives. A local run does not establish remote CI success.
 
 ## Public release gates
 
@@ -94,8 +94,8 @@ The release workflow runs on version-tag pushes or a manual dispatch with an exi
 Run the following only from the reviewed, sanitized publication repository when ready to create a GitHub draft. The remote must point at the intended GitHub repository, and the tagged commit must already be available there:
 
 ```sh
-git tag -a v0.1.0-beta.4 -m "Agent Hub 0.1.0-beta.4"
-git push origin v0.1.0-beta.4
+git tag -a v0.1.0-beta.5 -m "Agent Hub 0.1.0-beta.5"
+git push origin v0.1.0-beta.5
 ```
 
 To retry, open Actions → Prepare GitHub release → Run workflow and enter the existing version tag. A rerun may refresh assets and notes on the draft; it refuses to modify an already published release. Downloaded artifacts are checksum-verified and their manifest commit is compared to the tag again before upload. No tag or release is created by local preparation.
