@@ -18,6 +18,7 @@ import { setupDoctorUi } from './features/check-mcp.js';
 const $ = (selector) => document.querySelector(selector);
 let state;
 let archive;
+let archiveRequest = 0;
 let query = '';
 let loadVersion = 0;
 const route = () => readRoute();
@@ -101,7 +102,11 @@ function render() {
           historyUi.projectsView(query) +
           `<details class="project-discovery section-gap" data-ui-key="project-discovery"><summary>Find more projects & inspect source coverage</summary><div class="section-gap">${projectDiscovery.view(query)}</div></details>`;
   } else if (page === 'sources') body = sourcesPage(state);
-  else body = query ? resourcePages.view('search', params) : overviewPage(state, archive);
+  else if (query) body = resourcePages.view('search', params);
+  else {
+    void loadOverviewArchive();
+    body = overviewPage(state, archive);
+  }
   paint(body, `${page}:${resource}:${params.get('chat') || ''}:${params.get('revision') || ''}`);
 }
 
@@ -123,6 +128,23 @@ setupImportUi(context);
 setupSyncUi(context);
 setupDoctorUi(context);
 
+async function loadOverviewArchive() {
+  if (archive !== undefined) return;
+  const request = ++archiveRequest;
+  archive = { loading: true };
+  const results = await Promise.allSettled([
+    api('/api/history/status', {}),
+    api('/api/history/list', { limit: 5, sort: 'newest' }),
+  ]);
+  if (request !== archiveRequest) return;
+  archive = {
+    status: results[0].status === 'fulfilled' ? results[0].value : undefined,
+    chats: results[1].status === 'fulfilled' ? results[1].value.chats : [],
+    error: results.find((result) => result.status === 'rejected')?.reason?.message,
+  };
+  render();
+}
+
 async function load() {
   const generation = ++loadVersion;
   $('#refresh').disabled = true;
@@ -130,6 +152,8 @@ async function load() {
     const nextState = await api('/api/state');
     if (generation !== loadVersion) return;
     state = nextState;
+    archive = undefined;
+    archiveRequest++;
     projectDiscovery.initialize();
     resourcePages.invalidate();
     mcpPage.invalidate();
@@ -144,17 +168,6 @@ async function load() {
         .join('');
     picker.value =
       state.selection?.projectId || (state.selection?.mode === 'current' ? '@current' : '');
-    render();
-    const results = await Promise.allSettled([
-      api('/api/history/status', {}),
-      api('/api/history/list', { limit: 5, sort: 'newest' }),
-    ]);
-    if (generation !== loadVersion) return;
-    archive = {
-      status: results[0].status === 'fulfilled' ? results[0].value : undefined,
-      chats: results[1].status === 'fulfilled' ? results[1].value.chats : [],
-      error: results.find((result) => result.status === 'rejected')?.reason?.message,
-    };
     render();
   } catch (error) {
     if (generation !== loadVersion) return;
@@ -223,6 +236,9 @@ document.addEventListener('keydown', (event) => {
   }
 });
 window.addEventListener('hashchange', () => {
+  // Refresh recent chats when returning from capture or deletion in another view.
+  archive = undefined;
+  archiveRequest++;
   query = '';
   $('#search').value = '';
   render();

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Reuse bounded in-memory chat title/date summaries while checking current access and saved index identity. Load Overview history only when that page is shown, avoiding duplicate archive reads on Chats. Add real interface screenshots with fictional data to the README.
+
 - Derive readable Codex/DSH titles instead of environment blocks (including nested AGENTS wrappers), approval boilerplate and 20-character fallback excerpts. Preserve native/provider titles and delegated-task labels, label review/build-output sessions and keep all original events accessible.
 
 - Default chat lists and Overview conversations to newest native dates first. Add an oldest-first selector, sort before pagination and keep unknown dates last without changing archived data.

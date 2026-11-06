@@ -1,6 +1,6 @@
 # Agent Hub
 
-One local hub for the MCP tools, skills, instructions and memory used by Claude Code, Codex CLI and DeepSeek Harness.
+One local hub for the chats, projects, MCP tools, skills and memory used by Claude Code, Codex CLI and DeepSeek Harness.
 
 [Quick start](docs/QUICKSTART.md) · [Documentation](docs/README.md) · [Website](https://getahub.dev) · [Releases](https://github.com/get-agent-hub/agent-hub/releases)
 
@@ -9,7 +9,12 @@ One local hub for the MCP tools, skills, instructions and memory used by Claude 
 - Collect existing MCP definitions and complete skill bundles into a shared Hub.
 - Deliver Hub settings to selected clients while preserving personal content.
 - Connect optional project memory, handoff notes and lifecycle checkpoints.
+- Preserve supported conversations locally, search messages and share scoped archive access.
 - Review changes in the terminal or local UI, with conflict guards and recovery.
+
+![Agent Hub overview with saved conversations, shared resources and detected clients](https://raw.githubusercontent.com/get-agent-hub/agent-hub/master/docs/images/hub-overview.png)
+
+Real interface with fictional sample data. [See a saved conversation](docs/images/hub-chat.png).
 
 ## Get started
 
@@ -37,6 +42,7 @@ Prefer a graphical workflow? Run `ahub ui`. To connect optional memory for an ex
 | Understand commands and their purpose        | [CLI reference](docs/CLI.md)                                |
 | Share tools, skills and instructions         | [Content and sync](docs/CONTENT.md)                         |
 | Connect memory and automation                | [Memory](docs/MEMORY.md) · [Automation](docs/AUTOMATION.md) |
+| Save, search and share past conversations    | [Chats and projects](docs/HISTORY.md)                       |
 | Test the complete flow myself                | [Working guide](docs/WORKING_GUIDE.md)                      |
 | Undo changes or return to the first baseline | [Recovery](docs/RECOVERY.md)                                |
 

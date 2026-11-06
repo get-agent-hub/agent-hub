@@ -41,6 +41,9 @@ test('unavailable history never looks like an empty archive on the overview', ()
   const empty = overviewPage(state, { status: { chats: 0 }, chats: [] });
   assert.match(empty, /class="v">0/);
   assert.ok(!empty.includes('History could not be read'));
+  const loading = overviewPage(state, { loading: true });
+  assert.match(loading, /Reading saved conversations/);
+  assert.ok(!loading.includes('Your conversations belong here'));
 });
 
 test('conversation presentation keeps native markup inert and preserves technical access', () => {

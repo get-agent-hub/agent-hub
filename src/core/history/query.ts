@@ -7,6 +7,7 @@ import { selectHistoryChat, visibleHistory, type HistoryAccess } from './access.
 import { ownedHistoryPath, readHistory, readHistoryVersion } from './storage.js';
 import { rawHistory, rawWindow } from './raw.js';
 import { historyEvent } from '../../adapters/history/events.js';
+import { historyChatSummary } from './summary.js';
 import {
   conversationFilter,
   publicHistoryEvent,
@@ -59,7 +60,9 @@ export async function listHistory(root: string, access: HistoryAccess, options: 
       ...(await Promise.all(
         candidates
           .slice(start, start + 8)
-          .map((chat) => titledHistoryChat(chat, historyEvents(root, chat.id, chat.revision))),
+          .map((chat) =>
+            historyChatSummary(root, chat, () => historyEvents(root, chat.id, chat.revision)),
+          ),
       )),
     );
   }

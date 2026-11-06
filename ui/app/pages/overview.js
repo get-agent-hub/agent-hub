@@ -52,8 +52,12 @@ export function overviewPage(state, archive) {
         recent.length
           ? `<ul class="list">${recent.map((chat) => chatSummary(chat, archive?.status?.projects || [])).join('')}</ul>`
           : empty(
-              archive?.error ? 'History could not be read' : 'Your conversations belong here',
-              archive?.error ||
+              archive?.loading
+                ? 'Reading saved conversations…'
+                : archive?.error
+                  ? 'History could not be read'
+                  : 'Your conversations belong here',
+              (archive?.loading ? 'Loading the local archive.' : archive?.error) ||
                 'Open Chats to capture your local history and search every message.',
               `<a class="btn" href="${link('sessions')}">Open chats</a>`,
             )

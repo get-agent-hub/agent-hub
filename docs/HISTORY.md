@@ -90,6 +90,8 @@ Supported policies are `exclude` (`id`, `excluded`), `forget` (`id`), `label` (`
 
 ## Storage and recovery
 
+The running Hub server reuses a bounded in-memory cache of derived chat titles and dates. It still checks the current catalog, access and saved index identity on each list request. New captured revisions and rebuilt indexes invalidate those summaries. Opening a chat or downloading its source still reads the preserved data. The first sorted list after a server restart must inspect saved event prefixes; later lists can reuse their summaries. The cache creates no files and is not a substitute for archive storage.
+
 The archive lives under `state/history` inside the Hub, excluded from normal Hub Git history. Data and blocks use private file permissions. Catalog and descriptor formats are versioned; unknown catalog versions are refused. Complete raw/event units precede catalog acknowledgement. Cancellation or a failed unit retains the previous acknowledged version. Interrupted staging and unreferenced blocks may remain private on disk; subsequent capture is idempotent.
 
 `ahub history rebuild` verifies preserved raw blocks and rebuilds current derived event indexes without reading native clients or contacting a model. A corrupted raw block is refused rather than used to produce a new index. Catalog corruption is a separate recovery problem: preserve the files and restore a compatible catalog from recovery; rebuild does not invent project corrections or grants.
